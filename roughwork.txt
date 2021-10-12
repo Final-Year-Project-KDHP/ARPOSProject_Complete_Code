@@ -1,0 +1,28 @@
+
+                        #Select ROI
+                        # ROI0 = cv2.selectROI(crop_img, 0, 0)
+                        # # Crop image
+                        # imCrop0 = crop_img[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
+                        # print(ROI0)
+                        # var1=str(ROI0[1])
+                        # var2=str(int(ROI0[1] + ROI0[3]))
+                        # var3=str(ROI0[0])
+                        # var4=str(int(ROI0[0] + ROI0[2]))
+                        # print(var1 + ":" + var2 + ", "+ var3 + ":" + var4)
+                        #
+                        # # # Display cropped image
+                        # cv2.imshow("Image", imCrop0)
+                        # cv2.waitKey(0)
+
+                        #crop_img = crop_img[0:y + h, 0:x + w]
+                        # var1 = str(15)
+                        # var2 = str(int(10 +(h/2)))
+                        # var3 = str(int((w/2)-25))
+                        # var4 = str(int(w-29))
+                        # imCrop0 = crop_img[int(15):int(10 +(h/2)), int((w/2)-25):int(w-29)] #crop_img[10:int(10 + (h/2)), int(10):int(10 + ((w/2)+10)))]
+                        # print(var1 + ":" + var2 + ", "+ var3 + ":" + var4)
+
+
+                        # # Display cropped image
+                        cv2.imshow("Image", imCrop0)
+                        cv2.waitKey(0)
