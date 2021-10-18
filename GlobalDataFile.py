@@ -43,7 +43,6 @@ class GlobalData:
 
 
     def getAllData(self):
-
         OriginalData =  np.c_[self.blue, self.green, self.red, self.grey, self.Irchannel]
         return OriginalData
 

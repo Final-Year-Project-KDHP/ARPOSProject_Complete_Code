@@ -1,3 +1,5 @@
+import os
+
 from matplotlib import pyplot as plt
 
 """
@@ -9,6 +11,7 @@ class Configurations:
     #Global parameters
     # change path here for uncompressed dataset
     DiskPath = "E:\\StudyData\\"
+    SavePath = ""
 
     #Algorithm List
     AlgoList = ["FastICA", "PCA", "ICAPCA", "None", "Jade"]
@@ -53,6 +56,12 @@ class Configurations:
     #Generate HTML Summary #TODO : ADD detail
     GenerateSummary = False
 
+    #Ignore gray when processing signals (only process r,g,b and ir)
+    ignoregray = False
+
+    #Generate graphs when processing signals (only process r,g,b and ir)
+    GenerateGraphs = True
+
     # setup highpass filter
     ignore_freq_below_bpm = 40
     ignore_freq_below = ignore_freq_below_bpm / 60
@@ -74,9 +83,16 @@ class Configurations:
     GetSavePath:
     Store all the generated graphs and files to this path
     """
-    def getSavePath(self,participantNumber,position):
-        SavePath = self.DiskPath + '\\Result\\' + participantNumber + '\\' + position + '\\'
-        return SavePath
+    def setSavePath(self,participantNumber,position):
+        self.SavePath = self.DiskPath + '\\Result\\' + participantNumber + '\\' + position + '\\'
+        #Create save path if it does not exists
+        if not os.path.exists(self.SavePath):
+            os.makedirs(self.SavePath)
+
+        if(self.GenerateGraphs):
+            graphPath = self.SavePath + "Graphs\\"
+            if not os.path.exists(graphPath):
+                os.makedirs(graphPath)
 
     """
     getLoadPath:

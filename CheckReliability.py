@@ -8,6 +8,7 @@ SignalToNoiseAcceptanceThreshold = 5.0
 HeartRateSnrAcceptanceThreshold = SignalToNoiseAcceptanceThreshold
 # previous computed values for this face
 previousComputedHeartRate = 0.0
+numberOfAnalysisFailuresSinceCorrectHeartRate = 0.0
 HeartRateDeviationAcceptanceFactor = 0.3
 NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate = 20
 HeartRateErrorScalingFactor = 0.2
@@ -23,6 +24,7 @@ class CheckReliability:
     SignalToNoiseAcceptanceThreshold = 2.5  # 3.5
     HeartRateSnrAcceptanceThreshold = SignalToNoiseAcceptanceThreshold
     # #previous computed values for this face
+    previousComputedHeartRate= 0.0
     HeartRateDeviationAcceptanceFactor = 0.3
     NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate = 20
     HeartRateErrorScalingFactor = 0.2
@@ -37,8 +39,9 @@ class CheckReliability:
     def IsHeartRateReliable(self,numberOfAnalysisFailuresSinceCorrectHeartRate):
         return numberOfAnalysisFailuresSinceCorrectHeartRate < NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate
 
-    def AddHeartRate(self,bestHeartRateSnr, bestBpm, previousComputedHeartRate,
-                     numberOfAnalysisFailuresSinceCorrectHeartRate, freqencySamplingError):
+    def AddHeartRate(self,bestHeartRateSnr, bestBpm):
+        # , previousComputedHeartRate,
+        # numberOfAnalysisFailuresSinceCorrectHeartRate, freqencySamplingError
 
         condition1 = (bestHeartRateSnr < HeartRateSnrAcceptanceThreshold)
         condition2 = (np.abs(bestBpm - previousComputedHeartRate) > (

@@ -179,7 +179,7 @@ class LoadFaceData:
                 self.grey.append(greymeanValues)
 
                 # Add Time Stamp with miliseconds
-                self.time_listcolor.append(FrameTimeStamp)
+                self.Frametime_list_color.append(FrameTimeStamp)
 
                 total_frames = total_frames + 1
 
@@ -189,7 +189,7 @@ class LoadFaceData:
                 self.time_list_color.append(td)
 
         Timecount = 1
-        for time in self.time_listcolor:
+        for time in self.time_list_color:
             self.timecolorCount.append(Timecount)
             Timecount = Timecount + 1
         # End
@@ -264,7 +264,7 @@ class LoadFaceData:
                         self.distanceM.append(float(dm))
 
         Timecount = 1
-        for time in self.time_listir:
+        for time in self.time_list_ir:
             self.timeirCount.append(Timecount)
             Timecount = Timecount + 1
         # End IR
