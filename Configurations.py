@@ -24,10 +24,13 @@ class Configurations:
     filtertypeList = [1, 2, 3, 4, 5, 6, 7]
 
     #Pre processing techniques
-    preprocesses = [1, 2, 3, 4, 5, 6, 7]
+    preprocesses = [1, 2, 3, 4, 5, 6, 7, 8]
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
     resulttypeList = [1, 2, 3, 4, 5, 6, 7, 9, 8]
+
+    #geting heart rate by different methods in bpm
+    hrTypeList = [1,2,3]
 
     #Smoothen Curve after filtering frequency
     Smoothen = [False, True]

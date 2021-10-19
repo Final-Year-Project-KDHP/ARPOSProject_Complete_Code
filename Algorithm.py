@@ -176,7 +176,7 @@ class AlgorithmCollection:
                blue_max_peak_value, green_max_peak_value, red_max_peak_value, grey_max_peak_value, ir_max_peak_value, \
                blue_bpm,green_bpm,red_bpm,grey_bpm,ir_bpm
 
-    def Apply_FFT_M1_byeachsignal(self,yf,objPlot, cutoff, upperbound,ignoregray): #rfft, abs, get power and its freq
+    def Apply_FFT_M1_byeachsignal(self,yf,ignoregray): #rfft, abs, get power and its freq
 
         self.apply_rfft(yf,ignoregray)
         self.apply_Abs(ignoregray)
@@ -195,9 +195,7 @@ class AlgorithmCollection:
         # return self.powerfftblue,self.powerfftGreen,self.powerfftRed,self.powerfftGrey,self.powerfftIR,self.freq,\
         #        blue_max_peak, green_max_peak,red_max_peak,grey_max_peak,ir_max_peak,\
         #        blue_bpm,green_bpm,red_bpm,grey_bpm,ir_bpm
-        return self.powerfftblue, self.powerfftGreen, self.powerfftRed, self.powerfftGrey, self.powerfftIR, self.freq, \
-               0, 0, 0, 0, 0, \
-               0, 0, 0, 0, 0
+        return self.powerfftblue, self.powerfftGreen, self.powerfftRed, self.powerfftGrey, self.powerfftIR, self.freq
 
         #fft_plot, xf[max_peak] * 60, xf[max_peak], max_peak
 
@@ -231,7 +229,7 @@ class AlgorithmCollection:
 
         #fft_plot, xf[max_peak] * 60, xf[max_peak], max_peak
 
-    def Apply_FFT_M2_eachsignal(self,S_,objPlot, cutoff, upperbound,ignoregray): #rfft, abs, get power and its freq
+    def Apply_FFT_M2_eachsignal(self,S_, ignoregray): #rfft, abs, get power and its freq
 
 
         N = len(S_)  # Number of data points
@@ -261,16 +259,14 @@ class AlgorithmCollection:
 
         #fft_plot, xf[max_peak] * 60, xf[max_peak], max_peak
 
-    def Apply_FFT_WithoutPower_M4_eachsignal(self,yf,objPlot, cutoff, upperbound,ignoregray): #rfft, abs, get power and its freq
+    def Apply_FFT_WithoutPower_M4_eachsignal(self,yf,ignoregray): #rfft, abs, get power and its freq
 
         self.apply_rfft(yf,ignoregray)
         self.apply_Abs(ignoregray)
         self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
 
         # freqfft = [float(np.argmax(self.fftblue)), float(np.argmax(self.fftGreen)), float(np.argmax(self.fftRed)), float(np.argmax(self.fftIR))] ## for gray add
-        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.freq, \
-               0, 0, 0, 0, 0, \
-               0, 0, 0, 0, 0
+        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.freq
 
         #fft_plot, xf[max_peak] * 60, xf[max_peak], max_peak
 
@@ -438,7 +434,7 @@ class AlgorithmCollection:
 
         return fft_plot[:, 0], fft_plot[:, 1], fft_plot[:, 2], fft_plot[:, 3], fft_plot[:, 4]
 
-    def Apply_FFT_M6_Individual(self, yf,objPlot,ignoregray): #original 5
+    def Apply_FFT_M6_Individual(self, yf,ignoregray): #original 5
         N = len(yf)
 
         # aply fft
@@ -514,9 +510,7 @@ class AlgorithmCollection:
         #                 yplotIR, self.freq, "freq", "Savefilepath", "filename")
 
         # return fft_plot, xf[max_peak] * 60, xf[max_peak], max_peak #freqs[max_peak] * 60, freqs[max_peak], max_peak
-        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf,\
-               0,0,0,0,0,\
-               0,0,0,0,0
+        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf
                # max_peakBlue,max_peakGreen,max_peakRed,max_peakGrey,max_peakIR,\
                # Bluebpm,Greenbpm,Redbpm,Greybpm,irbpm
 
@@ -654,7 +648,7 @@ class AlgorithmCollection:
         return self.B_fft,self.Gr_fft,self.R_fft,self.Gy_fft,self.IR_fft
 
 
-    def ApplyFFT9(self,S,objPlot,cut_off,upperbound,ignoregray):
+    def ApplyFFT9(self,S,ignoregray):
         # obtain the frequencies using scipy function
         self.get_Freq(len(S))
 
@@ -799,9 +793,7 @@ class AlgorithmCollection:
         # plt.tight_layout()
         # plt.show()
 
-        return blue_sig_fft,green_sig_fft,red_sig_fft,grey_sig_fft,ir_sig_fft,self.freq, \
-               0, 0, 0, 0, 0, \
-               0, 0, 0, 0, 0
+        return blue_sig_fft,green_sig_fft,red_sig_fft,grey_sig_fft,ir_sig_fft,self.freq
                # max_peakBlue,max_peakgreen,max_peakred,max_peakgrey,max_peakir,\
                # Bluebpm,green_bpm,red_bpm,grey_bpm,ir_bpm
 

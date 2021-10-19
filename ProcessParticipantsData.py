@@ -16,11 +16,11 @@ objConfig = Configurations()
 
 def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, position,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen):
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen,HrType):
 
     # Initialise object to process face regions signal data
     objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
-                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs)
+                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,HrType)
 
     # Lists to hold heart rate and blood oxygen data
     ListHrdata = []
@@ -139,6 +139,9 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
         else:
             break
 
+    #filename
+    fileName = "HRdata_" + regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
+            Filter_type) + "_RS-" + str(Result_type) + "_HR-" + str(HrType) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+            isSmoothen)
     # Write data to file
-    objFile.WriteListDatatoFile(SavePath, "HRdata-" + FFT_type + "_Fl_" + str(Filter_type) + "_Rs_" + str(Result_type) + "_Pr_" + str(
-        Preprocess_type) + "_Sm_" + str(isSmoothen), ListHrdata)
+    objFile.WriteListDatatoFile(SavePath, fileName, ListHrdata)

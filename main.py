@@ -54,11 +54,12 @@ for participant_number in objConfig.ParticipantNumbers:
 
             for fftype in objConfig.fftTypeList:
                 for resulttype in objConfig.resulttypeList:
-                    for filtertype in objConfig.filtertypeList:
-                        for preprocesstype in objConfig.preprocesses:
-                            for isSmooth in objConfig.Smoothen:
-                                # Generate Data for all Techniques
-                                Process_Participants_Data_Windows(ROIStore, objConfig.SavePath,
-                                                                  participant_number, position, algoType, fftype,
-                                                                  HrGr, SpoGr,
-                                                                  filtertype, resulttype, preprocesstype, isSmooth)
+                    for hrType in objConfig.hrTypeList:
+                        for filtertype in objConfig.filtertypeList:
+                            for preprocesstype in objConfig.preprocesses:
+                                for isSmooth in objConfig.Smoothen:
+                                    # Generate Data for all Techniques
+                                    Process_Participants_Data_Windows(ROIStore, objConfig.SavePath,
+                                                                      participant_number, position, algoType, fftype,
+                                                                      HrGr, SpoGr,
+                                                                      filtertype, resulttype, preprocesstype, isSmooth,hrType)
