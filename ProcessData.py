@@ -53,12 +53,21 @@ class ProcessFaceData:
     ramp_design = []
     ramplooprange = 0
 
+    # setup highpass filter
+    ignore_freq_below_bpm = 40
+    ignore_freq_below = ignore_freq_below_bpm / 60
+
+    # setup low pass filter
+    ignore_freq_above_bpm = 200
+    ignore_freq_above = ignore_freq_above_bpm / 60
+
     # Input Parameters
     Algorithm_type = ''
     FFT_type = ''
     Filter_type = 0
     Result_type = 0
     HrType=0
+    isCompressed = False
     Preprocess_type = 0
     SavePath = ''
     ignoreGray = False
@@ -81,6 +90,10 @@ class ProcessFaceData:
     RedFreqencySamplingError = 0.0
     GreenFreqencySamplingError = 0.0
     BlueFreqencySamplingError = 0.0
+    bestHeartRateSnr = 0.0
+    beatsPerSecond = 0.0
+    bestBpm = 0.0
+    heartRatePeriod = 0.0
 
     # Objects
     objPlots = Plots()
@@ -88,17 +101,19 @@ class ProcessFaceData:
 
     # constructor
     def __init__(self, Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath, ignoreGray,
-                 isSmoothen, GenerateGraphs,HrType):
+                 isSmoothen, GenerateGraphs,HrType,timeinSeconds,isCompressed):
         self.Algorithm_type = Algorithm_type
         self.FFT_type = FFT_type
         self.Filter_type = Filter_type
         self.Result_type = Result_type
         self.HrType = HrType
+        self.isCompressed = isCompressed
         self.Preprocess_type = Preprocess_type
         self.SavePath = SavePath
         self.ignoreGray = ignoreGray
         self.isSmoothen = isSmoothen
         self.GenerateGraphs = GenerateGraphs
+        self.timeinSeconds = timeinSeconds
 
         # set estimated fps
         self.objAlgorithm.EstimatedFPS = self.EstimatedFPS  # TODO FIX FOR VAIOIURS FPS
@@ -201,7 +216,7 @@ class ProcessFaceData:
         imageName = graphName + "_" + self.region + "_W" + str(
             self.Window_count) + "_" + self.Algorithm_type + "_FFT-" + str(self.FFT_type) + "_FL-" + str(
             self.Filter_type) + "_RS-" + str(self.Result_type) + "_HR-" + str(self.HrType) + "_PR-" + str(self.Preprocess_type) + "_SM-" + str(
-            self.isSmoothen)
+            self.isSmoothen)+ "_CP-" + str(self.isCompressed)
         return imageName
 
     '''
@@ -226,8 +241,8 @@ class ProcessFaceData:
                                                            processedIR,
                                                            "No of Frames", "Intensity")
             imageName = self.defineGraphName(graphName + "All")
-            self.objPlots.plotAllinOneWithoutTime(self.getGraphPath(), imageName, self.blue, self.green, self.red,
-                                                  self.grey, self.Irchannel, "No of Frames", "Intensity")
+            self.objPlots.plotAllinOneWithoutTime(self.getGraphPath(), imageName, processedBlue, processedGreen, processedRed,
+                                                  processedGrey, processedIR, "No of Frames", "Intensity")
         elif (graphName == "PreProcessed"):
             imageName = self.defineGraphName(graphName + "All")
             self.objPlots.plotAllinOne(self.getGraphPath(),
@@ -530,10 +545,10 @@ class ProcessFaceData:
     FilterTechniques: Applies filters on signal data
     '''
 
-    def FilterTechniques(self, IR_fft, Gy_fft, R_fft, G_fft, B_fft):
+    def FilterTechniques(self, B_fft, G_fft, R_fft, Gy_fft, IR_fft ):
         # cuttoff,  butterworth and other
 
-        if (self.ignoregray):
+        if (self.ignoreGray):
             Gy_filtered = []
 
         if (self.Filter_type == 1):  # Not very good with rampstuff method, very high heart rate
@@ -674,9 +689,9 @@ class ProcessFaceData:
         if (not self.ignoreGray):
             if (np.iscomplex(Gy_fft.any())):
                 Gy_fft = Gy_fft.real
-            else:
-                Gy_fft = []
-
+        else:
+            Gy_fft = []
+        #TODO: Make sepearte method to return real values from complex array
         if (np.iscomplex(IR_fft.any())):
             IR_fft = IR_fft.real
 
@@ -698,7 +713,7 @@ class ProcessFaceData:
         Irchannel = self.regionWindowSignalData[:, 4]
 
         # Calculate samples
-        self.NumSamples = len(self.grey)  # shd be channel ? TODO: FIX
+        self.NumSamples = len(grey)  # shd be channel ? TODO: FIX
 
         # Combine r,g,b,gy,ir in one array
         S = self.getSignalDataCombined(blue, green, red, grey, Irchannel)
@@ -735,10 +750,13 @@ class ProcessFaceData:
         self.ComputeIndices()
         # TODO: No of samples is differnet initailly meaning was set to len(self.channel)
 
-        self.generateHeartRateandSNR(S_filtered,self.Result_type,self.HrType)
+        self.generateHeartRateandSNR(S_filtered,self.Result_type,self.HrType,self.isCompressed)
+
+        #get best bpm and heart rate period
+        self.GetBestBpm()
 
         # calculate SPO
-        std, err, oxylevl = self.getSpo(grey)
+        std, err, oxylevl = self.getSpo(grey,S_filtered[:, 3],Irchannel,red)
 
         windowList = Window_Data()
         windowList.WindowNo = self.Window_count
@@ -770,76 +788,78 @@ class ProcessFaceData:
     '''
     CalcualateSPO: Calculate SPO using ifft channel, original red and ir channels as input
     '''
+    #
+    # def CalcualateSPO(self, Gy_bp, heartRatePeriod, IR_bp, R_bp, G_bp, distanceM, smallestOxygenError, region):
+    #
+    #     self.OxygenSaturation = 0.0
+    #     self.OxygenSaturationError = 0.0
+    #
+    #     greyPeeks, properties, filteredgrey = self.FindGreyPeak(Gy_bp, freqs, self.ignore_freq_below,
+    #                                                             self.ignore_freq_above)
+    #     # find the max peeks in each sample window
+    #     grayMaxPeekIndice = []
+    #
+    #     formid = len(filteredgrey) - int(heartRatePeriod)  # grey channel orinigal before
+    #     for x in range(0, formid, int(heartRatePeriod)):
+    #         maxGreyPeekInPeriod = self.FindMaxPeekInPeriod(greyPeeks, filteredgrey, int(heartRatePeriod), x)
+    #         grayMaxPeekIndice.append((maxGreyPeekInPeriod))
+    #
+    #     # get the values of the ir and red channels at the grey peeks
+    #     oxygenLevels = []
+    #     for index in grayMaxPeekIndice:
+    #         # if self.ignore_freq_below <= freqs[index] <= self.ignore_freq_above:
+    #         irValue = np.abs(IR_bp[index].real)  # ir cahnnel original before
+    #         redValue = R_bp[index].real  # red cahnnel original before
+    #         if (irValue > 0):
+    #             # irValue = Infra_fftMaxVal
+    #             # redValue = red_fftMaxVal  # red cahnnel original before
+    #             # greenValue = gy_fftMaxVal  # green cahnnel original before
+    #
+    #             distValue = distanceM[index]  # 0.7 #self.distanceMm[index]
+    #             # distValue = distValue*1000 #convert to mm
+    #             # Absorption values calculated of oxy and deoxy heamoglobin
+    #             # where red defined as: 600-700nm
+    #             # where ir defined as: 858-860nm.
+    #             red_deoxy_mean = 4820.4361
+    #             red_oxy_mean = 667.302
+    #             ir_deoxy_mean = 694.32  # 693.38
+    #             ir_oxy_mean = 1092  # 1087.2
+    #
+    #             # Depth-resultion blood oxygen satyuration measuremnet by dual-wavelength photothermal (DWP) optical coherence tomography
+    #             # Biomed Opt Express
+    #             # 2011 P491-504
+    #             irToRedRatio = (red_oxy_mean / ir_oxy_mean) * (
+    #             (irValue * ((distValue * distValue) / 1000000) / redValue)) / 52
+    #             oxygenLevel = 100 * (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean)) / (
+    #                         ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) - 2
+    #
+    #             # irToRedRatio = (red_oxy_mean / ir_oxy_mean) * ((irValue * ((
+    #             #         distValue / 100000)) / redValue)) / 52  # /1000 at a distance of one meter using 99% white reflections standard, 52 is the ir/r scaling factor.
+    #             # oxygenLevel = 100 * (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean)) / (
+    #             #         ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) - 6  # -2 only for pca
+    #             oxygenLevels.append(oxygenLevel)
+    #
+    #             oxygenLevels.append(round(oxygenLevel))
+    #
+    #     # compute SD and mean of oxygenLevels
+    #     self.OxygenSaturation = np.std(oxygenLevels)
+    #     self.OxygenSaturationError = np.std(oxygenLevels, ddof=1) / np.sqrt(
+    #         np.size(oxygenLevels))  # MeanStandardDeviation err
+    #
+    #     if (self.OxygenSaturationError < smallestOxygenError):
+    #         self.smallestOxygenError = self.OxygenSaturationError
+    #         self.regionToUse = region
+    #
+    #         # if (self.OxygenSaturation > self.oxygenstd):
+    #         #     oxygenstd = self.OxygenSaturation
+    #         #     print("STD : " + str(self.OxygenSaturation) + " , error: " + str(self.OxygenSaturationError))
+    #         #     print("SPO 0 : " + str(oxygenLevels[0]))
+    #
+    #     if (len(oxygenLevels) <= 0):
+    #         oxygenLevels.append(0)
+    #     return self.OxygenSaturation, self.OxygenSaturationError, str(oxygenLevels[0])
 
-    def CalcualateSPO(self, Gy_bp, heartRatePeriod, IR_bp, R_bp, G_bp, distanceM, smallestOxygenError, region):
-
-        self.OxygenSaturation = 0.0
-        self.OxygenSaturationError = 0.0
-
-        freqs = np.fft.fftfreq(len(Gy_bp), 1 / 30)
-        greyPeeks, properties, filteredgrey = self.FindGreyPeak(Gy_bp, freqs, self.ignore_freq_below,
-                                                                self.ignore_freq_above)
-        # find the max peeks in each sample window
-        grayMaxPeekIndice = []
-
-        formid = len(filteredgrey) - int(heartRatePeriod)  # grey channel orinigal before
-        for x in range(0, formid, int(heartRatePeriod)):
-            maxGreyPeekInPeriod = self.FindMaxPeekInPeriod(greyPeeks, filteredgrey, int(heartRatePeriod), x)
-            grayMaxPeekIndice.append((maxGreyPeekInPeriod))
-
-        # get the values of the ir and red channels at the grey peeks
-        oxygenLevels = []
-        for index in grayMaxPeekIndice:
-            # if self.ignore_freq_below <= freqs[index] <= self.ignore_freq_above:
-            irValue = np.abs(IR_bp[index].real)  # ir cahnnel original before
-            redValue = R_bp[index].real  # red cahnnel original before
-            greenValue = G_bp[index].real  # green cahnnel original before
-            if (irValue > 0):
-                # irValue = Infra_fftMaxVal
-                # redValue = red_fftMaxVal  # red cahnnel original before
-                # greenValue = gy_fftMaxVal  # green cahnnel original before
-
-                distValue = distanceM[index] - 1  # 0.7 #self.distanceMm[index]
-                # distValue = distValue*1000 #convert to mm
-                # Absorption values calculated of oxy and deoxy heamoglobin
-                # where red defined as: 600-700nm
-                # where ir defined as: 858-860nm.
-                red_deoxy_mean = 4820.4361
-                red_oxy_mean = 667.302
-                ir_deoxy_mean = 694.32  # 693.38
-                ir_oxy_mean = 1092  # 1087.2
-
-                # Depth-resultion blood oxygen satyuration measuremnet by dual-wavelength photothermal (DWP) optical coherence tomography
-                # Biomed Opt Express
-                # 2011 P491-504
-
-                irToRedRatio = (red_oxy_mean / ir_oxy_mean) * ((irValue * ((
-                        distValue / 100000)) / redValue)) / 52  # /1000 at a distance of one meter using 99% white reflections standard, 52 is the ir/r scaling factor.
-                oxygenLevel = 100 * (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean)) / (
-                        ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) - 6  # -2 only for pca
-                oxygenLevels.append(oxygenLevel)
-
-                oxygenLevels.append(round(oxygenLevel))
-
-        # compute SD and mean of oxygenLevels
-        self.OxygenSaturation = np.std(oxygenLevels)
-        self.OxygenSaturationError = np.std(oxygenLevels, ddof=1) / np.sqrt(
-            np.size(oxygenLevels))  # MeanStandardDeviation err
-
-        if (self.OxygenSaturationError < smallestOxygenError):
-            self.smallestOxygenError = self.OxygenSaturationError
-            self.regionToUse = region
-
-            # if (self.OxygenSaturation > self.oxygenstd):
-            #     oxygenstd = self.OxygenSaturation
-            #     print("STD : " + str(self.OxygenSaturation) + " , error: " + str(self.OxygenSaturationError))
-            #     print("SPO 0 : " + str(oxygenLevels[0]))
-
-        if (len(oxygenLevels) <= 0):
-            oxygenLevels.append(0)
-        return self.OxygenSaturation, self.OxygenSaturationError, str(oxygenLevels[0])
-
-    def getSpo(self, G_bp):
+    def getSpo(self, OriginalGrey, G_bp,Irchannel,red):
         # =====================================SPO =====================================
         # =====================================SPO =====================================
         # we select the one that has the smallest error
@@ -850,19 +870,155 @@ class ProcessFaceData:
         oxygenstd = 0.0
         finaloxy = 0.0
         filteredgrey = np.fft.ifft(G_bp)
-        filteredir = self.Irchannel
-        filteredred = self.red
-        std, err, oxylevl = self.CalcualateSPOWithout(filteredgrey, self.heartRatePeriod, filteredir, filteredred,
-                                                      self.green,
+        filteredir = Irchannel
+        filteredred = red
+        std, err, oxylevl = self.CalcualateSPOWithout(OriginalGrey, filteredgrey, self.heartRatePeriod, filteredir, filteredred,
+                                                      None,
                                                       self.distanceM, smallestOxygenError,
                                                       self.region)  # CalcualateSPOPart2 ,CalcualateSPOWithout
 
         oxygenSaturationValueError = self.OxygenSaturationError
         oxygenSaturationValueValue = self.OxygenSaturation
 
-        return std, err, oxylevl
+        return std, err, float(oxylevl)
 
     # endregion
+
+
+    def CalcualateSPOWithout(self, OriginalGrey, filteredGrey, heartRatePeriod, IR_bp, R_bp, G_bp, distanceM, smallestOxygenError, region):
+
+        self.OxygenSaturation =0.0
+        self.OxygenSaturationError=0.0
+
+        #do for each region
+        numSamples = len(filteredGrey)
+        greyPeeks = self.FindPeeks(filteredGrey)
+
+        # find the max peeks in each sample window
+        grayMaxPeekIndice = []
+
+        loopTill = len(OriginalGrey) - int(heartRatePeriod)  # grey channel orinigal before
+
+        for x in range(0, loopTill, int(heartRatePeriod)):
+            maxGreyPeekInPeriod = self.FindMaxPeekInPeriod(greyPeeks, filteredGrey, int(heartRatePeriod), x)
+            grayMaxPeekIndice.append((maxGreyPeekInPeriod))
+
+        # get the values of the ir and red channels at the grey peeks
+        oxygenLevels = []
+        for index in grayMaxPeekIndice:
+            # if self.ignore_freq_below <= freqs[index] <= self.ignore_freq_above:
+            irValue = IR_bp[index].real  # ir cahnnel original before
+            redValue = R_bp[index].real  # red cahnnel original before
+            # greenValue = G_bp[index].real  # green cahnnel original before
+            if (irValue > 0):
+                # irValue = Infra_fftMaxVal
+                # redValue = red_fftMaxVal  # red cahnnel original before
+                # greenValue = gy_fftMaxVal  # green cahnnel original before
+
+                distValue = distanceM[index]  #self.distanceMm[index]
+                # if (distanceM[index] >= 2):
+                #     distValue = distValue - 1
+
+                # distValue = distValue*1000
+                # distValue = distValue*1000 #convert to mm
+                # Absorption values calculated of oxy and deoxy heamoglobin
+                # where red defined as: 600-700nm
+                # where ir defined as: 858-860nm.
+                # red_deoxy_mean = 4820.4361
+                # red_oxy_mean = 667.302
+                ir_deoxy_mean = 694.32  # 693.38
+                ir_oxy_mean = 1092  # 1087.2
+                red_deoxy_mean = 4820.4361
+                red_oxy_mean = 667.302
+                # ir_deoxy_mean = 693.38
+                # ir_oxy_mean = 1087.2
+                # Depth-resultion blood oxygen satyuration measuremnet by dual-wavelength photothermal (DWP) optical coherence tomography
+                # Biomed Opt Express
+                # 2011 P491-504
+                irToRedRatio = (red_oxy_mean / ir_oxy_mean) * (
+                (irValue * ((distValue * distValue) / 1000000) / redValue)) / 52
+                oxygenLevel = 100 * (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean)) / (
+                            ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) - 6
+                oxygenLevels.append(oxygenLevel)
+
+
+        # compute SD and mean of oxygenLevels
+        self.OxygenSaturation = np.std(oxygenLevels)
+        self.OxygenSaturationError = np.std(oxygenLevels, ddof=1) / np.sqrt(
+            np.size(oxygenLevels))  # MeanStandardDeviation err
+
+        if(len(oxygenLevels) <= 0):
+            oxygenLevels.append(0)
+        return self.OxygenSaturation, self.OxygenSaturationError, str(oxygenLevels[0])
+
+    def FindMaxPeekInPeriod(self, indicesOfPeeks, samples, period, startIdx):
+
+        maxPeek = float('-inf')
+        maxPeekIdx = 0
+        for x in range(0, len(indicesOfPeeks)):
+            index = indicesOfPeeks[x]
+            if (index >= startIdx and index < startIdx + period):  # make sure it's within the window
+                value = samples[index].real
+                if (value > maxPeek):
+                    maxPeek = value
+                    maxPeekIdx = index
+
+        return maxPeekIdx
+
+    def FindPeeks(self, arry):
+        peeks = []
+        # for every consecutive triple in samples
+        for x in range(1, len(arry) - 1):
+            if (arry[x - 1].real <= arry[x].real and arry[x].real >= arry[x + 1].real):
+                peeks.append(x)
+
+        return peeks
+
+    # def FindGreyPeak(self, fftarray, freqs, freq_min, freq_max):
+    #     fft_maximums = []
+    #
+    #     for i in range(fftarray.shape[0]):
+    #         if freq_min <= freqs[i] <= freq_max:
+    #             fftMap = abs(fftarray[i].real)
+    #             fft_maximums.append(fftMap.max())
+    #         else:
+    #             fft_maximums.append(0)
+    #
+    #     filteredgrey = ifft(fft_maximums)
+    #     peaks, properties = signal.find_peaks(filteredgrey)
+    #
+    #     return peaks, properties, filteredgrey
+
+    def GetBestBpm(self):
+        if (self.IrSnr > self.bestHeartRateSnr):
+            self.bestHeartRateSnr = self.IrSnr
+            self.bestBpm = self.IrBpm
+
+        if (self.GreySnr > self.bestHeartRateSnr):
+            self.bestHeartRateSnr = self.GreySnr
+            self.bestBpm = self.GreyBpm
+
+        if (self.RedSnr > self.bestHeartRateSnr):
+            self.bestHeartRateSnr = self.RedSnr
+            self.bestBpm = self.RedBpm
+
+        if (self.GreenSnr > self.bestHeartRateSnr):
+            self.bestHeartRateSnr = self.GreenSnr
+            self.bestBpm = self.GreenBpm
+
+        if (self.BlueSnr > self.bestHeartRateSnr):
+            self.bestHeartRateSnr = self.BlueSnr
+            self.bestBpm = self.BlueBpm
+
+        # work out the length of time of one heart beat - the heart rate period
+        if (self.bestBpm > 0):
+            self.beatsPerSecond = self.bestBpm / 60.0
+        else:
+            self.beatsPerSecond = 1
+
+        self.heartRatePeriod = self.EstimatedFPS / self.beatsPerSecond  # window size in sample
+
+
 
     def CalculatefrequencyBpm(self):
         self.freq_bpm = 60 * self.frequency
@@ -1072,7 +1228,15 @@ class ProcessFaceData:
         return fft_index,fft_maxVal
 
     def getBPMbyfrequencyArray(self,ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs):
-        self.IrBpm = np.abs(self.frequency)[ir_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()] * 60
+        # ind0 = np.abs(self.frequency) <= self.ignore_freq_above
+        # a = self.frequency * 60
+        # b = self.freq_bpm
+        # ind1 = np.abs(a) <= self.ignore_freq_above_bpm
+        # ind2 = np.abs(b) <= self.ignore_freq_above_bpm
+        # index = ir_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()
+        # index = ir_fft_realabs[np.abs(self.freq_bpm) <= self.ignore_freq_above_bpm].argmax()
+        index = ir_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()
+        self.IrBpm = np.abs(self.frequency)[index] * 60
         if (not self.ignoreGray):
             self.GreyBpm = np.abs(self.frequency)[
                                grey_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()] * 60
@@ -1180,14 +1344,19 @@ class ProcessFaceData:
                     blue_fft_maxVal, blue_fft_realabs)
 
         # Calculate Heartrate as per hrtype
-        self.getHeartRateBPM(hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
+        self.getHeartRateBPM(hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
+                             ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
 
         # Calculate SamplingError
         self.getSamplingError(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
 
-    def getHeartRateBPM(self,hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index):
+    def getHeartRateBPM(self,hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
+                        ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs):
         if(hrtype ==1):
-            self.getBPMbyfrequencyArray(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
+            if(len(ir_fft_realabs)<=14):
+                self.getBPMbyfrqbpmArray(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
+            else:
+                self.getBPMbyfrequencyArray(ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
         elif(hrtype ==2):
             self.getBPMbyfrqbpmArray(ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index)
         elif(hrtype ==3):

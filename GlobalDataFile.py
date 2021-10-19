@@ -38,8 +38,8 @@ class GlobalData:
         self.distanceM = distanceM
         self.ColorfpswithTime=ColorfpswithTime
         self.IRfpswithTime=IRfpswithTime
-        self.Frametime_list_ir = []
-        self.Frametime_list_color = []
+        self.Frametime_list_ir = Frametime_list_ir
+        self.Frametime_list_color = Frametime_list_color
 
 
     def getAllData(self):

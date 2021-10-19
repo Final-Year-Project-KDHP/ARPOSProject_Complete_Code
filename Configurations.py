@@ -35,6 +35,10 @@ class Configurations:
     #Smoothen Curve after filtering frequency
     Smoothen = [False, True]
 
+    # Compressed filtered fft result (remove zeros) before caluclating snr
+    # to check if this creates better snr or not
+    Compressed = [False, True]
+
     #region of interests, add or reduce here.. (make sure it matches foldername is same as roi region name holding the data)
     roiregions = ["lips", "forehead", "leftcheek", "rightcheek"]
 

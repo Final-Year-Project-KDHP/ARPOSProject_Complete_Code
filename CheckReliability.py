@@ -1,85 +1,117 @@
 import numpy as np
 
-##############################################
-# Accept or reject the best heart rate reading
-##############################################
-# accept or reject region based on signal to noise or deviation from last computed value
-SignalToNoiseAcceptanceThreshold = 5.0
-HeartRateSnrAcceptanceThreshold = SignalToNoiseAcceptanceThreshold
-# previous computed values for this face
-previousComputedHeartRate = 0.0
-numberOfAnalysisFailuresSinceCorrectHeartRate = 0.0
-HeartRateDeviationAcceptanceFactor = 0.3
-NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate = 20
-HeartRateErrorScalingFactor = 0.2
-previousAcceptedHeartRates = [60.0, 60.0]
-
 class CheckReliability:
-    # ##############################################
-    # # Accept or reject the best heart rate reading
-    # ##############################################
-    # # accept or reject region based on signal to noise or deviation from last computed value
+
+    #Heart rate
     heartRateValueValue = 0.0
     heartRateValueError = 0.0
-    SignalToNoiseAcceptanceThreshold = 2.5  # 3.5
+    SignalToNoiseAcceptanceThreshold = 2.5
     HeartRateSnrAcceptanceThreshold = SignalToNoiseAcceptanceThreshold
-    # #previous computed values for this face
-    previousComputedHeartRate= 0.0
-    HeartRateDeviationAcceptanceFactor = 0.3
+    numberOfAnalysisFailuresSinceCorrectHeartRate = 0.0
+    previousComputedHeartRate= 0.0 # previous computed values for this face
+    HeartRateDeviationAcceptanceFactor = 0.2
     NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate = 20
     HeartRateErrorScalingFactor = 0.2
     previousAcceptedHeartRates = [60.0, 60.0]
     freqencySamplingError = 0.0
 
+    #Blood oxygen
+    OxygenSaturationErrorAcceptanceThreshold = 5.0
+    previousComputedOxygenSaturation = 0.0
+    previousAcceptedOxygenSaturation = [ 98.0, 98.0 ]
+    numberOfAnalysisFailuresSinceCorrectOxygenSaturation = 0
+    NumberOfAnalysisFailuresBeforeTrackingFailureInOxygenSaturation=20
+    OxygenSaturationErrorScalingFactor = 0.2
+
+    #region Heart Reliability
     def AddPreviousHeartRate(self,heartRate):
-        previousAcceptedHeartRates.append(heartRate)
-        if (len(previousAcceptedHeartRates) > 2):
-            previousAcceptedHeartRates.pop(0)
+        self.previousAcceptedHeartRates.append(heartRate)
+        if (len(self.previousAcceptedHeartRates) > 2):
+            self.previousAcceptedHeartRates.pop(0) # Remove at zero index
 
-    def IsHeartRateReliable(self,numberOfAnalysisFailuresSinceCorrectHeartRate):
-        return numberOfAnalysisFailuresSinceCorrectHeartRate < NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate
+    def IsHeartRateReliable(self):
+        return self.numberOfAnalysisFailuresSinceCorrectHeartRate < self.NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate
 
-    def AddHeartRate(self,bestHeartRateSnr, bestBpm):
-        # , previousComputedHeartRate,
-        # numberOfAnalysisFailuresSinceCorrectHeartRate, freqencySamplingError
+    '''-----------------------------------------
+    Accept or reject the best heart rate reading:
+    accept or reject region based on signal to noise or deviation from last computed value
+    --------------------------------------------'''
+    def AcceptorRejectHR(self,bestHeartRateSnr, bestBpm, freqencySamplingError):
 
-        condition1 = (bestHeartRateSnr < HeartRateSnrAcceptanceThreshold)
-        condition2 = (np.abs(bestBpm - previousComputedHeartRate) > (
-                    HeartRateDeviationAcceptanceFactor * previousComputedHeartRate))
+        condition1 = (bestHeartRateSnr < self.HeartRateSnrAcceptanceThreshold)
+        condition2 = (np.abs(bestBpm - self.previousComputedHeartRate) > (self.HeartRateDeviationAcceptanceFactor * self.previousComputedHeartRate))
 
         if (condition1 or condition2):
-            numberOfAnalysisFailuresSinceCorrectHeartRate = numberOfAnalysisFailuresSinceCorrectHeartRate + 1
+            self.numberOfAnalysisFailuresSinceCorrectHeartRate = self.numberOfAnalysisFailuresSinceCorrectHeartRate + 1
 
             # compute error
-            if not (self.IsHeartRateReliable(numberOfAnalysisFailuresSinceCorrectHeartRate)):
+            if not (self.IsHeartRateReliable()):
                 # the number of analysis failures saturates at NumberOfAnalysisFailuresBeforeTrackingFailure
                 # this stop the error value from making the time series chart unreadable.
-                numberOfAnalysisFailuresSinceCorrectHeartRate = NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate
+                self.numberOfAnalysisFailuresSinceCorrectHeartRate = self.NumberOfAnalysisFailuresBeforeTrackingFailureInHeartRate
 
-            freq_error_fudge_factor = numberOfAnalysisFailuresSinceCorrectHeartRate * HeartRateErrorScalingFactor
-            bad_bpm_freqerror = freq_error_fudge_factor * (
-                        np.abs(previousAcceptedHeartRates[0] - previousAcceptedHeartRates[1]) + freqencySamplingError)
+            freq_error_fudge_factor = self.numberOfAnalysisFailuresSinceCorrectHeartRate * self.HeartRateErrorScalingFactor
+            bad_bpm_freqerror = freq_error_fudge_factor * (np.abs(self.previousAcceptedHeartRates[0] - self.previousAcceptedHeartRates[1]) + freqencySamplingError)
 
-            heartRateValueValue = previousAcceptedHeartRates[0]
-            heartRateValueError = bad_bpm_freqerror
+            heartRateValue = self.previousAcceptedHeartRates[0]
+            heartRateError = bad_bpm_freqerror
 
-            bestDifference = (bestBpm - previousComputedHeartRate)
-            factorpercentage = (HeartRateDeviationAcceptanceFactor * previousComputedHeartRate)
+            self.previousComputedHeartRate = bestBpm
 
-            if (previousComputedHeartRate > 0):
-                if (bestDifference > 50):
-                    previousComputedHeartRate = heartRateValueValue
-                else:
-                    previousComputedHeartRate = bestBpm
-            else:
-                previousComputedHeartRate = bestBpm
         else:
             # accept the heart rate
-            numberOfAnalysisFailuresSinceCorrectHeartRate = 0
-            # AddPreviousHeartRate(bestBpm)
+            self.numberOfAnalysisFailuresSinceCorrectHeartRate = 0
+            self.AddPreviousHeartRate(bestBpm)
 
-            heartRateValueValue = previousAcceptedHeartRates[0]
-            heartRateValueError = freqencySamplingError
+            heartRateValue = self.previousAcceptedHeartRates[0]
+            heartRateError = self.freqencySamplingError
 
-        return previousComputedHeartRate, numberOfAnalysisFailuresSinceCorrectHeartRate, heartRateValueValue, heartRateValueError
+        return heartRateValue, heartRateError
+    #endregion
 
+    #region blood oxygen Reliability
+    '''-----------------------------------------
+    Accept or reject the best oxygen saturation reading:
+    accept or reject region based on signal to noise or deviation from last computed value
+    --------------------------------------------'''
+
+    def IsOxygenSaturationReliable(self):
+        return self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation < self.NumberOfAnalysisFailuresBeforeTrackingFailureInOxygenSaturation
+
+    def AddPreviousOxygenSaturation(self,bloodOxygen):
+        self.previousAcceptedOxygenSaturation.append(bloodOxygen)
+        if (len(self.previousAcceptedOxygenSaturation) > 2):
+            self.previousAcceptedOxygenSaturation.pop(0)
+
+    def AcceptorRejectSPO(self,oxygenSaturationValueError,oxygenSaturationValue):
+        condition1=(oxygenSaturationValueError > self.OxygenSaturationErrorAcceptanceThreshold)
+        condition2 =(np.abs(oxygenSaturationValue - self.previousComputedOxygenSaturation) > self.OxygenSaturationErrorAcceptanceThreshold * self.previousComputedOxygenSaturation)
+        # accept or reject region based on signal to noise or deviation from last computed value
+        if ( condition1 or condition2):  # TODO: IS THIS CORRECT!
+            # the value has been rejected
+            # set the oxygen saturation value the last
+            oxygenSaturationValue = self.previousAcceptedOxygenSaturation[0]
+            self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation= self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation+1
+
+            # compute error
+            if not (self.IsOxygenSaturationReliable()):
+                # the number of analysis failures saturates at NumberOfAnalysisFailuresBeforeTrackingFailure
+                # this stop the error value from making the time series chart unreadable.
+                self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation = self.NumberOfAnalysisFailuresBeforeTrackingFailureInOxygenSaturation
+
+            freq_error_fudge_factor = self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation * self.OxygenSaturationErrorScalingFactor
+            oxygenSaturationValueError = freq_error_fudge_factor * (np.abs(
+            self.previousAcceptedOxygenSaturation[0] - self.previousAcceptedOxygenSaturation[1]) + oxygenSaturationValueError)
+
+            self.previousComputedOxygenSaturation = oxygenSaturationValue
+
+        else:
+            # accept the bloodoxygen
+            self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation = 0
+            self.AddPreviousOxygenSaturation(oxygenSaturationValue)
+
+            oxygenSaturationValue = self.previousAcceptedOxygenSaturation[0]
+
+        return oxygenSaturationValue, oxygenSaturationValueError
+
+    #endregion

@@ -153,13 +153,11 @@ class LoadFaceData:
                 self.HasStartTime = 1
 
             if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
-                print('Start Time for IR:' + str(self.StartTime))
+                skip =True
                 # Do nothing or add steps here if required
-                test = 0
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
-                print('End Time for IR:' + str(self.EndTime))
-                print('Total Time:' + str(self.EndTime - self.StartTime))
-                test2 = 0  # Do nothing or add steps here if required
+                skip = True
+                # Do nothing or add steps here if required
             else:
                 img = value
 
@@ -187,6 +185,11 @@ class LoadFaceData:
                 FPS = self.EstimatedFPS
                 td = datetime.timedelta(seconds=(frame_count / FPS))
                 self.time_list_color.append(td)
+
+        #print data acquistion time details
+        print('Start Time for Color:' + str(self.StartTime))
+        print('End Time for Color:' + str(self.EndTime))
+        print('Total Time:' + str(self.EndTime - self.StartTime))
 
         Timecount = 1
         for time in self.time_list_color:
@@ -217,13 +220,11 @@ class LoadFaceData:
                                                      0)
 
             if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
-                print('Start Time for IR:' + str(self.StartTime))
                 # Do nothing or add steps here if required
-                test = 0
+                skip = True
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
-                print('End Time for IR:' + str(self.EndTime))
-                print('Total Time:' + str(self.EndTime - self.StartTime))
-                test2 = 0  # Do nothing or add steps here if required
+                # Do nothing or add steps here if required
+                skip = True
             else:
                 img = value
 
@@ -238,6 +239,11 @@ class LoadFaceData:
                 FPS = self.EstimatedFPS
                 td = datetime.timedelta(seconds=(frame_count / FPS))
                 self.time_list_ir.append(td)
+
+        #print time details for ir
+        print('Start Time for IR:' + str(self.StartTime))
+        print('End Time for IR:' + str(self.EndTime))
+        print('Total Time:' + str(self.EndTime - self.StartTime))
 
         # add distance
         for x in fdistancem:

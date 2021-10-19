@@ -16,11 +16,7 @@ objConfig = Configurations()
 
 def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, position,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen,HrType):
-
-    # Initialise object to process face regions signal data
-    objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
-                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,HrType)
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen,HrType,isCompressed):
 
     # Lists to hold heart rate and blood oxygen data
     ListHrdata = []
@@ -32,6 +28,11 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
     freqencySamplingError = 0.0
     previousComputedHeartRate = 0.0
     smallestOxygenError = sys.float_info.max
+    timeinSeconds = 5
+
+    # Initialise object to process face regions signal data
+    objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
+                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,HrType,timeinSeconds,isCompressed)
 
     # ROI Window Result list
     WindowRegionList = {}
@@ -40,7 +41,6 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
     LengthofAllFrames = len(ROIStore.get(objConfig.roiregions[0]).getAllData())  # all have same lenghts
     TimeinSeconds = LengthofAllFrames / objProcessData.EstimatedFPS  # FIX TODO change for differnt fps
     step = 30  # slide window for 1 second or 30 frames
-    timeinSeconds = 5
     WindowSlider = step * timeinSeconds  # step * 5 second,  window can hold  150 frames or 5 second data
     WindowCount = 0
 
@@ -49,6 +49,7 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
 
     # Split ground truth data
     HrAvgList = CommonMethods.splitGroundTruth(HrGr, TotalWindows)
+    SPOAvgList = CommonMethods.splitGroundTruth(SpoGr, TotalWindows)
 
     # Loop through signal data
     for j in range(0, int(TimeinSeconds)):
@@ -57,6 +58,10 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
             grHr = 60
             if (WindowCount) < len(HrAvgList):
                 grHr = HrAvgList[WindowCount]
+
+            grSpo = 98
+            if (WindowCount) < len(SPOAvgList):
+                grSpo = SPOAvgList[WindowCount]
 
             # Lips
             objProcessData.getSingalData(ROIStore, objConfig.roiregions[0], WindowSlider, step, WindowCount)
@@ -125,15 +130,19 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
                     finaloxy = v.oxygenSaturationValueValue
 
             # Check reliability and record best readings
-            previousHR, numberOfAnalysisFailureshr, HRValue, HRError = objReliability.AddHeartRate(bestHeartRateSnr,
-                                                                                                   bestBpm)
-            objProcessData.previousComputedHeartRate = previousHR
-            objProcessData.numberOfAnalysisFailuresSinceCorrectHeartRate = numberOfAnalysisFailureshr
+            heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
+            oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
 
-            # Get difference and append data
-            difference = round(float(HrAvgList[WindowCount]) - float(bestBpm))
+            # Get difference and append data (heart rate)
+            difference = round(float(HrAvgList[WindowCount]) - float(heartRateValue))
             ListHrdata.append(str(WindowCount) + " ,\t" + str(round(HrAvgList[WindowCount])) + " ,\t" +
-                              str(round(bestBpm)) + " ,\t" + str(difference))
+                              str(round(heartRateValue)) + " ,\t" + str(difference))
+
+            # Get difference and append data (blood oxygen)
+            difference = round(float(SPOAvgList[WindowCount]) - float(oxygenSaturationValue))
+            ListSPOdata.append(str(WindowCount) + " ,\t" + str(round(SPOAvgList[WindowCount])) + " ,\t" +
+                              str(round(oxygenSaturationValue)) + " ,\t" + str(difference))
+
             # Next window
             WindowCount = WindowCount + 1
         else:
@@ -142,6 +151,13 @@ def Process_Participants_Data_Windows(ROIStore, SavePath, participant_number, po
     #filename
     fileName = "HRdata_" + regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
             Filter_type) + "_RS-" + str(Result_type) + "_HR-" + str(HrType) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
-            isSmoothen)
+            isSmoothen) + "_CP-" + str(isCompressed)
     # Write data to file
     objFile.WriteListDatatoFile(SavePath, fileName, ListHrdata)
+
+    #filename
+    fileName = "SPOdata_" + regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
+            Filter_type) + "_RS-" + str(Result_type) + "_HR-" + str(HrType) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+            isSmoothen) + "_CP-" + str(isCompressed)
+    # Write data to file
+    objFile.WriteListDatatoFile(SavePath, fileName, ListSPOdata)
