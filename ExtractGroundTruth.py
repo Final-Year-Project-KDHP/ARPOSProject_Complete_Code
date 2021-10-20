@@ -12,14 +12,8 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 #Global
 DiskPath = "E:\\StudyData\\"
 
-#Undone
-#
 ParticipantNumbers= ["PIS-9219"]
-#Done
-#"PIS-2212","PIS-3186",PIS-3252,"PIS-3252P2",PIS-4497,"PIS-3807","PIS-4497",,"PIS-4709","PIS-5868","PIS-5868P2","PIS-6327"
-#,"PIS-6327","PIS-6729", "PIS-6888","PIS-7381",PIS-7728 ,"PIS-8308","PIS-8308P2","PIS-8343" ,"PIS-9219"
 hearratestatus = ["AfterExcersize"] # heart rate status example resting state and after small workout
-
 
 # ParticipantNumber= "PIS-4709"#"PIS-1118,PIS-2212, PIS-3252, PIS-3807, PIS-4497, PIS-5868, PIS-8308, PIS-8343, PIS-9219
 # position = "Resting1"

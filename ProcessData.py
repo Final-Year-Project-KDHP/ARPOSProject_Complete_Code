@@ -471,7 +471,7 @@ class ProcessFaceData:
             S_ = self.objAlgorithm.ApplyICA(S, self.components)
         elif (self.Algorithm_type == "Jade"):
             # https://github.com/kellman/heartrate_matlab/blob/master/jadeR.m
-            S_ = self.objAlgorithm.jadeR5(S, self.components)  # r4 is slwoer and f5 is faster
+            S_ = self.objAlgorithm.jadeOptimised(S, self.components)  # r4 is slwoer and f5 is faster
 
             # Split data
             newBlue = np.array(S_[0])[0].real
@@ -752,7 +752,7 @@ class ProcessFaceData:
 
         self.generateHeartRateandSNR(S_filtered,self.Result_type,self.HrType,self.isCompressed)
 
-        #get best bpm and heart rate period
+        #get best bpm and heart rate period in one region
         self.GetBestBpm()
 
         # calculate SPO
