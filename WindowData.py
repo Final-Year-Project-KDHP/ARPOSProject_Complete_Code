@@ -32,3 +32,5 @@ class Window_Data:
   oxygenSaturationValueError = 0.0
   oxygenSaturationValueValue = 0.0
   oxygenSaturationSTD=0.0
+
+  diffTime =0.0

@@ -27,10 +27,13 @@ class Configurations:
     preprocesses = [1, 2, 3, 4, 5, 6, 7, 8]
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
-    resulttypeList = [1, 2, 3, 4, 5, 6, 7, 9, 8]
+    resulttypeList = [1, 2, 3, 4]
 
     #geting heart rate by different methods in bpm
     hrTypeList = [1,2,3]
+
+    #geting signal to noise ratio
+    SNRTypeList = [1,2]
 
     #Smoothen Curve after filtering frequency
     Smoothen = [False, True]
@@ -57,6 +60,8 @@ class Configurations:
     """
     ParticipantNumbers = ["PIS-4497"]
 
+    # Processed_participants_data = {}
+
     # heart rate status example resting state and after small workout "Resting1","Resting2","AfterExcersize"
     hearratestatus = ["Resting1","Resting2","AfterExcersize"]
 
@@ -67,7 +72,10 @@ class Configurations:
     ignoregray = False
 
     #Generate graphs when processing signals (only process r,g,b and ir)
-    GenerateGraphs = True
+    GenerateGraphs = False
+
+    #Run for window or for entire signal
+    RunAnalysisForEntireSignalData = True
 
     # setup highpass filter
     ignore_freq_below_bpm = 40

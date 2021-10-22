@@ -56,7 +56,20 @@ class CheckReliability:
             heartRateValue = self.previousAcceptedHeartRates[0]
             heartRateError = bad_bpm_freqerror
 
-            self.previousComputedHeartRate = bestBpm
+            bestDifference = (bestBpm - self.previousComputedHeartRate)
+            factorpercentage = (self.HeartRateDeviationAcceptanceFactor * self.previousComputedHeartRate)
+
+            if (self.previousComputedHeartRate > 0):
+                if (bestDifference > 50):
+                    self.previousComputedHeartRate = heartRateValue
+                else:
+                    self.previousComputedHeartRate = bestBpm
+                    heartRateValue = bestBpm
+            else:
+                self.previousComputedHeartRate = bestBpm
+                heartRateValue = bestBpm
+
+            # self.previousComputedHeartRate = bestBpm
 
         else:
             # accept the heart rate
@@ -103,7 +116,10 @@ class CheckReliability:
             oxygenSaturationValueError = freq_error_fudge_factor * (np.abs(
             self.previousAcceptedOxygenSaturation[0] - self.previousAcceptedOxygenSaturation[1]) + oxygenSaturationValueError)
 
+
             self.previousComputedOxygenSaturation = oxygenSaturationValue
+
+
 
         else:
             # accept the bloodoxygen

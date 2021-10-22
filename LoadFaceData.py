@@ -25,6 +25,7 @@ class LoadFaceData:
     Frametime_list_color =[]
     timecolorCount = []
     timeirCount = []
+    totalTimeinSeconds = 0
 
     #Depth
     distanceM = []
@@ -36,6 +37,24 @@ class LoadFaceData:
 
     # Ohter constatns
     EstimatedFPS = 30  # TODO fix for variable fps
+
+    def Clear(self):
+        self.red = []
+        self.blue = []
+        self.green = []
+        self.grey = []
+        self.Irchannel = []
+        self.time_list_color = []
+        self.time_list_ir = []
+        self.Frametime_list_ir = []
+        self.Frametime_list_color = []
+        self.timecolorCount = []
+        self.timeirCount = []
+        self.totalTimeinSeconds = 0
+        self.distanceM = []
+        self.HasStartTime = 0
+        self.StartTime = datetime.datetime.now()
+        self.EndTime = datetime.datetime.now()
 
     """
     GetEstimatedFPS:
@@ -190,6 +209,13 @@ class LoadFaceData:
         print('Start Time for Color:' + str(self.StartTime))
         print('End Time for Color:' + str(self.EndTime))
         print('Total Time:' + str(self.EndTime - self.StartTime))
+
+        timeDifference = (self.EndTime - self.StartTime)
+        self.totalTimeinSeconds = timeDifference.total_seconds()
+
+        estimatedseconds = len(self.time_list_color)/self.EstimatedFPS
+        if(self.totalTimeinSeconds > estimatedseconds):
+            self.totalTimeinSeconds = estimatedseconds
 
         Timecount = 1
         for time in self.time_list_color:

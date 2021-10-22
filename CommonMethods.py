@@ -26,6 +26,9 @@ def GetGroundTruth(participant_number, position,diskpath):
     HrFiledata.close()
     SPOFiledata.close()
 
+    HrGr = [float(value) for value in HrGr]
+    SpoGr = [float(value) for value in SpoGr]
+
     return HrGr, SpoGr
 
 
@@ -49,3 +52,11 @@ def splitGroundTruth(groundtruth,TotalWindows):
         AvgValue=0
 
     return HrAvgList
+
+
+def AvegrageGroundTruth(groundtruth):
+    AvgValue = 0
+    groundtruth = np.array(groundtruth)
+    AvgValue = round(np.average(groundtruth))
+
+    return AvgValue
