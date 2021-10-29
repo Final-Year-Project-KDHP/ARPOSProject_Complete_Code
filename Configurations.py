@@ -58,7 +58,7 @@ class Configurations:
     fully variable
     "PIS-6327","PIS-4709"
     """
-    ParticipantNumbers = ["PIS-4497"]
+    ParticipantNumbers = ["PIS-4497", "PIS-2212"]
 
     # Processed_participants_data = {}
 

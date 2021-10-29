@@ -201,7 +201,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
 
     objReliability = CheckReliability()
 
-    diffTime = 0.0
+    diffNow = 0.0
     bestHeartRateSnr = 0.0
     bestBpm = 0.0
     channeltype = ''

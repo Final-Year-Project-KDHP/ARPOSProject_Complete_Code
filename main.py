@@ -77,19 +77,19 @@ for participant_number in objConfig.ParticipantNumbers:
                                             ParticipantsSPOfileName = participant_number + "*" + HRNameFileName + fileName  # filename
 
                                             if(not os.path.exists(objConfig.SavePath + HRNameFileName + fileName + ".txt")):
-                                                if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
+                                                # if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
                                                     # Generate Data for all Techniques
-                                                    ListHrdata, ListSPOdata = Process_SingalData(
-                                                        objConfig.RunAnalysisForEntireSignalData,
-                                                        ROIStore, objConfig.SavePath,
-                                                        algoType, fftype,
-                                                        HrGr, SpoGr,
-                                                        filtertype, resulttype, preprocesstype, isSmooth, hrType, isCompressed,
-                                                        snrType)
+                                                ListHrdata, ListSPOdata = Process_SingalData(
+                                                    objConfig.RunAnalysisForEntireSignalData,
+                                                    ROIStore, objConfig.SavePath,
+                                                    algoType, fftype,
+                                                    HrGr, SpoGr,
+                                                    filtertype, resulttype, preprocesstype, isSmooth, hrType, isCompressed,
+                                                    snrType)
 
-                                                    # Save to list for writing to disk later
-                                                    objFile.WriteListDatatoFile(objConfig.SavePath, fileName, ListHrdata)
-                                                    objFile.WriteListDatatoFile(objConfig.SavePath, fileName, ListSPOdata)
+                                                # Save to list for writing to disk later
+                                                objFile.WriteListDatatoFile(objConfig.SavePath, fileName, ListHrdata)
+                                                objFile.WriteListDatatoFile(objConfig.SavePath, fileName, ListSPOdata)
                                                     # ParticipantsProcessedHeartRateData[ParticipantsHRfileName] = ListHrdata
                                                     # ParticipantsProcessedBloodOxygenData[ParticipantsSPOfileName] = ListSPOdata
                                             # print(str(algoType) +"_"+ str(fftype) +"_"+ str(filtertype)  +"_"+ str(resulttype)+
