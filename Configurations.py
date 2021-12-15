@@ -7,11 +7,14 @@ Configuration:
 Global and configuration parameters defined in this class
 """
 class Configurations:
-
-    #Global parameters
     # change path here for uncompressed dataset
-    DiskPath = "E:\\StudyData\\"
+    def __init__(self):
+        self.DiskPath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\'
+        self.UnCompressed_dataPath = self.DiskPath + 'UnCompressed\\'
+    #Global parameters
+    DiskPath = ""
     SavePath = ""
+    UnCompressed_dataPath = ""
 
     #Algorithm List
     AlgoList = ["FastICA", "PCA", "ICAPCA", "None", "Jade"]
