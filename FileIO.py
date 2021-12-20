@@ -1,10 +1,6 @@
 import os
-from Configurations import Configurations
-
 
 class FileIO:
-
-    objConfig = Configurations()
 
     def WriteListDatatoFile(self,savePath,fileName, dataList):
         file = open(savePath + fileName + ".txt", "w+")
@@ -33,6 +29,15 @@ class FileIO:
         file.close()
 
     """
+    ReaddatafromFile: Read data content from file
+    """
+    def ReaddatafromFile(self,filePath,fileName):
+        file = open(filePath + fileName + ".txt", "r")
+        Lines = file.readlines()
+        file.close()
+        return Lines #.split('\n')
+
+    """
     FileExits: check if file exists
     """
     def FileExits(self,path):
@@ -54,9 +59,9 @@ class FileIO:
     getROIPath:
     Store all the generated ROIS
     """
-    def getROIPath(self,participantNumber,position):
+    def getROIPath(self,participantNumber,position, UnCompressed_dataPath):
         #Read Uncompressed data from path
-        ROI_dataPath = self.objConfig.UnCompressed_dataPath + participantNumber + '\\' + position
+        ROI_dataPath = UnCompressed_dataPath + participantNumber + '\\' + position
         #Save ROI to path
         ROIPath= ROI_dataPath + 'Cropped\\'
 

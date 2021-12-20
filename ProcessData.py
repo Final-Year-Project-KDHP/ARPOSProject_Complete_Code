@@ -403,7 +403,7 @@ class ProcessFaceData:
     '''
 
     def preprocessSignalData(self, blue, green, red, grey, Irchannel):
-
+        self.Preprocess_type =1
         # Processed channel data
         processedBlue = blue
         processedGreen = green
@@ -420,13 +420,13 @@ class ProcessFaceData:
             if (not self.ignoreGray):
                 processedGrey = self.preprocessdataType2(processedGrey, True)
 
-        elif (self.Preprocess_type == 8):
-            processedBlue = self.preprocessdataType2(processedBlue, False)
-            processedGreen = self.preprocessdataType2(processedGreen, False)
-            processedRed = self.preprocessdataType2(processedRed, False)
-            processedIR = self.preprocessdataType2(processedIR, False)
-            if (not self.ignoreGray):
-                processedGrey = self.preprocessdataType2(processedGrey, False)
+        # elif (self.Preprocess_type == 8):##Fails
+        #     processedBlue = self.preprocessdataType2(processedBlue, False)
+        #     processedGreen = self.preprocessdataType2(processedGreen, False)
+        #     processedRed = self.preprocessdataType2(processedRed, False)
+        #     processedIR = self.preprocessdataType2(processedIR, False)
+        #     if (not self.ignoreGray):
+        #         processedGrey = self.preprocessdataType2(processedGrey, False)
 
         elif (self.Preprocess_type == 3):
             processedBlue = self.preprocessdataType3(np.array(processedBlue), self.timecolorCount, True)
@@ -436,13 +436,13 @@ class ProcessFaceData:
                 processedGrey = self.preprocessdataType3(np.array(processedGrey), self.timecolorCount, True)
             processedIR = self.preprocessdataType3(np.array(processedIR), self.timeirCount, True)
 
-        elif (self.Preprocess_type == 6):
-            processedBlue = self.preprocessdataType3(np.array(processedBlue), self.timecolorCount, False)
-            processedGreen = self.preprocessdataType3(np.array(processedGreen), self.timecolorCount, False)
-            processedRed = self.preprocessdataType3(np.array(processedRed), self.timecolorCount, False)
-            if (not self.ignoreGray):
-                processedGrey = self.preprocessdataType3(np.array(processedGrey), self.timecolorCount, False)
-            processedIR = self.preprocessdataType3(np.array(processedIR), self.timeirCount, False)
+        # elif (self.Preprocess_type == 6):##Fails
+        #     processedBlue = self.preprocessdataType3(np.array(processedBlue), self.timecolorCount, False)
+        #     processedGreen = self.preprocessdataType3(np.array(processedGreen), self.timecolorCount, False)
+        #     processedRed = self.preprocessdataType3(np.array(processedRed), self.timecolorCount, False)
+        #     if (not self.ignoreGray):
+        #         processedGrey = self.preprocessdataType3(np.array(processedGrey), self.timecolorCount, False)
+        #     processedIR = self.preprocessdataType3(np.array(processedIR), self.timeirCount, False)
 
         elif (self.Preprocess_type == 4):
             processedBlue = self.preprocessdataType4(np.array(processedBlue), self.timecolorCount, True)
@@ -452,13 +452,13 @@ class ProcessFaceData:
                 processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, True)
             processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, True)
 
-        elif (self.Preprocess_type == 7):
-            processedBlue = self.preprocessdataType4(np.array(processedBlue), self.timecolorCount, False)
-            processedGreen = self.preprocessdataType4(np.array(processedGreen), self.timecolorCount, False)
-            processedRed = self.preprocessdataType4(np.array(processedRed), self.timecolorCount, False)
-            if (not self.ignoreGray):
-                processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, False)
-            processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, False)
+        # elif (self.Preprocess_type == 7):##Fails
+        #     processedBlue = self.preprocessdataType4(np.array(processedBlue), self.timecolorCount, False)
+        #     processedGreen = self.preprocessdataType4(np.array(processedGreen), self.timecolorCount, False)
+        #     processedRed = self.preprocessdataType4(np.array(processedRed), self.timecolorCount, False)
+        #     if (not self.ignoreGray):
+        #         processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, False)
+        #     processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, False)
 
         elif (self.Preprocess_type == 5):
             # combine

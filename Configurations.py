@@ -2,19 +2,25 @@ import os
 
 from matplotlib import pyplot as plt
 
+from FileIO import FileIO
+
 """
 Configuration:
 Global and configuration parameters defined in this class
 """
 class Configurations:
     # change path here for uncompressed dataset
-    def __init__(self):
-        self.DiskPath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\'
-        self.UnCompressed_dataPath = self.DiskPath + 'UnCompressed\\'
+    def __init__(self, isMain=False):
+        if(isMain):
+            # Get participant Ids
+            self.getParticipantNumbers()
+
     #Global parameters
     DiskPath = ""
     SavePath = ""
     UnCompressed_dataPath = ""
+    Skin_Group_Types = ["Europe_WhiteSkin_Group", "OtherAsian_OtherSkin_Group", "SouthAsian_BrownSkin_Group"]
+    current_Skin_Group = ""
 
     #Algorithm List
     AlgoList = ["FastICA", "PCA", "ICAPCA", "None", "Jade"]
@@ -27,7 +33,7 @@ class Configurations:
     filtertypeList = [1, 2, 3, 4, 5, 6, 7]
 
     #Pre processing techniques
-    preprocesses = [1, 2, 3, 4, 5, 6, 7, 8]
+    preprocesses = [1, 2, 3, 4, 5]#6, 7, 8
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
     resulttypeList = [1, 2, 3, 4]
@@ -62,6 +68,7 @@ class Configurations:
     "PIS-6327","PIS-4709"
     """
     ParticipantNumbers = ["PIS-4497", "PIS-2212"]
+    Participantnumbers_SkinGroupTypes = {}
 
     # Processed_participants_data = {}
 
@@ -75,7 +82,7 @@ class Configurations:
     ignoregray = False
 
     #Generate graphs when processing signals (only process r,g,b and ir)
-    GenerateGraphs = False
+    GenerateGraphs = True
 
     #Run for window or for entire signal
     RunAnalysisForEntireSignalData = True
@@ -87,6 +94,10 @@ class Configurations:
     # setup low pass filter
     ignore_freq_above_bpm = 200
     ignore_freq_above = ignore_freq_above_bpm / 60
+
+    def setDiskPath(self, current_Skin_Group):
+        self.DiskPath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\' + current_Skin_Group + "\\"
+        self.UnCompressed_dataPath = self.DiskPath + 'UnCompressed\\'
 
     """
     HidePlots:
@@ -102,6 +113,7 @@ class Configurations:
     Store all the generated graphs and files to this path
     """
     def setSavePath(self,participantNumber,position):
+        self.setDiskPath(self.Participantnumbers_SkinGroupTypes.get(participantNumber))
         self.SavePath = self.DiskPath + '\\Result\\' + participantNumber + '\\' + position + '\\'
         #Create save path if it does not exists
         if not os.path.exists(self.SavePath):
@@ -123,3 +135,22 @@ class Configurations:
         LoadIRdataPath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + 'Cropped\\' + 'IR\\' + region + '\\'  ## Loading path for IR data
         LoadDistancePath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + '\\ParticipantInformation.txt'  ## Loading path for depth and other information
         return LoadColordataPath,LoadIRdataPath,LoadDistancePath
+
+    """
+    getParticipantNumbers:
+    Store all the participant ids to variable [ParticipantNumbers]
+    """
+    def getParticipantNumbers(self):
+        #Read participantid file to get list of participants
+        AppDataPath = os.getcwd() + '\\' + 'AppData' + '\\'
+        objFile = FileIO()
+        participantIds = objFile.ReaddatafromFile(AppDataPath,'ParticipantIds')
+
+        self.ParticipantNumbers = []
+        for Line in participantIds:
+            Lineid = Line.split(', ')
+            if(Lineid[len(Lineid)-1].__contains__('Yes')): #Is participating
+                if(Lineid[len(Lineid)-2] != 'UNOCCUPIED'): #Is occupied
+                    piId = Lineid[1] #participantId
+                    self.ParticipantNumbers.append(piId)
+                    self.Participantnumbers_SkinGroupTypes[piId] = Lineid[len(Lineid)-2]

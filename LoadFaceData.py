@@ -64,9 +64,11 @@ class LoadFaceData:
         # Get FPS for color
         ColorfpswithTime = {}
         fpscountcolor = 0
-        Prevlisttime = datetime.time(self.time_listcolor[0].hour, self.time_listcolor[0].minute,
-                                     self.time_listcolor[0].second)
-        for time in self.time_listcolor:
+        isVariable = False
+        Prevlisttime = datetime.time(self.Frametime_list_color[0].hour, self.Frametime_list_color[0].minute,
+                                     self.Frametime_list_color[0].second)
+
+        for time in self.Frametime_list_color:
             TrimmedTime = datetime.time(time.hour, time.minute, time.second)
             if (Prevlisttime == TrimmedTime):
                 fpscountcolor = fpscountcolor + 1
@@ -74,17 +76,29 @@ class LoadFaceData:
                 ColorfpswithTime[Prevlisttime] = fpscountcolor
                 Prevlisttime = TrimmedTime
                 fpscountcolor = 1
+
         # print
-        print("Color fps:")
+        # print("Color fps:")
+        Colorfps =0
+        count=0
         for k, v in ColorfpswithTime.items():
-            print('Time: ' + str(k) + ' , FPS: ' + str(v))
+            if(count ==0):
+                Colorfps = str(v)
+            else:
+                if(Colorfps != str(v)):
+                    isVariable=True
+                    break;
+
+            count=count+1
+        #     print('Time: ' + str(k) + ' , FPS: ' + str(v))
 
         # Get FPS for IR
         IRfpswithTime = {}
         fpscountir = 0
-        Prevlisttime = datetime.time(self.time_listir[0].hour, self.time_listir[0].minute,
-                                     self.time_listir[0].second)
-        for time in self.time_listir:
+        isIRVariable =False
+        Prevlisttime = datetime.time(self.Frametime_list_ir[0].hour, self.Frametime_list_ir[0].minute,
+                                     self.Frametime_list_ir[0].second)
+        for time in self.Frametime_list_ir:
             TrimmedTime = datetime.time(time.hour, time.minute, time.second)
             if (Prevlisttime == TrimmedTime):
                 fpscountir = fpscountir + 1
@@ -92,12 +106,24 @@ class LoadFaceData:
                 IRfpswithTime[Prevlisttime] = fpscountir
                 Prevlisttime = TrimmedTime
                 fpscountir = 1
-        # print
-        print("IR fps:")
-        for k, v in IRfpswithTime.items():
-            print('Time: ' + str(k) + ' , FPS: ' + str(v))
 
-        return ColorfpswithTime, IRfpswithTime
+        # print
+        # print("IR fps:")
+        IRfps = 0
+        count = 0
+        for k, v in IRfpswithTime.items():
+            if (count == 0):
+                IRfps = str(v)
+            else:
+                if (IRfps != str(v)):
+                    isIRVariable = True
+                    break;
+
+            count=count+1
+
+        #     print('Time: ' + str(k) + ' , FPS: ' + str(v))
+
+        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable
 
     """
     LoadFiles:
@@ -118,7 +144,7 @@ class LoadFaceData:
             # GET Time from filename
             # Skip first and last second
             filenamearr = f1.split('\\')
-            filename = filenamearr[8]
+            filename = filenamearr[len(filenamearr)-1]
             filename = filename.replace('.png', '')
             filenameList = filename.split('-')
             hr = filenameList[1]
@@ -206,9 +232,9 @@ class LoadFaceData:
                 self.time_list_color.append(td)
 
         #print data acquistion time details
-        print('Start Time for Color:' + str(self.StartTime))
-        print('End Time for Color:' + str(self.EndTime))
-        print('Total Time:' + str(self.EndTime - self.StartTime))
+        # print('Start Time for Color:' + str(self.StartTime))
+        # print('End Time for Color:' + str(self.EndTime))
+        # print('Total Time:' + str(self.EndTime - self.StartTime))
 
         timeDifference = (self.EndTime - self.StartTime)
         self.totalTimeinSeconds = timeDifference.total_seconds()
@@ -222,7 +248,7 @@ class LoadFaceData:
             self.timecolorCount.append(Timecount)
             Timecount = Timecount + 1
         # End
-        print('Color ROI loaded..')
+        # print('Color ROI loaded..')
 
     """
     ProcessIRImagestoArray:
@@ -267,9 +293,9 @@ class LoadFaceData:
                 self.time_list_ir.append(td)
 
         #print time details for ir
-        print('Start Time for IR:' + str(self.StartTime))
-        print('End Time for IR:' + str(self.EndTime))
-        print('Total Time:' + str(self.EndTime - self.StartTime))
+        # print('Start Time for IR:' + str(self.StartTime))
+        # print('End Time for IR:' + str(self.EndTime))
+        # print('Total Time:' + str(self.EndTime - self.StartTime))
 
         # add distance
         for x in fdistancem:
@@ -300,7 +326,7 @@ class LoadFaceData:
             self.timeirCount.append(Timecount)
             Timecount = Timecount + 1
         # End IR
-        print('IR ROI loaded..')
+        # print('IR ROI loaded..')
 
         # FIX TODO if not same
         if (len(self.time_list_ir) > len(self.time_list_color)):

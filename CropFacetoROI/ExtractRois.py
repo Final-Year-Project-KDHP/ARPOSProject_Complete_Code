@@ -21,7 +21,8 @@ class ExtractROIdata:
     Parameters: Heart rate status (resting1,resting2 or after excersize_), Participant number
     '''
     def CropandLoadData(self,position,ParticipantNumber):
-        SaveROIPath, ROI_dataPath = self.objFile.getROIPath(ParticipantNumber,position)
+
+        SaveROIPath, ROI_dataPath = self.objFile.getROIPath(ParticipantNumber,position,self.objConfig.UnCompressed_dataPath)
 
         #Check if process has been completed previously
         if not (self.objFile.FileExits(SaveROIPath + 'ColorCompleted.txt')):
@@ -51,20 +52,22 @@ class ExtractROIdata:
         if(type == 'Single'):
             self.CropandLoadData(position, ParticipantNumber)
         elif(type == 'All'):
-            #Get all participant numbers (each folders data)
-            folder = self.objConfig.UnCompressed_dataPath
-            subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
+            for skinPigementation in self.objConfig.Skin_Group_Types:
+                self.objConfig.setDiskPath(skinPigementation)
+                #Get all participant numbers (each folders data)
+                folder = self.objConfig.UnCompressed_dataPath
+                subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
 
-            #for each participant
-            for folder in subfolders:
-                foldername = str(folder)
-                foldernameparams = foldername.split("\\")
-                ParticipantNumber = foldernameparams[len(foldernameparams)-1]
+                #for each participant
+                for folder in subfolders:
+                    foldername = str(folder)
+                    foldernameparams = foldername.split("\\")
+                    ParticipantNumber = foldernameparams[len(foldernameparams)-1]
 
-                # for each position
-                for pos in self.positions:
-                    print("Processing for : " + ParticipantNumber + " for " + pos)
-                    self.CropandLoadData(pos, ParticipantNumber)
+                    # for each position
+                    for pos in self.positions:
+                        print("Processing for : " + ParticipantNumber + " for " + pos)
+                        self.CropandLoadData(pos, ParticipantNumber)
         else:
             print('PLEASE ENTER CORRECT TYPE Croping data type ("Single", "All")')
 

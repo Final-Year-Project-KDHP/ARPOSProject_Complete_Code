@@ -10,8 +10,6 @@ from ProcessData import ProcessFaceData
 # Global Objects
 objConfig = Configurations()
 objFile = FileIO()
-objConfig = Configurations()
-
 
 '''
 Process participants data 
