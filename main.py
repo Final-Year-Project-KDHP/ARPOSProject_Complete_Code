@@ -54,53 +54,54 @@ class Main:
     """
     GenerateResultsfromParticipants:
     """
-    def GenerateResultsfromParticipants(self,participant_number,HrGr,SpoGr):
+    def GenerateResultsfromParticipants(self,participant_number,position,HrGr,SpoGr):
         # Start generating data fo following types
-        for algoType in self.objConfig.AlgoList:
-            # Create path for each algorithm type to store results in
-            # objFileIO.CreatePath(objConfig.SavePath + algoType)
-            for fftype in self.objConfig.fftTypeList:
-                for resulttype in self.objConfig.resulttypeList:
-                    for hrType in self.objConfig.hrTypeList:
+        for preprocesstype in self.objConfig.preprocesses:
+            for algoType in self.objConfig.AlgoList:
+                # Create path for each algorithm type to store results in
+                # objFileIO.CreatePath(objConfig.SavePath + algoType)
+                for fftype in self.objConfig.fftTypeList:
+                    for resulttype in self.objConfig.resulttypeList:
+                        # for hrType in self.objConfig.hrTypeList:
                         for filtertype in self.objConfig.filtertypeList:
-                            for preprocesstype in self.objConfig.preprocesses:
-                                for isSmooth in self.objConfig.Smoothen:
-                                    for isCompressed in self.objConfig.Compressed:
-                                        for snrType in self.objConfig.SNRTypeList:
+                            for isSmooth in self.objConfig.Smoothen:
+                                #TODO: CHECK IF COMPRESSED are neccessary
+                                # for isCompressed in self.objConfig.Compressed:
+                                # for snrType in self.objConfig.SNRTypeList:
+                                # Sort to list for writing to disk later
+                                #+ "_HR-" + str(hrType)+ "_CP-" + str('None')
+                                fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
+                                    filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(preprocesstype) + "_SM-" + str(
+                                    isSmooth) #+ "_SNR-" + str(snrType) #isCompressed
+                                print(fileName)
+                                self.objConfig.SavePath = self.objConfig.DiskPath  + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
+                                self.objFileIO.CreatePath(self.objConfig.SavePath)
+                                # ParticipantsHRfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
+                                # ParticipantsSPOfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
 
-                                            # Sort to list for writing to disk later
-                                            fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
-                                                filtertype) + "_RS-" + str(resulttype) + "_HR-" + str(
-                                                hrType) + "_PR-" + str(preprocesstype) + "_SM-" + str(
-                                                isSmooth) + "_CP-" + str(isCompressed) + "_SNR-" + str(snrType)
-                                            ParticipantsHRfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
-                                            ParticipantsSPOfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
+                                if (not os.path.exists(self.objConfig.SavePath + self.HRNameFileName + fileName + ".txt")):
+                                    # if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
+                                    # Generate Data for all Techniques
+                                    ListHrdata, ListSPOdata = Process_SingalData(
+                                        self.objConfig.RunAnalysisForEntireSignalData,
+                                        self.ROIStore, self.objConfig.SavePath,
+                                        algoType, fftype,
+                                        HrGr, SpoGr,
+                                        filtertype, resulttype, preprocesstype, isSmooth,0)
+                                        #hrType, isCompressed,snrType)
 
-                                            if (not os.path.exists(
-                                                    self.objConfig.SavePath + self.HRNameFileName + fileName + ".txt")):
-                                                # if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
-                                                # Generate Data for all Techniques
-                                                ListHrdata, ListSPOdata = Process_SingalData(
-                                                    self.objConfig.RunAnalysisForEntireSignalData,
-                                                    self.ROIStore, self.objConfig.SavePath,
-                                                    algoType, fftype,
-                                                    HrGr, SpoGr,
-                                                    filtertype, resulttype, preprocesstype, isSmooth, hrType,
-                                                    isCompressed,
-                                                    snrType)
-
-                                                # Save to list for writing to disk later
-                                                objFile.WriteListDatatoFile(self.objConfig.SavePath, fileName,
-                                                                            ListHrdata)
-                                                objFile.WriteListDatatoFile(self.objConfig.SavePath, fileName,
-                                                                            ListSPOdata)
-                                                # ParticipantsProcessedHeartRateData[ParticipantsHRfileName] = ListHrdata
-                                                # ParticipantsProcessedBloodOxygenData[ParticipantsSPOfileName] = ListSPOdata
-                                            # print(str(algoType) +"_"+ str(fftype) +"_"+ str(filtertype)  +"_"+ str(resulttype)+
-                                            #       "_" +  str(preprocesstype)  +"_"+  str(isSmooth)  +"_"+str(hrType)+"_" +
-                                            #       str(isCompressed)  +"_"+ str(snrType))
-                                            # objConfig.RunAnalysisForEntireSignalData, ROIStore, objConfig.SavePath, algoType, fftype, HrGr, SpoGr, filtertype, resulttype, preprocesstype, isSmooth,hrType,isCompressed,snrType
-                                            # objConfig.Processed_participants_data[participant_number] =
+                                    # Save to list for writing to disk later
+                                    objFile.WriteListDatatoFile(self.objConfig.SavePath,'HeartRate_' + fileName,
+                                                                ListHrdata)
+                                    objFile.WriteListDatatoFile(self.objConfig.SavePath, 'SPO_' +fileName,
+                                                                    ListSPOdata)
+                                        # ParticipantsProcessedHeartRateData[ParticipantsHRfileName] = ListHrdata
+                                        # ParticipantsProcessedBloodOxygenData[ParticipantsSPOfileName] = ListSPOdata
+                                    # print(str(algoType) +"_"+ str(fftype) +"_"+ str(filtertype)  +"_"+ str(resulttype)+
+                                    #       "_" +  str(preprocesstype)  +"_"+  str(isSmooth)  +"_"+str(hrType)+"_" +
+                                    #       str(isCompressed)  +"_"+ str(snrType))
+                                    # objConfig.RunAnalysisForEntireSignalData, ROIStore, objConfig.SavePath, algoType, fftype, HrGr, SpoGr, filtertype, resulttype, preprocesstype, isSmooth,hrType,isCompressed,snrType
+                                    # objConfig.Processed_participants_data[participant_number] =
 
             # Write all results to file
             # for k, v in ParticipantsProcessedHeartRateData.items():
@@ -121,10 +122,10 @@ class Main:
     def mainMethod(self):
         # For each participant
         for participant_number in self.objConfig.ParticipantNumbers:
-
+            print(participant_number)
             # for each heart rate status (resting or active)
             for position in self.objConfig.hearratestatus:
-
+                print(position)
                 self.objConfig.setSavePath(participant_number, position)
 
                 # Load all data for each roi and create roi store
@@ -152,7 +153,8 @@ class Main:
                 HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position, self.objConfig.DiskPath)
 
                 ##Process and get result of participants data
-                self.GenerateResultsfromParticipants(participant_number, HrGr, SpoGr)
+                self.GenerateResultsfromParticipants(participant_number,position, HrGr, SpoGr)
 
 objMain = Main()
 objMain.mainMethod()
+print('Ended')

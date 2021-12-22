@@ -1,3 +1,6 @@
+import enum
+from datetime import datetime
+
 class Window_Data:
   BestBPM =0.0
   BestSnR =0.0
@@ -13,6 +16,7 @@ class Window_Data:
   BlueBpm = 0.0
   WindowNo = 0
   regiontype = ''
+  isSmooth = False
 
   BestSnR2 =0.0
   IrSnr2 = 0.0
@@ -33,4 +37,75 @@ class Window_Data:
   oxygenSaturationValueValue = 0.0
   oxygenSaturationSTD=0.0
 
-  diffTime =0.0
+  #Log Details
+  diffTime = 0.0
+  TimeLog = {}
+  diffTimeLog = {}
+  LogItems = []
+
+  def LogTime(self, LogItem):
+    logTime = datetime(datetime.now().year, datetime.now().month, datetime.now().day,
+                         datetime.now().time().hour, datetime.now().time().minute,
+                         datetime.now().time().second, datetime.now().time().microsecond)
+    self.TimeLog[LogItem] = logTime
+
+  def timeDifferences(self):
+    startTime = self.TimeLog[LogItems.Start_Total]
+    endTime = self.TimeLog[LogItems.End_Total]
+    self.diffTime = (endTime - startTime)
+    self.diffTimeLog[LogItems.End_Total] = self.diffTime
+    # self.diffTime = self.diffTime.total_seconds()
+
+    startTime = self.TimeLog[LogItems.Start_PreProcess]
+    endTime = self.TimeLog[LogItems.End_PreProcess]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_PreProcess] = difference
+
+    startTime = self.TimeLog[LogItems.Start_Algorithm]
+    endTime = self.TimeLog[LogItems.End_Algorithm]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_Algorithm] = difference
+
+    startTime = self.TimeLog[LogItems.Start_FFT]
+    endTime = self.TimeLog[LogItems.End_FFT]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_FFT] = difference
+
+    if(self.isSmooth):
+      startTime = self.TimeLog[LogItems.Start_Smooth]
+      endTime = self.TimeLog[LogItems.End_Smooth]
+      difference = endTime - startTime
+      self.diffTimeLog[LogItems.End_Smooth] = difference
+
+    startTime = self.TimeLog[LogItems.Start_Filter]
+    endTime = self.TimeLog[LogItems.End_Filter]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_Filter] = difference
+
+    startTime = self.TimeLog[LogItems.Start_ComputerHRSNR]
+    endTime = self.TimeLog[LogItems.End_ComputerHRSNR]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_ComputerHRSNR] = difference
+
+    startTime = self.TimeLog[LogItems.Start_SPO]
+    endTime = self.TimeLog[LogItems.End_SPO]
+    difference = endTime - startTime
+    self.diffTimeLog[LogItems.End_SPO] = difference
+
+class LogItems(enum.Enum):
+  Start_Total = 1
+  End_Total = 2
+  Start_PreProcess =3
+  End_PreProcess=4
+  Start_Algorithm=5
+  End_Algorithm=6
+  Start_FFT=7
+  End_FFT=8
+  Start_Smooth=9
+  End_Smooth=10
+  Start_Filter=11
+  End_Filter=12
+  Start_ComputerHRSNR=13
+  End_ComputerHRSNR=14
+  Start_SPO=15
+  End_SPO=16

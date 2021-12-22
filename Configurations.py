@@ -23,20 +23,20 @@ class Configurations:
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA", "PCA", "ICAPCA", "None", "Jade"]
+    AlgoList = ["FastICA", "PCA", "ICAPCA", "None"]#, "Jade"
 
     #FFT method types
-    fftTypeList = ["M1", "M2", "M3", "M4", "M5", "M6", "M7"]
+    fftTypeList = ["M1", "M2", "M3", "M7"]#"M4", "M5", "M6",-> similar in graph  but test later with other types later
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result
-    filtertypeList = [1, 2, 3, 4, 5, 6, 7]
+    filtertypeList = [6, 2, 4, 5,  7]#3, -> no result, FL1 and FL6 are same 1,
 
     #Pre processing techniques
-    preprocesses = [1, 2, 3, 4, 5]#6, 7, 8
+    preprocesses = [1, 3, 4, 5]#2 (same as 3), 6, 7, 8
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
-    resulttypeList = [1, 2, 3, 4]
+    resulttypeList = [1, 2, 3] #, 4 similar
 
     #geting heart rate by different methods in bpm
     hrTypeList = [1,2,3]
@@ -119,10 +119,10 @@ class Configurations:
         if not os.path.exists(self.SavePath):
             os.makedirs(self.SavePath)
 
-        if(self.GenerateGraphs):
-            graphPath = self.SavePath + "Graphs\\"
-            if not os.path.exists(graphPath):
-                os.makedirs(graphPath)
+        # if(self.GenerateGraphs):
+        #     graphPath = self.SavePath + "Graphs\\"
+        #     if not os.path.exists(graphPath):
+        #         os.makedirs(graphPath)
 
     """
     getLoadPath:

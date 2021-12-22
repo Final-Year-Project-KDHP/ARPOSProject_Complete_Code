@@ -15,20 +15,17 @@ objFile = FileIO()
 Process participants data 
 '''
 def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algorithm_type, FFT_type, HrGr, SpoGr,
-                       Filter_type, Result_type, Preprocess_type, isSmoothen, HrType, isCompressed, snrType):
+                       Filter_type, Result_type, Preprocess_type, isSmoothen, snrType):
     if (not RunAnalysisForEntireSignalData):
         Process_Participants_Data_Windows(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
                                           HrGr, SpoGr,
-                                          Filter_type, Result_type, Preprocess_type, isSmoothen, HrType, isCompressed,
-                                          snrType)
+                                          Filter_type, Result_type, Preprocess_type, isSmoothen, snrType)
     else:
         ListHrdata, ListSPOdata = Process_Participants_Data_EntireSignal(ROIStore, SavePath,
                                                Algorithm_type, FFT_type,
                                                HrGr, SpoGr,
-                                               Filter_type, Result_type, Preprocess_type, isSmoothen, HrType,
-                                               isCompressed,
-                                               snrType)
+                                               Filter_type, Result_type, Preprocess_type, isSmoothen, snrType)
     return  ListHrdata, ListSPOdata
 
 
@@ -190,8 +187,7 @@ Process participants data over the entire signal data
 '''
 def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
                                            Algorithm_type, FFT_type, HrGr, SpoGr,
-                                           Filter_type, Result_type, Preprocess_type, isSmoothen, HrType, isCompressed,
-                                           snrType):
+                                           Filter_type, Result_type, Preprocess_type, isSmoothen, snrType):
 
     # Lists to hold heart rate and blood oxygen data
     ListHrdata = []
@@ -212,8 +208,8 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
 
     # Initialise object to process face regions signal data
     objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
-                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, HrType, timeinSeconds,
-                                     isCompressed, snrType)
+                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
+                                     snrType)
 
     # ROI Window Result list
     WindowRegionList = {}
@@ -243,6 +239,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
     WindowRegionList['forehead'] = foreheadResult
     WindowRegionList['rightcheek'] = rightcheekResult
     WindowRegionList['leftcheek'] = leftcheekResult
+    diffTimeTotal = []
 
     # Get best region data
     for k, v in WindowRegionList.items():
@@ -253,6 +250,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             regiontype = k
             freqencySamplingError = v.IrFreqencySamplingError
             diffNow = v.diffTime
+            diffTimeTotal = v.diffTimeLog
 
         if (v.GreySnr > bestHeartRateSnr):
             bestHeartRateSnr = v.GreySnr
@@ -261,6 +259,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             regiontype = k
             freqencySamplingError = v.GreyFreqencySamplingError
             diffNow = v.diffTime
+            diffTimeTotal = v.diffTimeLog
 
         if (v.RedSnr > bestHeartRateSnr):
             bestHeartRateSnr = v.RedSnr
@@ -269,6 +268,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             regiontype = k
             freqencySamplingError = v.RedFreqencySamplingError
             diffNow = v.diffTime
+            diffTimeTotal = v.diffTimeLog
 
         if (v.GreenSnr > bestHeartRateSnr):
             bestHeartRateSnr = v.GreenSnr
@@ -277,6 +277,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             regiontype = k
             freqencySamplingError = v.GreenFreqencySamplingError
             diffNow = v.diffTime
+            diffTimeTotal = v.diffTimeLog
 
         if (v.BlueSnr > bestHeartRateSnr):
             bestHeartRateSnr = v.BlueSnr
@@ -285,6 +286,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             regiontype = k
             freqencySamplingError = v.BlueFreqencySamplingError
             diffNow = v.diffTime
+            diffTimeTotal = v.diffTimeLog
 
         if (v.oxygenSaturationValueError < smallestOxygenError):
             smallestOxygenError = v.oxygenSaturationValueError
@@ -296,17 +298,24 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
 
     # Get difference and append data (heart rate)
     difference = round(float(HrAvegrage) - float(heartRateValue))
-    ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow))
+    ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
 
     # Get difference and append data (blood oxygen)
     difference = round(float(SPOAvegrage) - float(oxygenSaturationValue))
-    ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow))
+    ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow)+ " ,\t" + str(regiontype))
 
+    printTime = ''
+    for k, v in diffTimeTotal.items():
+        printTime = printTime + str(k) + ': ' + str(v) + '\n'
+
+    objFile = FileIO()
+    objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
     # # Write data to file
     # objFile.WriteListDatatoFile(SavePath, fileNameHr, ListHrdata)
     # objFile.WriteListDatatoFile(SavePath, fileNameSpo, ListSPOdata)
 
     del objReliability
     del objProcessData
+    del objFile
 
     return ListHrdata, ListSPOdata

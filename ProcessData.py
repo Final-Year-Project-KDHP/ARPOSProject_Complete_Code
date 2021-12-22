@@ -1,15 +1,12 @@
-import os
-import time
 from datetime import datetime
-import time
-
 import numpy as np
 from scipy import signal
 from sklearn import preprocessing
 from Algorithm import AlgorithmCollection
+from HeartRateAndSPO.ComputeHeartRate import ComputerHeartRate
 from SaveGraphs import Plots
 import sys
-from WindowData import Window_Data
+from WindowData import Window_Data, LogItems
 
 
 class ProcessFaceData:
@@ -46,7 +43,7 @@ class ProcessFaceData:
     ramp_end_bpm = 55
     ramp_start_percentage = 0.5
     ramp_end_percentage = 1
-    ramp_end_hz = ramp_end_bpm / 60
+    ramp_end_hz = 0
     freq_bpm = []
     NumSamples = 0
     ignore_freq_index_below = 0
@@ -59,11 +56,11 @@ class ProcessFaceData:
 
     # setup highpass filter
     ignore_freq_below_bpm = 40
-    ignore_freq_below = ignore_freq_below_bpm / 60
+    ignore_freq_below = 0
 
     # setup low pass filter
     ignore_freq_above_bpm = 200
-    ignore_freq_above = ignore_freq_above_bpm / 60
+    ignore_freq_above = 0
 
     # Input Parameters
     Algorithm_type = ''
@@ -106,13 +103,11 @@ class ProcessFaceData:
 
     # constructor
     def __init__(self, Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath, ignoreGray,
-                 isSmoothen, GenerateGraphs,HrType,timeinSeconds,isCompressed,snrType):
+                 isSmoothen, GenerateGraphs,timeinSeconds,snrType):
         self.Algorithm_type = Algorithm_type
         self.FFT_type = FFT_type
         self.Filter_type = Filter_type
         self.Result_type = Result_type
-        self.HrType = HrType
-        self.isCompressed = isCompressed
         self.Preprocess_type = Preprocess_type
         self.SavePath = SavePath
         self.ignoreGray = ignoreGray
@@ -120,6 +115,14 @@ class ProcessFaceData:
         self.GenerateGraphs = GenerateGraphs
         self.timeinSeconds = timeinSeconds
         self.snrType = snrType
+
+        # setup highpass filter
+        self.ignore_freq_below_bpm = 40
+        self.ignore_freq_below = self.ignore_freq_below_bpm / 60
+        # setup low pass filter
+        self.ignore_freq_above_bpm = 200
+        self.ignore_freq_above = self.ignore_freq_above_bpm / 60
+        self.ramp_end_hz = self.ramp_end_bpm / 60
 
         # set estimated fps
         self.objAlgorithm.EstimatedFPS = self.EstimatedFPS  # TODO FIX FOR VAIOIURS FPS
@@ -232,7 +235,7 @@ class ProcessFaceData:
     '''
 
     def getGraphPath(self):
-        return self.SavePath + "Graphs\\"
+        return self.SavePath #+ "Graphs\\"
 
     '''
     defineGraphName: Returns image name of a graph, adds various types of techniques and filters for identification purpose
@@ -403,7 +406,6 @@ class ProcessFaceData:
     '''
 
     def preprocessSignalData(self, blue, green, red, grey, Irchannel):
-        self.Preprocess_type =1
         # Processed channel data
         processedBlue = blue
         processedGreen = green
@@ -412,13 +414,13 @@ class ProcessFaceData:
         processedIR = Irchannel
 
         # Add interpolation and smoothen of curve
-        if (self.Preprocess_type == 2):
-            processedBlue = self.preprocessdataType2(processedBlue, True)
-            processedGreen = self.preprocessdataType2(processedGreen, True)
-            processedRed = self.preprocessdataType2(processedRed, True)
-            processedIR = self.preprocessdataType2(processedIR, True)
-            if (not self.ignoreGray):
-                processedGrey = self.preprocessdataType2(processedGrey, True)
+        # if (self.Preprocess_type == 2):
+        #     processedBlue = self.preprocessdataType2(processedBlue, True)
+        #     processedGreen = self.preprocessdataType2(processedGreen, True)
+        #     processedRed = self.preprocessdataType2(processedRed, True)
+        #     processedIR = self.preprocessdataType2(processedIR, True)
+        #     if (not self.ignoreGray):
+        #         processedGrey = self.preprocessdataType2(processedGrey, True)
 
         # elif (self.Preprocess_type == 8):##Fails
         #     processedBlue = self.preprocessdataType2(processedBlue, False)
@@ -428,7 +430,7 @@ class ProcessFaceData:
         #     if (not self.ignoreGray):
         #         processedGrey = self.preprocessdataType2(processedGrey, False)
 
-        elif (self.Preprocess_type == 3):
+        if (self.Preprocess_type == 3):
             processedBlue = self.preprocessdataType3(np.array(processedBlue), self.timecolorCount, True)
             processedGreen = self.preprocessdataType3(np.array(processedGreen), self.timecolorCount, True)
             processedRed = self.preprocessdataType3(np.array(processedRed), self.timecolorCount, True)
@@ -588,7 +590,6 @@ class ProcessFaceData:
 
     def FilterTechniques(self, B_fft, G_fft, R_fft, Gy_fft, IR_fft ):
         # cuttoff,  butterworth and other
-
         if (self.ignoreGray):
             Gy_filtered = []
 
@@ -796,6 +797,10 @@ class ProcessFaceData:
     '''
 
     def Process_EntireSignalData(self):  # TODO : Implement without Gray
+        #window data object
+        windowList = Window_Data()
+        windowList.LogTime(LogItems.Start_Total)
+        windowList.isSmooth = self.isSmoothen
 
         blue = self.regionWindowSignalData[:, 0]
         green = self.regionWindowSignalData[:, 1]
@@ -813,52 +818,54 @@ class ProcessFaceData:
         if (self.GenerateGraphs):
             self.GenerateGrapth("RawData", S)
 
+        #Log Start Time preprcessing signal data
+        windowList.LogTime(LogItems.Start_PreProcess)
         # PreProcess Signal
         S = self.preprocessSignalData(S[:, 0], S[:, 1], S[:, 2], S[:, 3], S[:, 4])
-
-
-        startTime = datetime(datetime.now().year, datetime.now().month, datetime.now().day,
-                       datetime.now().time().hour, datetime.now().time().minute,
-                       datetime.now().time().second,datetime.now().time().microsecond)
+        windowList.LogTime(LogItems.End_PreProcess)
 
         # Apply Algorithm
+        windowList.LogTime(LogItems.Start_Algorithm)
         S_ = self.ApplyAlgorithm(S)
-
-        endTime = datetime(datetime.now().year, datetime.now().month, datetime.now().day,
-                           datetime.now().time().hour, datetime.now().time().minute,
-                           datetime.now().time().second, datetime.now().time().microsecond)
-
-        diffTime = endTime - startTime
-        diffTime = diffTime.total_seconds()
+        windowList.LogTime(LogItems.End_Algorithm)
 
         # Apply smoothen only before fft
         if (self.isSmoothen):
             # Smooth data
-            self.SmoothenData(S_)
+            windowList.LogTime(LogItems.Start_Smooth)
+            S_ = self.SmoothenData(S_)
+            windowList.LogTime(LogItems.End_Smooth)
 
         # Apply fft
+        windowList.LogTime(LogItems.Start_FFT)
         S_fft, self.frequency = self.ApplyFFT(S_)
+        windowList.LogTime(LogItems.End_FFT)
 
         if (self.GenerateGraphs):
             self.GenerateGrapth("FFT", S_fft)
 
+        windowList.LogTime(LogItems.Start_Filter)
         S_filtered = self.FilterTechniques(S_fft[:, 0], S_fft[:, 1], S_fft[:, 2], S_fft[:, 3],
                                            S_fft[:, 4])  ##Applyfiltering
+        windowList.LogTime(LogItems.End_Filter)
 
         if (self.GenerateGraphs):
             self.GenerateGrapth("Filtered", S_filtered)
 
-        # TODO: No of samples is differnet initailly meaning was set to len(self.channel)
-
+        windowList.LogTime(LogItems.Start_ComputerHRSNR)
         self.generateHeartRateandSNR(S_filtered,self.Result_type,self.HrType,self.isCompressed)
+        windowList.LogTime(LogItems.End_ComputerHRSNR)
 
         #get best bpm and heart rate period in one region
         self.GetBestBpm()
 
         # calculate SPO
+        windowList.LogTime(LogItems.Start_SPO)
         std, err, oxylevl = self.getSpo(grey,S_filtered[:, 3],Irchannel,red)
+        windowList.LogTime(LogItems.End_SPO)
 
-        windowList = Window_Data()
+        windowList.LogTime(LogItems.End_Total)
+
         windowList.WindowNo = self.Window_count
         windowList.BestBPM = self.bestBpm
         windowList.BestSnR = self.bestHeartRateSnr
@@ -881,7 +888,7 @@ class ProcessFaceData:
         windowList.oxygenSaturationSTD = std  # std
         windowList.oxygenSaturationValueError = err  # err
         windowList.oxygenSaturationValueValue = oxylevl  # oxylevl
-        windowList.diffTime = diffTime
+        windowList.timeDifferences()
 
         return windowList
 
@@ -1404,6 +1411,26 @@ class ProcessFaceData:
         self.GreenBpm = self.freq_bpm[green_fft_index]
         self.BlueBpm = self.freq_bpm[blue_fft_index]
 
+    def CopyCalculatedata_fromHRComputerobject(self, IrSnr, GreySnr,RedSnr,GreenSnr,BlueSnr,
+                                               IrBpm,GreyBpm,RedBpm,GreenBpm,BlueBpm,IrFreqencySamplingError,
+                                               GreyFreqencySamplingError,RedFreqencySamplingError,
+                                               GreenFreqencySamplingError,BlueFreqencySamplingError):
+        # ResultData
+        self.IrSnr =IrSnr
+        self.GreySnr = GreySnr
+        self.RedSnr = RedSnr
+        self.GreenSnr = GreenSnr
+        self.BlueSnr =BlueSnr
+        self.IrBpm = IrBpm
+        self.GreyBpm = GreyBpm
+        self.RedBpm = RedBpm
+        self.GreenBpm = GreenBpm
+        self.BlueBpm = BlueBpm
+        self.IrFreqencySamplingError =IrFreqencySamplingError
+        self.GreyFreqencySamplingError = GreyFreqencySamplingError
+        self.RedFreqencySamplingError = RedFreqencySamplingError
+        self.GreenFreqencySamplingError =GreenFreqencySamplingError
+        self.BlueFreqencySamplingError = BlueFreqencySamplingError
 
     # region calculate result (HR in bpm) using frequency
     def generateHeartRateandSNR(self, S_filtered, type, hrtype, iscompress):
@@ -1415,6 +1442,14 @@ class ProcessFaceData:
         green_fft_realabs = S_filtered[:, 1].copy()
         blue_fft_realabs = S_filtered[:, 0].copy()
 
+        # Calculate samples
+        self.NumSamples = len(red_fft_realabs)
+        self.freq_bpm = 60 * self.frequency
+
+        #Compute heart rate and snr
+        objComputerHeartRate = ComputerHeartRate(self.snrType, self.ignoreGray,self.NumSamples,self.grayIndex,self.IRIndex,self.components,
+                                                 self.EstimatedFPS,self.ramp_end_bpm,self.ramp_start_percentage,self.ramp_end_percentage,
+                                                 self.ignore_freq_below_bpm,self.ignore_freq_above_bpm,self.freq_bpm,self.frequency,self.SavePath,self.region)
         #global data
         blue_fft_index = 0
         blue_fft_maxVal = 0
@@ -1426,104 +1461,154 @@ class ProcessFaceData:
         grey_fft_maxVal = 0
         ir_fft_index = 0
         ir_fft_maxVal = 0
-        self.freq_bpm = 60 * self.frequency
 
+        if (type == 1):
+            objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs)
+        elif (type == 2):
+            objComputerHeartRate.getHeartRate_fromFrequency(blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs)
+        elif (type == 3):
+            objComputerHeartRate.getHearRate_fromFrequencyWithFilter_Main(blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs)
+
+        ##Copy obj compute HR data to local class
+        self.CopyCalculatedata_fromHRComputerobject(objComputerHeartRate.IrSnr, objComputerHeartRate.GreySnr,objComputerHeartRate.RedSnr,
+                                                    objComputerHeartRate.GreenSnr,objComputerHeartRate.BlueSnr, objComputerHeartRate.IrBpm,
+                                                    objComputerHeartRate.GreyBpm,objComputerHeartRate.RedBpm,objComputerHeartRate.GreenBpm,objComputerHeartRate.BlueBpm,
+                                                    objComputerHeartRate.IrFreqencySamplingError, objComputerHeartRate.GreyFreqencySamplingError,
+                                                    objComputerHeartRate.RedFreqencySamplingError, objComputerHeartRate.GreenFreqencySamplingError,
+                                                    objComputerHeartRate.BlueFreqencySamplingError)
+        ##delete obj compute hr data
+        del objComputerHeartRate
         #TYPE -> ResultType
         #get max peak_index and value of peak index
-        if(type ==1):
-            self.ComputeIndices()
-            # Calculate and process signal data
-            blue_fft_realabs, blue_fft_index, blue_fft_maxVal, \
-            green_fft_realabs, green_fft_index, green_fft_maxVal, \
-            red_fft_realabs, red_fft_index, red_fft_maxVal, \
-            grey_fft_realabs, grey_fft_index, grey_fft_maxVal, \
-            ir_fft_realabs, ir_fft_index, ir_fft_maxVal = self.getResultHR(blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs)
-
-            if((ir_fft_index > (len(self.freq_bpm)-1))):
-                ir_fft_index = (len(self.freq_bpm)-1)
-            if ((grey_fft_index > (len(self.freq_bpm) - 1))):
-                grey_fft_index = (len(self.freq_bpm)-1)
-            if ((red_fft_index > (len(self.freq_bpm) - 1))):
-                red_fft_index = (len(self.freq_bpm)-1)
-            if ((green_fft_index > (len(self.freq_bpm) - 1))):
-                green_fft_index = (len(self.freq_bpm)-1)
-            if ((blue_fft_index > (len(self.freq_bpm) - 1))):
-                blue_fft_index = (len(self.freq_bpm)-1)
-
-        elif(type == 2):
-            # For Hueristic approach of HR detection
-            ir_fft_index = np.argmax(ir_fft_realabs)
-            ir_fft_maxVal = self.frequency[ir_fft_index]
-            if (not self.ignoreGray):
-                grey_fft_index = np.argmax(grey_fft_realabs)
-                grey_fft_maxVal = self.frequency[grey_fft_index]
-            else:
-                grey_fft_maxVal = 0
-                grey_fft_index = 0
-            red_fft_index = np.argmax(red_fft_realabs)
-            red_fft_maxVal = self.frequency[red_fft_index]
-            green_fft_index = np.argmax(green_fft_realabs)
-            green_fft_maxVal = self.frequency[green_fft_index]
-            blue_fft_index = np.argmax(blue_fft_realabs)
-            blue_fft_maxVal = self.frequency[blue_fft_index]
-
-        elif(type == 3):
-            # ir_fft_index - >IR_sig_max_peak
-            ir_fft_maxVal, ir_fft_index = self.find_heart_rate(ir_fft_realabs)
-            if (not self.ignoreGray):
-                grey_fft_maxVal, grey_fft_index = self.find_heart_rate(grey_fft_realabs)
-            else:
-                grey_fft_maxVal = 0
-                grey_fft_index = 0
-            red_fft_maxVal, red_fft_index = self.find_heart_rate(red_fft_realabs)
-            green_fft_maxVal, green_fft_index = self.find_heart_rate(green_fft_realabs)
-            blue_fft_maxVal, blue_fft_index = self.find_heart_rate(blue_fft_realabs)
-
-        elif(type==4):
-            ir_fft_index,ir_fft_maxVal = self.getChannelIndex(ir_fft_realabs,self.frequency)
-            if (not self.ignoreGray):
-                grey_fft_index, grey_fft_maxVal = self.getChannelIndex(grey_fft_realabs, self.frequency)
-            else:
-                grey_fft_index = 0
-                grey_fft_maxVal = 0
-            red_fft_index, red_fft_maxVal = self.getChannelIndex(red_fft_realabs, self.frequency)
-            green_fft_index, green_fft_maxVal = self.getChannelIndex(green_fft_realabs, self.frequency)
-            blue_fft_index, blue_fft_maxVal = self.getChannelIndex(blue_fft_realabs, self.frequency)
-
+        # if(type ==1):
+        #     self.ComputeIndices()
+        #     # Calculate and process signal data
+        #     blue_fft_realabs, blue_fft_index, blue_fft_maxVal, \
+        #     green_fft_realabs, green_fft_index, green_fft_maxVal, \
+        #     red_fft_realabs, red_fft_index, red_fft_maxVal, \
+        #     grey_fft_realabs, grey_fft_index, grey_fft_maxVal, \
+        #     ir_fft_realabs, ir_fft_index, ir_fft_maxVal = self.getResultHR(blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs)
+        #
+        #     if((ir_fft_index > (len(self.freq_bpm)-1))):
+        #         ir_fft_index = (len(self.freq_bpm)-1)
+        #     if ((grey_fft_index > (len(self.freq_bpm) - 1))):
+        #         grey_fft_index = (len(self.freq_bpm)-1)
+        #     if ((red_fft_index > (len(self.freq_bpm) - 1))):
+        #         red_fft_index = (len(self.freq_bpm)-1)
+        #     if ((green_fft_index > (len(self.freq_bpm) - 1))):
+        #         green_fft_index = (len(self.freq_bpm)-1)
+        #     if ((blue_fft_index > (len(self.freq_bpm) - 1))):
+        #         blue_fft_index = (len(self.freq_bpm)-1)
+        #
+        #     self.IrBpm = self.freq_bpm[ir_fft_index]
+        #     if (not self.ignoreGray):
+        #         self.GreyBpm = self.freq_bpm[grey_fft_index]
+        #     else:
+        #         self.GreyBpm = 0
+        #     self.RedBpm = self.freq_bpm[red_fft_index]
+        #     self.GreenBpm = self.freq_bpm[green_fft_index]
+        #     self.BlueBpm = self.freq_bpm[blue_fft_index]
+        #
+        # elif(type == 2):
+        #     # For Hueristic approach of HR detection
+        #     ir_fft_index = np.argmax(ir_fft_realabs)
+        #     ir_fft_maxVal = self.frequency[ir_fft_index]
+        #     if (not self.ignoreGray):
+        #         grey_fft_index = np.argmax(grey_fft_realabs)
+        #         grey_fft_maxVal = self.frequency[grey_fft_index]
+        #     else:
+        #         grey_fft_maxVal = 0
+        #         grey_fft_index = 0
+        #     red_fft_index = np.argmax(red_fft_realabs)
+        #     red_fft_maxVal = self.frequency[red_fft_index]
+        #     green_fft_index = np.argmax(green_fft_realabs)
+        #     green_fft_maxVal = self.frequency[green_fft_index]
+        #     blue_fft_index = np.argmax(blue_fft_realabs)
+        #     blue_fft_maxVal = self.frequency[blue_fft_index]
+        #
+        #     self.IrBpm = self.freq_bpm[ir_fft_index]
+        #     if (not self.ignoreGray):
+        #         self.GreyBpm = self.freq_bpm[grey_fft_index]
+        #     else:
+        #         self.GreyBpm = 0
+        #     self.RedBpm = self.freq_bpm[red_fft_index]
+        #     self.GreenBpm = self.freq_bpm[green_fft_index]
+        #     self.BlueBpm = self.freq_bpm[blue_fft_index]
+        #
+        # elif(type == 3):
+        #     # ir_fft_index - >IR_sig_max_peak
+        #     ir_fft_maxVal, ir_fft_index = self.find_heart_rate(ir_fft_realabs)
+        #     if (not self.ignoreGray):
+        #         grey_fft_maxVal, grey_fft_index = self.find_heart_rate(grey_fft_realabs)
+        #     else:
+        #         grey_fft_maxVal = 0
+        #         grey_fft_index = 0
+        #     red_fft_maxVal, red_fft_index = self.find_heart_rate(red_fft_realabs)
+        #     green_fft_maxVal, green_fft_index = self.find_heart_rate(green_fft_realabs)
+        #     blue_fft_maxVal, blue_fft_index = self.find_heart_rate(blue_fft_realabs)
+        #
+        #     self.IrBpm = self.freq_bpm[ir_fft_index]
+        #     if (not self.ignoreGray):
+        #         self.GreyBpm = self.freq_bpm[grey_fft_index]
+        #     else:
+        #         self.GreyBpm = 0
+        #     self.RedBpm = self.freq_bpm[red_fft_index]
+        #     self.GreenBpm = self.freq_bpm[green_fft_index]
+        #     self.BlueBpm = self.freq_bpm[blue_fft_index]
+        #
+        # elif(type==4):
+        #     ir_fft_index,ir_fft_maxVal = self.getChannelIndex(ir_fft_realabs,self.frequency)
+        #     if (not self.ignoreGray):
+        #         grey_fft_index, grey_fft_maxVal = self.getChannelIndex(grey_fft_realabs, self.frequency)
+        #     else:
+        #         grey_fft_index = 0
+        #         grey_fft_maxVal = 0
+        #     red_fft_index, red_fft_maxVal = self.getChannelIndex(red_fft_realabs, self.frequency)
+        #     green_fft_index, green_fft_maxVal = self.getChannelIndex(green_fft_realabs, self.frequency)
+        #     blue_fft_index, blue_fft_maxVal = self.getChannelIndex(blue_fft_realabs, self.frequency)
+        #
+        #     self.IrBpm = self.freq_bpm[ir_fft_index]
+        #     if (not self.ignoreGray):
+        #         self.GreyBpm = self.freq_bpm[grey_fft_index]
+        #     else:
+        #         self.GreyBpm = 0
+        #     self.RedBpm = self.freq_bpm[red_fft_index]
+        #     self.GreenBpm = self.freq_bpm[green_fft_index]
+        #     self.BlueBpm = self.freq_bpm[blue_fft_index]
         # TODO : FIX this, these are not bieng used even in previous code
         # Compress
-        if(iscompress):
-            blue_fft_realabs, green_fft_realabs, red_fft_realabs, \
-            grey_fft_realabs, ir_fft_realabs = self.compressChannels(blue_fft_realabs,
-                                                                     green_fft_realabs,
-                                                                     red_fft_realabs,
-                                                                     grey_fft_realabs,
-                                                                     ir_fft_realabs)
+        # if(iscompress):
+        #     blue_fft_realabs, green_fft_realabs, red_fft_realabs, \
+        #     grey_fft_realabs, ir_fft_realabs = self.compressChannels(blue_fft_realabs,
+        #                                                              green_fft_realabs,
+        #                                                              red_fft_realabs,
+        #                                                              grey_fft_realabs,
+        #                                                              ir_fft_realabs)
 
-        # Calculate Heartrate as per hrtype
-        self.getHeartRateBPM(hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
-                             ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
+        # # Calculate Heartrate as per hrtype
+        # self.getHeartRateBPM(hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
+        #                      ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
+        #
+        # # Calculate signal to noise ratio
+        # self.getSNR(ir_fft_maxVal, ir_fft_realabs,
+        #             grey_fft_maxVal, grey_fft_realabs,
+        #             red_fft_maxVal, red_fft_realabs,
+        #             green_fft_maxVal, green_fft_realabs,
+        #             blue_fft_maxVal, blue_fft_realabs)
+        #
+        # # Calculate SamplingError
+        # self.getSamplingError(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
 
-        # Calculate signal to noise ratio
-        self.getSNR(ir_fft_maxVal, ir_fft_realabs,
-                    grey_fft_maxVal, grey_fft_realabs,
-                    red_fft_maxVal, red_fft_realabs,
-                    green_fft_maxVal, green_fft_realabs,
-                    blue_fft_maxVal, blue_fft_realabs)
-
-        # Calculate SamplingError
-        self.getSamplingError(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
-
-    def getHeartRateBPM(self,hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
-                        ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs):
-        if(hrtype ==1):
-            if((self.HrType==1)):
-                self.getBPMbyfrqbpmArray(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
-            else:
-                self.getBPMbyfrequencyArray(ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
-        elif(hrtype ==2):
-            self.getBPMbyfrqbpmArray(ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index)
-        elif(hrtype ==3):
-            self.find_heart_rate_byIndex(ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index)
+    # def getHeartRateBPM(self,hrtype,ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index,
+    #                     ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs):
+    #     if(hrtype ==1):
+    #         if((self.HrType==1)):
+    #             self.getBPMbyfrqbpmArray(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
+    #         else:
+    #             self.getBPMbyfrequencyArray(ir_fft_realabs,grey_fft_realabs,red_fft_realabs,green_fft_realabs,blue_fft_realabs)
+    #     elif(hrtype ==2):
+    #         self.getBPMbyfrqbpmArray(ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index)
+    #     elif(hrtype ==3):
+    #         self.find_heart_rate_byIndex(ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index)
 
     # endregion
