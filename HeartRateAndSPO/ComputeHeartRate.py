@@ -179,16 +179,16 @@ class ComputerHeartRate:
 
     def getHeartRate_fromFrequency(self, blue_fft_realabs,green_fft_realabs,red_fft_realabs,grey_fft_realabs,ir_fft_realabs):
 
-        IR_sig_max_peak = ir_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()  # Find its location
-        R_sig_max_peak = red_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()  # Find its location
-        G_sig_max_peak = green_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()  # Find its location
-        B_sig_max_peak = blue_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()  # Find its location
+        IR_sig_max_peak = ir_fft_realabs.argmax()  # Find its location [np.abs(self.frequency) <= self.ignore_freq_above]
+        R_sig_max_peak = red_fft_realabs.argmax()  # Find its location [np.abs(self.frequency) <= self.ignore_freq_above]
+        G_sig_max_peak = green_fft_realabs.argmax()  # Find its location [np.abs(self.frequency) <= self.ignore_freq_above]
+        B_sig_max_peak = blue_fft_realabs.argmax()  # Find its location [np.abs(self.frequency) <= self.ignore_freq_above]
 
         Gy_sig_max_peak = 0
         Gy_freqValueAtPeak = 0
 
         if (not self.ignoreGray):
-            Gy_sig_max_peak = grey_fft_realabs[np.abs(self.frequency)  <= self.ignore_freq_above].argmax()  # Find its location
+            Gy_sig_max_peak = grey_fft_realabs.argmax()  # Find its location [np.abs(self.frequency)  <= self.ignore_freq_above]
             Gy_freqValueAtPeak = self.frequency[Gy_sig_max_peak]  # Get the actual frequency value
             #####GET BPM#####
             # self.GreyBpm = np.abs(self.frequency)[grey_fft_realabs[np.abs(self.frequency)  <= self.ignore_freq_above].argmax()] * 60

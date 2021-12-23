@@ -78,11 +78,13 @@ class Main:
                                 self.objFileIO.CreatePath(self.objConfig.SavePath)
                                 # ParticipantsHRfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
                                 # ParticipantsSPOfileName = participant_number + "*" + self.HRNameFileName + fileName  # filename
-
-                                if (not os.path.exists(self.objConfig.SavePath + self.HRNameFileName + fileName + ".txt")):
+                                pathExsists = objFile.FileExits(self.objConfig.SavePath + 'HeartRate_' + fileName + ".txt")
+                                if (pathExsists):#self.HRNameFileName
+                                    skin=0
+                                else:
                                     # if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
                                     # Generate Data for all Techniques
-                                    ListHrdata, ListSPOdata = Process_SingalData(
+                                    ListHrdata, ListSPOdata, IsSuccess = Process_SingalData(
                                         self.objConfig.RunAnalysisForEntireSignalData,
                                         self.ROIStore, self.objConfig.SavePath,
                                         algoType, fftype,

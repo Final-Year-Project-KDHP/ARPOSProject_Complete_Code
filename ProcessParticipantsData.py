@@ -22,11 +22,11 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
                                           HrGr, SpoGr,
                                           Filter_type, Result_type, Preprocess_type, isSmoothen, snrType)
     else:
-        ListHrdata, ListSPOdata = Process_Participants_Data_EntireSignal(ROIStore, SavePath,
+        ListHrdata, ListSPOdata, IsSuccess = Process_Participants_Data_EntireSignal(ROIStore, SavePath,
                                                Algorithm_type, FFT_type,
                                                HrGr, SpoGr,
                                                Filter_type, Result_type, Preprocess_type, isSmoothen, snrType)
-    return  ListHrdata, ListSPOdata
+    return  ListHrdata, ListSPOdata, IsSuccess
 
 
 '''
@@ -200,6 +200,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
     bestBpm = 0.0
     channeltype = ''
     regiontype = ''
+    IsSuccess = ''
     finaloxy = 0.0
     freqencySamplingError = 0.0
     smallestOxygenError = sys.float_info.max
@@ -239,7 +240,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
     WindowRegionList['forehead'] = foreheadResult
     WindowRegionList['rightcheek'] = rightcheekResult
     WindowRegionList['leftcheek'] = leftcheekResult
-    diffTimeTotal = []
+    diffTimeTotal = {}
 
     # Get best region data
     for k, v in WindowRegionList.items():
@@ -292,30 +293,35 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
             smallestOxygenError = v.oxygenSaturationValueError
             finaloxy = v.oxygenSaturationValueValue
 
-    # Check reliability and record best readings
-    heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
-    oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
+    if (regiontype != ''):
+        IsSuccess = True
+        # Check reliability and record best readings
+        heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
+        oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
 
-    # Get difference and append data (heart rate)
-    difference = round(float(HrAvegrage) - float(heartRateValue))
-    ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
+        # Get difference and append data (heart rate)
+        difference = round(float(HrAvegrage) - float(heartRateValue))
+        ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
 
-    # Get difference and append data (blood oxygen)
-    difference = round(float(SPOAvegrage) - float(oxygenSaturationValue))
-    ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow)+ " ,\t" + str(regiontype))
+        # Get difference and append data (blood oxygen)
+        difference = round(float(SPOAvegrage) - float(oxygenSaturationValue))
+        ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow)+ " ,\t" + str(regiontype))
 
-    printTime = ''
-    for k, v in diffTimeTotal.items():
-        printTime = printTime + str(k) + ': ' + str(v) + '\n'
+        printTime = ''
+        for k, v in diffTimeTotal.items():
+            printTime = printTime + str(k) + ': ' + str(v) + '\n'
 
-    objFile = FileIO()
-    objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
+        objFile = FileIO()
+        objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
+        del objFile
+
     # # Write data to file
     # objFile.WriteListDatatoFile(SavePath, fileNameHr, ListHrdata)
     # objFile.WriteListDatatoFile(SavePath, fileNameSpo, ListSPOdata)
+    else:
+        IsSuccess = False
 
     del objReliability
     del objProcessData
-    del objFile
 
-    return ListHrdata, ListSPOdata
+    return ListHrdata, ListSPOdata, IsSuccess

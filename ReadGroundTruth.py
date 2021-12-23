@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-GrPath = "E:\\StudyData\\GroundTruthData\\"
+GrPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\GroundTruthData\\"#E:\\StudyData\\GroundTruthData\\
 # data = pd.read_excel(file)  # reading file
 # import xlrd
 # xls = xlrd.open_workbook(file, on_demand=True)

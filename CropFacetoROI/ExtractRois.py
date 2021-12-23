@@ -50,6 +50,8 @@ class ExtractROIdata:
     def InitiateProcess(self,type, position,ParticipantNumber):
         #Process as per type
         if(type == 'Single'):
+            #set group type
+            self.objConfig.setDiskPath('SouthAsian_BrownSkin_Group')
             self.CropandLoadData(position, ParticipantNumber)
         elif(type == 'All'):
             for skinPigementation in self.objConfig.Skin_Group_Types:
@@ -72,4 +74,7 @@ class ExtractROIdata:
             print('PLEASE ENTER CORRECT TYPE Croping data type ("Single", "All")')
 
 objExtractData = ExtractROIdata()
-objExtractData.InitiateProcess('All', '', '')
+# objExtractData.InitiateProcess('All', '', '')
+# objExtractData.InitiateProcess('Single','Resting1','PIS-5456')
+objExtractData.InitiateProcess('Single','Resting2','PIS-5456')
+objExtractData.InitiateProcess('Single','AfterExcersize','PIS-5456')
