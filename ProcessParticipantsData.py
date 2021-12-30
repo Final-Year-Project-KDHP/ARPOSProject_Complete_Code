@@ -245,50 +245,58 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
 
     # Get best region data
     for k, v in WindowRegionList.items():
-        if (v.IrSnr > bestHeartRateSnr):
-            bestHeartRateSnr = v.IrSnr
-            bestBpm = v.IrBpm
-            channeltype = 'IR'
+        if(v.BestSnR > bestHeartRateSnr):
+            bestHeartRateSnr = v.BestSnR
+            bestBpm = v.BestBPM
+            # channeltype = v.
             regiontype = k
-            freqencySamplingError = v.IrFreqencySamplingError
+            # freqencySamplingError = v.IrFreqencySamplingError
             diffNow = v.diffTime
             diffTimeTotal = v.diffTimeLog
-
-        if (v.GreySnr > bestHeartRateSnr):
-            bestHeartRateSnr = v.GreySnr
-            bestBpm = v.GreyBpm
-            channeltype = 'Grey'
-            regiontype = k
-            freqencySamplingError = v.GreyFreqencySamplingError
-            diffNow = v.diffTime
-            diffTimeTotal = v.diffTimeLog
-
-        if (v.RedSnr > bestHeartRateSnr):
-            bestHeartRateSnr = v.RedSnr
-            bestBpm = v.RedBpm
-            channeltype = 'Red'
-            regiontype = k
-            freqencySamplingError = v.RedFreqencySamplingError
-            diffNow = v.diffTime
-            diffTimeTotal = v.diffTimeLog
-
-        if (v.GreenSnr > bestHeartRateSnr):
-            bestHeartRateSnr = v.GreenSnr
-            bestBpm = v.GreenBpm
-            channeltype = 'Green'
-            regiontype = k
-            freqencySamplingError = v.GreenFreqencySamplingError
-            diffNow = v.diffTime
-            diffTimeTotal = v.diffTimeLog
-
-        if (v.BlueSnr > bestHeartRateSnr):
-            bestHeartRateSnr = v.BlueSnr
-            bestBpm = v.BlueBpm
-            channeltype = 'Blue'
-            regiontype = k
-            freqencySamplingError = v.BlueFreqencySamplingError
-            diffNow = v.diffTime
-            diffTimeTotal = v.diffTimeLog
+        # if (v.IrSnr > bestHeartRateSnr):
+        #     bestHeartRateSnr = v.IrSnr
+        #     bestBpm = v.IrBpm
+        #     channeltype = 'IR'
+        #     regiontype = k
+        #     freqencySamplingError = v.IrFreqencySamplingError
+        #     diffNow = v.diffTime
+        #     diffTimeTotal = v.diffTimeLog
+        #
+        # if (v.GreySnr > bestHeartRateSnr):
+        #     bestHeartRateSnr = v.GreySnr
+        #     bestBpm = v.GreyBpm
+        #     channeltype = 'Grey'
+        #     regiontype = k
+        #     freqencySamplingError = v.GreyFreqencySamplingError
+        #     diffNow = v.diffTime
+        #     diffTimeTotal = v.diffTimeLog
+        #
+        # if (v.RedSnr > bestHeartRateSnr):
+        #     bestHeartRateSnr = v.RedSnr
+        #     bestBpm = v.RedBpm
+        #     channeltype = 'Red'
+        #     regiontype = k
+        #     freqencySamplingError = v.RedFreqencySamplingError
+        #     diffNow = v.diffTime
+        #     diffTimeTotal = v.diffTimeLog
+        #
+        # if (v.GreenSnr > bestHeartRateSnr):
+        #     bestHeartRateSnr = v.GreenSnr
+        #     bestBpm = v.GreenBpm
+        #     channeltype = 'Green'
+        #     regiontype = k
+        #     freqencySamplingError = v.GreenFreqencySamplingError
+        #     diffNow = v.diffTime
+        #     diffTimeTotal = v.diffTimeLog
+        #
+        # if (v.BlueSnr > bestHeartRateSnr):
+        #     bestHeartRateSnr = v.BlueSnr
+        #     bestBpm = v.BlueBpm
+        #     channeltype = 'Blue'
+        #     regiontype = k
+        #     freqencySamplingError = v.BlueFreqencySamplingError
+        #     diffNow = v.diffTime
+        #     diffTimeTotal = v.diffTimeLog
 
         if (v.oxygenSaturationValueError < smallestOxygenError):
             smallestOxygenError = v.oxygenSaturationValueError
@@ -301,7 +309,7 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
         oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
 
         # Get difference and append data (heart rate)
-        difference = round(float(HrAvegrage) - float(heartRateValue))
+        difference = round(float(HrAvegrage) - float(round(heartRateValue)))
         ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
 
         # Get difference and append data (blood oxygen)

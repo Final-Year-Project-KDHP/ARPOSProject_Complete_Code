@@ -183,60 +183,56 @@ class Main:
                 self.objConfig.setSavePath(participant_number, position)
 
                 for case in self.CaseList:
-                    # IsGenerated = self.CheckIfGenerated(case, participant_number, position)
-                    # if(IsGenerated):
-                    #     stop = True
-                    # else:
-                    splitCase = case.split('_')
-                    fileName = case
-                    algoType = splitCase[0]
-                    fftype = splitCase[1].replace('FFT-','')
-                    filtertype = int(splitCase[2].replace('FL-',''))
-                    resulttype = int(splitCase[3].replace('RS-',''))
-                    preprocesstype = int(splitCase[4].replace('PR-',''))
-                    isSmooth = splitCase[5].replace('SM-','')
-                    if (isSmooth == 'True'):
-                        isSmooth = True
+                    IsGenerated = self.CheckIfGenerated(case, participant_number, position)
+                    if(IsGenerated):
+                        stop = True
                     else:
-                        isSmooth = False
-                    #Gneerate
-                    # Load all data for each roi and create roi store
-                    if(prevParticipantId != participant_number):
-                        prevParticipantId = participant_number
-                        # estimatedfps = 0
-                        totalTimeinSeconds= 0
-                        for region in self.objConfig.roiregions:
-                            # Init for each region
-                            objFaceImage = LoadFaceData()
-                            objFaceImage.Clear()
+                        splitCase = case.split('_')
+                        fileName = case
+                        algoType = splitCase[0]
+                        fftype = splitCase[1].replace('FFT-','')
+                        filtertype = int(splitCase[2].replace('FL-',''))
+                        resulttype = int(splitCase[3].replace('RS-',''))
+                        preprocesstype = int(splitCase[4].replace('PR-',''))
+                        isSmooth = splitCase[5].replace('SM-','')
+                        if (isSmooth == 'True'):
+                            isSmooth = True
+                        else:
+                            isSmooth = False
+                        #Gneerate
+                        # Load all data for each roi and create roi store
+                        if(prevParticipantId != participant_number):
+                            prevParticipantId = participant_number
+                            # estimatedfps = 0
+                            totalTimeinSeconds= 0
+                            for region in self.objConfig.roiregions:
+                                # Init for each region
+                                objFaceImage = LoadFaceData()
+                                objFaceImage.Clear()
 
-                            ##get ROI Store
-                            totalTimeinSeconds = self.getData(participant_number, position, region, objFaceImage)
+                                ##get ROI Store
+                                totalTimeinSeconds = self.getData(participant_number, position, region, objFaceImage)
 
-                            # objFaceImage.EstimatedFPS = estimatedfps
-                            # delete face image object
-                            del objFaceImage
+                                # objFaceImage.EstimatedFPS = estimatedfps
+                                # delete face image object
+                                del objFaceImage
 
-                        # # Print FPS Detail
-                        # print('ESTIMATED FPS USED: ' + str(estimatedfps))
-                        # print(str(participant_number) + ', type= ' + str(position) + ' color min FPS: ' + str(
-                        #     min(ColorfpswithTime.values())) + ' ' + str(isVariable) +
-                        #       ', IR min FPS: ' + str(min(IRfpswithTime.values())) + ' ' + str(isIRVariable))
+                            # # Print FPS Detail
+                            # print('ESTIMATED FPS USED: ' + str(estimatedfps))
+                            # print(str(participant_number) + ', type= ' + str(position) + ' color min FPS: ' + str(
+                            #     min(ColorfpswithTime.values())) + ' ' + str(isVariable) +
+                            #       ', IR min FPS: ' + str(min(IRfpswithTime.values())) + ' ' + str(isIRVariable))
 
-                        ###Get ground Truth
-                        HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
-                                                                       self.objConfig.DiskPath,int(totalTimeinSeconds))
+                            ###Get ground Truth
+                            HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
+                                                                           self.objConfig.DiskPath,int(totalTimeinSeconds))
 
-                            ##Process and get result of participants data
+                                ##Process and get result of participants data
 
-                        self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth)
+                            self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth)
 
                     # self.CaseList.remove(case)
                     t=0
-
-
-
-
 
 
 objMain = Main('Europe_WhiteSkin_Group') #Add none here to process all skin types

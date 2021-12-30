@@ -364,15 +364,15 @@ class ProcessFaceData:
             interpolated_data = detrended_data
 
         '''removes noise'''
-        smoothed_data = signal.medfilt(interpolated_data, 15)
-        N = 3
-        """ x == an array of data. N == number of samples per average """
-        cumsum = np.cumsum(np.insert(interpolated_data, [0, 0, 0], 0))
-        rm = (cumsum[N:] - cumsum[:-N]) / float(N)
+        # smoothed_data = signal.medfilt(interpolated_data, 15)
+        # N = 3
+        # """ x == an array of data. N == number of samples per average """
+        # cumsum = np.cumsum(np.insert(interpolated_data, [0, 0, 0], 0))
+        # rm = (cumsum[N:] - cumsum[:-N]) / float(N)
 
         '''normalize the input data buffer '''
         normalized_data = interpolated_data / np.linalg.norm(interpolated_data)
-        normalized_data_med = smoothed_data / np.linalg.norm(smoothed_data)
+        # normalized_data_med = smoothed_data / np.linalg.norm(smoothed_data)
         return normalized_data
 
     def preprocessdataType4(self, bufferArray, timecolorcountLips, isDetrend):
@@ -394,13 +394,13 @@ class ProcessFaceData:
 
         '''removes noise'''
         smoothed_data = signal.medfilt(interpolated_data, 15)
-        N = 3
-        """ x == an array of data. N == number of samples per average """
-        cumsum = np.cumsum(np.insert(interpolated_data, [0, 0, 0], 0))
-        rm = (cumsum[N:] - cumsum[:-N]) / float(N)
+        # N = 3
+        # """ x == an array of data. N == number of samples per average """
+        # cumsum = np.cumsum(np.insert(interpolated_data, [0, 0, 0], 0))
+        # rm = (cumsum[N:] - cumsum[:-N]) / float(N)
 
         '''normalize the input data buffer '''
-        normalized_data = interpolated_data / np.linalg.norm(interpolated_data)
+        # normalized_data = interpolated_data / np.linalg.norm(interpolated_data)
         normalized_data_med = smoothed_data / np.linalg.norm(smoothed_data)
         return normalized_data_med
 
@@ -471,13 +471,13 @@ class ProcessFaceData:
                 processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, True)
             processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, True)
 
-        # elif (self.Preprocess_type == 7):##Fails
-        #     processedBlue = self.preprocessdataType4(np.array(processedBlue), self.timecolorCount, False)
-        #     processedGreen = self.preprocessdataType4(np.array(processedGreen), self.timecolorCount, False)
-        #     processedRed = self.preprocessdataType4(np.array(processedRed), self.timecolorCount, False)
-        #     if (not self.ignoreGray):
-        #         processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, False)
-        #     processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, False)
+        elif (self.Preprocess_type == 7):##
+            processedBlue = self.preprocessdataType4(np.array(processedBlue), self.timecolorCount, False)
+            processedGreen = self.preprocessdataType4(np.array(processedGreen), self.timecolorCount, False)
+            processedRed = self.preprocessdataType4(np.array(processedRed), self.timecolorCount, False)
+            if (not self.ignoreGray):
+                processedGrey = self.preprocessdataType4(np.array(processedGrey), self.timecolorCount, False)
+            processedIR = self.preprocessdataType4(np.array(processedIR), self.timeirCount, False)
 
         elif (self.Preprocess_type == 5):
             # combine
@@ -718,7 +718,7 @@ class ProcessFaceData:
     '''
     SmoothenData: Smooth data
     '''
-    def smooth(self, x, window_len=11, window='hanning'):
+    def smooth(self, x, window_len=11, window='hamming'):
         # """smooth the data using a window with requested size.
         #
         # This method is based on the convolution of a scaled window with the signal.
@@ -911,6 +911,8 @@ class ProcessFaceData:
         windowList.LogTime(LogItems.End_ComputerHRSNR)
 
         #get best bpm and heart rate period in one region
+        self.bestHeartRateSnr=0.0
+        self.bestBpm=0.0
         self.GetBestBpm()
 
         # calculate SPO

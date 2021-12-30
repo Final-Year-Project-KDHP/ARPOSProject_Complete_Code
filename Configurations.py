@@ -27,7 +27,7 @@ class Configurations:
     AlgoList = ["FastICA", "PCA", "ICAPCA", "None","Jade"]#,
 
     #FFT method types
-    fftTypeList = ["M1",  "M3"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
+    fftTypeList = ["M1","M2",  "M5","M6"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result

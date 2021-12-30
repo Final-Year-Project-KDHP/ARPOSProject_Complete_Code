@@ -1,3 +1,4 @@
+import glob
 import os
 
 import numpy as np
@@ -286,7 +287,6 @@ class GeneratedDataFiltering:
 
         #set(a).intersection(b, c)
 
-
     """
     Gemerate cases:
     """
@@ -362,14 +362,39 @@ class GeneratedDataFiltering:
         print(df1)
         t=0
 
+    """
+       LoadFiles:
+       Load file from path
+       """
+
+    def LoadFiles(self, filepath):
+        files =[]
+        for path, subdirs, files in os.walk(filepath):
+            for filename in subdirs:
+                files.append(filename)
+                # a.write(str(f) + os.linesep)
+        return files
+
+    def RunParticipantWiseAll(self):
+
+        for participant_number in self.objConfig.ParticipantNumbers:
+            for position in self.objConfig.hearratestatus:
+                loadpath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\'
+                print(loadpath)
+                files = self.LoadFiles(loadpath)
+                for filename in files:
+                    file = open(loadpath + filename + ".txt", "r")
+                    Lines = file.readlines()
+                    file.close()
+
 
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
 objFilterData.AcceptableDifference = 8
 # objFilterData.Run(AcceptableDifference)
-objFilterData.RunCasewise()
-
+# objFilterData.RunCasewise()
+objFilterData.RunParticipantWiseAll()
 
 # Only run after best files are generated
 # objFilterData.processBestResults("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\","BestDataFiles") #"E:\\StudyData\\Result\\BestDataFiles_Resting1.txt"
