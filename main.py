@@ -157,7 +157,13 @@ class Main:
                                     filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
                                     preprocesstype) + "_SM-" + str(isSmooth)
                                 print(fileName)
-                                self.CaseList.append(fileName)
+                                # if(fftype == 'M4'): #Run only once when all cases are done to generate filtering for process type 1 with M4 FFT
+                                #     # # Best works with filter type 1 ## later try with filte filter 6 and 4 as well
+                                #     # self.Filter_type = 1
+                                #     fileName=fileName.replace('_FL-'+ str(filtertype), '_FL-'+ str(1))
+
+                                if(fileName not in self.CaseList):
+                                    self.CaseList.append(fileName)
 
     def CheckIfGenerated(self,fileName, participant_number,position):
         SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
@@ -223,13 +229,13 @@ class Main:
                             #     min(ColorfpswithTime.values())) + ' ' + str(isVariable) +
                             #       ', IR min FPS: ' + str(min(IRfpswithTime.values())) + ' ' + str(isIRVariable))
 
-                            ###Get ground Truth
-                            HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
+                        ###Get ground Truth
+                        HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
                                                                            self.objConfig.DiskPath,int(totalTimeinSeconds))
 
                                 ##Process and get result of participants data
 
-                            self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth)
+                        self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth)
 
                     # self.CaseList.remove(case)
                     t=0

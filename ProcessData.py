@@ -438,7 +438,7 @@ class ProcessFaceData:
         #     processedIR = self.preprocessdataType2(processedIR, True)
         #     if (not self.ignoreGray):
         #         processedGrey = self.preprocessdataType2(processedGrey, True)
-
+        #
         # elif (self.Preprocess_type == 8):##Fails
         #     processedBlue = self.preprocessdataType2(processedBlue, False)
         #     processedGreen = self.preprocessdataType2(processedGreen, False)
@@ -807,6 +807,7 @@ class ProcessFaceData:
 
         elif (self.FFT_type == "M4"):
             B_fft, Gr_fft, R_fft, Gy_fft, IR_fft, Colorfreq, IRfreq = self.objAlgorithm.ApplyFFT9(S, self.ignoreGray)  # fft
+
 
         elif (self.FFT_type == "M5"):
             B_fft, Gr_fft, R_fft, Gy_fft, IR_fft, Colorfreq, IRfreq = self.objAlgorithm.Apply_FFT_M6_Individual(S,

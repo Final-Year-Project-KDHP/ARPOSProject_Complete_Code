@@ -4,17 +4,21 @@ import os
 import numpy as np
 import pandas as pd
 
+import CommonMethods
 from Configurations import Configurations
+from FileIO import FileIO
 from boxPlotMethodComparision import BoxPlot
 
 
 class GeneratedDataFiltering:
 
     objConfig = None
+    objFile = None
     AcceptableDifference =3
     #Constructor
     def __init__(self, skinGroup='None'):
         self.objConfig = Configurations(True, skinGroup)
+        self.objFile = FileIO()
 
     def Getdata(self,fileName,AcceptableDifference,participant_number,position): #"None", loadpath,methodtype
         filepath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\' + 'HeartRate_' + fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
@@ -309,10 +313,13 @@ class GeneratedDataFiltering:
         SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
         filepath = SavePath + 'HeartRate_' + fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
 
-        Filedata = open(filepath, "r")
-        data =Filedata.read().split("\n")
-        Filedata.close()
-
+        pathExsists = self.objFile.FileExits(SavePath + 'HeartRate_' + fileName + ".txt")
+        data =None
+        # already generated
+        if (pathExsists):
+            Filedata = open(filepath, "r")
+            data = Filedata.read().split("\n")[0]
+            Filedata.close()
         return data
 
     def IsAcceptableDifference(self,differenceValue): #"None", loadpath,methodtype
@@ -323,43 +330,52 @@ class GeneratedDataFiltering:
         else:
             return False
 
-    def splitDataRow(self,DataRow): #"None", loadpath,methodtype
+    def splitDataRow(self,DataRow,participant_number,position): #"None", loadpath,methodtype
         dataRow = DataRow.split(",\t")
-        # 0 index for windowCount, 1 index for GroundTruth, 2 index for generatedresult by arpos, 3 index for diference
-        differenceValue = int(dataRow[2]) #change index here
+        # 0 index for GroundTruth, 1 index for generatedresult by arpos, 2 index for diference
+        generatedResult = int(dataRow[1]) #change index here
+        HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,self.objConfig.DiskPath, int(60))
+        # avgGroundTruthStored = int(dataRow[0])
+        avgGroundTruth = np.mean(HrGr)
+        # if(avgGroundTruthStored != round(avgGroundTruth)):
+        #     differenceValue=int(dataRow[2])
+        # else:
+        differenceValue = avgGroundTruth - generatedResult
         return differenceValue
 
     def RunCasewise(self):
-
-        CaseList = self.GenerateCases()
-        position = 'Resting1'
+        CaseList = self.RunParticipantWiseAll() #GET Directories or generate below
+        # CaseList = self.GenerateCases() # or generate
 
         df1 = pd.DataFrame({
             'CaseNames': CaseList
         })
-        print(df1)
 
         for participant_number in self.objConfig.ParticipantNumbers:
             df1[participant_number] = None
-        print(df1)
-        RowIndex = 0 #
-        for case in CaseList:
-            ColumnIndex = 1  # so doesntt replace case names
-            for participant_number in self.objConfig.ParticipantNumbers:
-                #for position in self.objConfig.hearratestatus:
-                CaseData = self.getCase(case, participant_number, position)[0]
-                differenceVal = self.splitDataRow(CaseData)  # ROW,COlum
-                isAcceptable = self.IsAcceptableDifference(differenceVal)
-                if(isAcceptable):
-                    df1.iloc[RowIndex, ColumnIndex] = differenceVal
-                # else:
-                #     df1.iloc[RowIndex, ColumnIndex] = None
-                ColumnIndex = ColumnIndex +1
-                # print(df1)
-            RowIndex = RowIndex +1
+        # print(df1)
+        for position in self.objConfig.hearratestatus:
+            RowIndex = 0 #
+            for case in CaseList:
+                ColumnIndex = 1  # so doesntt replace case names
+                for participant_number in self.objConfig.ParticipantNumbers:
+                    #for position in self.objConfig.hearratestatus:
+                    CaseData = self.getCase(case, participant_number, position)
+                    if(CaseData != None):
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        isAcceptable = self.IsAcceptableDifference(differenceVal)
+                        if(isAcceptable):
+                            df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                    else:
+                        df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
+                    # else:
+                    #     df1.iloc[RowIndex, ColumnIndex] = None
+                    ColumnIndex = ColumnIndex +1
+                    # print(df1)
+                RowIndex = RowIndex +1
 
-
-        print(df1)
+            # write dataFrame to SalesRecords CSV file
+            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
         t=0
 
     """
@@ -368,24 +384,37 @@ class GeneratedDataFiltering:
        """
 
     def LoadFiles(self, filepath):
-        files =[]
+        CaseList=[]
         for path, subdirs, files in os.walk(filepath):
             for filename in subdirs:
-                files.append(filename)
+                if(filename not in CaseList):
+                    CaseList.append(filename)
                 # a.write(str(f) + os.linesep)
-        return files
+        return CaseList
 
     def RunParticipantWiseAll(self):
-
+        CaseList= []
         for participant_number in self.objConfig.ParticipantNumbers:
             for position in self.objConfig.hearratestatus:
+                CaseSublist = []
+
                 loadpath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\'
                 print(loadpath)
-                files = self.LoadFiles(loadpath)
-                for filename in files:
-                    file = open(loadpath + filename + ".txt", "r")
-                    Lines = file.readlines()
-                    file.close()
+                CaseSublist = self.LoadFiles(loadpath)
+
+                for name in CaseSublist:
+                    if(name not in CaseList):
+                        CaseList.append(name)
+
+
+        finallist = 0
+        return  CaseList
+
+
+
+                    # file = open(loadpath + filename + ".txt", "r")
+                    # Lines = file.readlines()
+                    # file.close()
 
 
 # Execute method to get filenames which have good differnce
@@ -393,8 +422,8 @@ class GeneratedDataFiltering:
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
 objFilterData.AcceptableDifference = 8
 # objFilterData.Run(AcceptableDifference)
-# objFilterData.RunCasewise()
-objFilterData.RunParticipantWiseAll()
+objFilterData.RunCasewise()
+# objFilterData.RunParticipantWiseAll()
 
 # Only run after best files are generated
 # objFilterData.processBestResults("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\","BestDataFiles") #"E:\\StudyData\\Result\\BestDataFiles_Resting1.txt"

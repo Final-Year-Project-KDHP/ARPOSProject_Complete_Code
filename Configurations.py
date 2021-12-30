@@ -24,17 +24,17 @@ class Configurations:
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA", "PCA", "ICAPCA", "None","Jade"]#,
+    AlgoList = ["FastICA", "PCA", "ICAPCA", "None","Jade"]
 
     #FFT method types
-    fftTypeList = ["M1","M2",  "M5","M6"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
+    fftTypeList = ["M1","M2", "M3","M4", "M5","M6","M7"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result
-    filtertypeList = [6]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
+    filtertypeList = [6,4]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
 
     #Pre processing techniques
-    preprocesses = [1, 3, 4, 5]#2 (same as 3), 6, 7, 8
+    preprocesses = [1, 3, 6,7,4, 5]#2 and 8 (same as 3 adn 7), 6, 7, 8
     ##preprcess 5 does not produce good results for after excersize
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
