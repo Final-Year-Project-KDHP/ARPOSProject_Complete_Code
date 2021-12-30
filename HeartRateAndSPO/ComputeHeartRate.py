@@ -8,7 +8,8 @@ from SingalToNoise import SNR
 
 class ComputerHeartRate:
     # Constants
-    EstimatedFPS = 30
+    ColorEstimatedFPS = 0
+    IREstimatedFPS = 0
     components = 0
     IRIndex = 0
     grayIndex = 0
@@ -16,8 +17,10 @@ class ComputerHeartRate:
     ramp_start_percentage = 0.0
     ramp_end_percentage = 0
     ramp_end_hz = 0.0
-    freq_bpm = []
-    frequency = []
+    freq_bpmColor= []
+    freq_bpmIr= []
+    Colorfrequency= []
+    IRfrequency= []
     NumSamples = 0
     ignore_freq_index_below = 0
     ignore_freq_index_above = 0
@@ -59,13 +62,14 @@ class ComputerHeartRate:
     region = ''
 
     # Constructor
-    def __init__(self, snrType, ignoreGray,NumSamples,grayIndex,IRIndex,components,EstimatedFPS,ramp_end_bpm,ramp_start_percentage,
-                 ramp_end_percentage,ignore_freq_below_bpm,ignore_freq_above_bpm,freq_bpm,frequency,SavePath,region):
+    def __init__(self, snrType, ignoreGray,NumSamples,grayIndex,IRIndex,components,ColorEstimatedFPS,IREstimatedFPS,ramp_end_bpm,ramp_start_percentage,
+                 ramp_end_percentage,ignore_freq_below_bpm,ignore_freq_above_bpm,freq_bpmColor,freq_bpmIr,Colorfrequency,IRfrequency,SavePath,region):
 
         # Constants
         self.region = region
         self.SavePath =SavePath
-        self.EstimatedFPS = EstimatedFPS
+        self.ColorEstimatedFPS = ColorEstimatedFPS
+        self.IREstimatedFPS = IREstimatedFPS
         self.components = components
         self.IRIndex = IRIndex
         self.grayIndex = grayIndex
@@ -73,8 +77,10 @@ class ComputerHeartRate:
         self.ramp_start_percentage = ramp_start_percentage
         self.ramp_end_percentage = ramp_end_percentage
         self.ramp_end_hz = self.ramp_end_bpm / 60
-        self.freq_bpm = freq_bpm
-        self.frequency = frequency
+        self.freq_bpmColor = freq_bpmColor
+        self.freq_bpmIr = freq_bpmIr
+        self.Colorfrequency = Colorfrequency
+        self.IRfrequency = IRfrequency
         self.NumSamples = NumSamples
         self.ignore_freq_index_below = 0
         self.ignore_freq_index_above = 0
@@ -113,8 +119,7 @@ class ComputerHeartRate:
         self.GreenFreqencySamplingError = 0.0
         self.BlueFreqencySamplingError = 0.0
 
-    def getHeartRate_fromFrequencyWithFilter(self,fftarray):
-        freqs = self.frequency
+    def getHeartRate_fromFrequencyWithFilter(self,fftarray, freqs):
         freq_min = self.ignore_freq_below
         freq_max = self.ignore_freq_above
         fft_maximums = []
@@ -143,15 +148,15 @@ class ComputerHeartRate:
         grey_fft_maxVal = 0
         grey_fft_index = 0
 
-        irbpm, ir_fft_maxVal, ir_fft_index = self.getHeartRate_fromFrequencyWithFilter(ir_fft_realabs)
+        irbpm, ir_fft_maxVal, ir_fft_index = self.getHeartRate_fromFrequencyWithFilter(ir_fft_realabs, self.IRfrequency)
         if (not self.ignoreGray):
-            greybpm, grey_fft_maxVal, grey_fft_index = self.getHeartRate_fromFrequencyWithFilter(grey_fft_realabs)
+            greybpm, grey_fft_maxVal, grey_fft_index = self.getHeartRate_fromFrequencyWithFilter(grey_fft_realabs, self.Colorfrequency)
         else:
             grey_fft_maxVal = 0
             grey_fft_index = 0
-        redbpm, red_fft_maxVal, red_fft_index = self.getHeartRate_fromFrequencyWithFilter(red_fft_realabs)
-        greenbpm, green_fft_maxVal, green_fft_index = self.getHeartRate_fromFrequencyWithFilter(green_fft_realabs)
-        bluebpm, blue_fft_maxVal, blue_fft_index = self.getHeartRate_fromFrequencyWithFilter(blue_fft_realabs)
+        redbpm, red_fft_maxVal, red_fft_index = self.getHeartRate_fromFrequencyWithFilter(red_fft_realabs, self.Colorfrequency)
+        greenbpm, green_fft_maxVal, green_fft_index = self.getHeartRate_fromFrequencyWithFilter(green_fft_realabs, self.Colorfrequency)
+        bluebpm, blue_fft_maxVal, blue_fft_index = self.getHeartRate_fromFrequencyWithFilter(blue_fft_realabs, self.Colorfrequency)
 
         #####GET BPM#####
         self.getBPM(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
@@ -189,17 +194,17 @@ class ComputerHeartRate:
 
         if (not self.ignoreGray):
             Gy_sig_max_peak = grey_fft_realabs.argmax()  # Find its location [np.abs(self.frequency)  <= self.ignore_freq_above]
-            Gy_freqValueAtPeak = self.frequency[Gy_sig_max_peak]  # Get the actual frequency value
+            Gy_freqValueAtPeak = self.Colorfrequency[Gy_sig_max_peak]  # Get the actual frequency value
             #####GET BPM#####
             # self.GreyBpm = np.abs(self.frequency)[grey_fft_realabs[np.abs(self.frequency)  <= self.ignore_freq_above].argmax()] * 60
         else:
             self.GreySnr=0.0
             self.GreyBpm=0
 
-        IR_freqValueAtPeak = self.frequency[IR_sig_max_peak]  # Get the actual frequency value
-        R_freqValueAtPeak = self.frequency[R_sig_max_peak]  # Get the actual frequency value
-        G_freqValueAtPeak = self.frequency[G_sig_max_peak]  # Get the actual frequency value
-        B_freqValueAtPeak = self.frequency[B_sig_max_peak]  # Get the actual frequency value
+        IR_freqValueAtPeak = self.IRfrequency[IR_sig_max_peak]  # Get the actual frequency value
+        R_freqValueAtPeak = self.Colorfrequency[R_sig_max_peak]  # Get the actual frequency value
+        G_freqValueAtPeak = self.Colorfrequency[G_sig_max_peak]  # Get the actual frequency value
+        B_freqValueAtPeak = self.Colorfrequency[B_sig_max_peak]  # Get the actual frequency value
 
         #####GET BPM#####
         self.getBPM(IR_sig_max_peak, Gy_sig_max_peak, R_sig_max_peak, G_sig_max_peak, B_sig_max_peak)
@@ -222,14 +227,16 @@ class ComputerHeartRate:
 
     def OriginalARPOSmethod(self, B_fft_Copy, G_fft_Copy, R_fft_Copy, Gy_fft_Copy, IR_fft_Copy):
 
+        # region COLOR
+        # ##FOR COLOR###
         # define index for the low and high pass frequency filter in frequency space that has just been created
         # (depends on number of samples).
-        self.ignore_freq_index_below = np.rint(((self.ignore_freq_below * self.NumSamples) / self.EstimatedFPS))  # high pass
-        self.ignore_freq_index_above = np.rint(((self.ignore_freq_above * self.NumSamples) / self.EstimatedFPS))  # low pass
+        self.ignore_freq_index_below = np.rint(((self.ignore_freq_below * self.NumSamples) / self.ColorEstimatedFPS))  # high pass
+        self.ignore_freq_index_above = np.rint(((self.ignore_freq_above * self.NumSamples) / self.ColorEstimatedFPS))  # low pass
 
         # compute the ramp filter start and end indices double
         self.ramp_start = self.ignore_freq_index_below
-        self.ramp_end = np.rint(((self.ramp_end_hz * self.NumSamples) / self.EstimatedFPS))
+        self.ramp_end = np.rint(((self.ramp_end_hz * self.NumSamples) / self.ColorEstimatedFPS))
         self.rampDesignLength = self.ignore_freq_index_above - self.ignore_freq_index_below
         self.ramp_design = [None] * int(self.rampDesignLength)
         self.ramplooprange = int(self.ramp_end - self.ramp_start)
@@ -246,10 +253,6 @@ class ComputerHeartRate:
         # apply ramp filter and find index of maximum frequency (after filter is applied).
         # nullable so this works even if you have all super-low negatives
         # Calculate and process signal data
-        ir_fft_maxVal = None  # nullable so this works even if you have all super-low negatives
-        ir_fft_index = -1
-        ir_fft_realabs = [0] * (int(self.ignore_freq_index_above) - int(self.ignore_freq_index_below))
-
         grey_fft_maxVal = None  # nullable so this works even if you have all super-low negatives
         grey_fft_index = -1
         grey_fft_realabs = [0] * (int(self.ignore_freq_index_above) - int(self.ignore_freq_index_below))
@@ -271,12 +274,6 @@ class ComputerHeartRate:
         for x in range((int(self.ignore_freq_index_below + 1)), (int(self.ignore_freq_index_above + 1))):
             # "apply" the ramp to generate the shaped frequency values for IR
             # find the max value and the index of the max value.
-            current_irNum = self.ramp_design[realabs_i] * np.abs(IR_fft_Copy[x].real)
-            ir_fft_realabs[realabs_i] = current_irNum
-            if ((ir_fft_maxVal is None) or (current_irNum > ir_fft_maxVal)):
-                ir_fft_maxVal = current_irNum
-                ir_fft_index = x
-
             if (not self.ignoreGray):
                 # "apply" the ramp to generate the shaped frequency values for Grey
                 current_greyNum = self.ramp_design[realabs_i] * np.abs(Gy_fft_Copy[x].real)
@@ -308,6 +305,57 @@ class ComputerHeartRate:
 
             realabs_i = realabs_i + 1
 
+        # endregion
+
+        # region IR
+        #### FOR IR
+        # define index for the low and high pass frequency filter in frequency space that has just been created
+        # (depends on number of samples).
+        self.ignore_freq_index_below = np.rint(
+            ((self.ignore_freq_below * self.NumSamples) / self.IREstimatedFPS))  # high pass
+        self.ignore_freq_index_above = np.rint(
+            ((self.ignore_freq_above * self.NumSamples) / self.IREstimatedFPS))  # low pass
+
+        # compute the ramp filter start and end indices double
+        self.ramp_start = self.ignore_freq_index_below
+        self.ramp_end = np.rint(((self.ramp_end_hz * self.NumSamples) / self.IREstimatedFPS))
+        self.rampDesignLength = self.ignore_freq_index_above - self.ignore_freq_index_below
+        self.ramp_design = [None] * int(self.rampDesignLength)
+        self.ramplooprange = int(self.ramp_end - self.ramp_start)
+
+        # setup linear ramp
+        for x in range(0, self.ramplooprange):
+            self.ramp_design[x] = ((((self.ramp_end_percentage - self.ramp_start_percentage) / (
+                        self.ramp_end - self.ramp_start)) * (x)) + self.ramp_start_percentage)
+
+        # setup plateu of linear ramp
+        for x in range(int(self.ramp_end - self.ramp_start),
+                       int(self.ignore_freq_index_above - self.ignore_freq_index_below)):
+            # ramp_design.append(1)
+            self.ramp_design[x] = 1
+
+        # apply ramp filter and find index of maximum frequency (after filter is applied).
+        # nullable so this works even if you have all super-low negatives
+        # Calculate and process signal data
+        ir_fft_maxVal = None  # nullable so this works even if you have all super-low negatives
+        ir_fft_index = -1
+        ir_fft_realabs = [0] * (int(self.ignore_freq_index_above) - int(self.ignore_freq_index_below))
+
+        realabs_i = 0
+
+        for x in range((int(self.ignore_freq_index_below + 1)), (int(self.ignore_freq_index_above + 1))):
+            # "apply" the ramp to generate the shaped frequency values for IR
+            # find the max value and the index of the max value.
+            current_irNum = self.ramp_design[realabs_i] * np.abs(IR_fft_Copy[x].real)
+            ir_fft_realabs[realabs_i] = current_irNum
+            if ((ir_fft_maxVal is None) or (current_irNum > ir_fft_maxVal)):
+                ir_fft_maxVal = current_irNum
+                ir_fft_index = x
+
+            realabs_i = realabs_i + 1
+
+        # endregion
+
         #####GET BPM#####
         self.getBPM(ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index)
 
@@ -324,14 +372,14 @@ class ComputerHeartRate:
     '''
     def getBPM(self,ir_fft_index,grey_fft_index,red_fft_index,green_fft_index,blue_fft_index):
 
-        self.IrBpm = self.freq_bpm[ir_fft_index]
+        self.IrBpm = self.freq_bpmIr[ir_fft_index]
         if (not self.ignoreGray):
-            self.GreyBpm = self.freq_bpm[grey_fft_index]
+            self.GreyBpm = self.freq_bpmColor[grey_fft_index]
         else:
             self.GreyBpm = 0
-        self.RedBpm = self.freq_bpm[red_fft_index]
-        self.GreenBpm = self.freq_bpm[green_fft_index]
-        self.BlueBpm = self.freq_bpm[blue_fft_index]
+        self.RedBpm = self.freq_bpmColor[red_fft_index]
+        self.GreenBpm = self.freq_bpmColor[green_fft_index]
+        self.BlueBpm = self.freq_bpmColor[blue_fft_index]
 
     '''
     getSNR:
@@ -375,11 +423,32 @@ class ComputerHeartRate:
     getSamplingError:
     '''
     def getSamplingError(self, ir_fft_index, grey_fft_index, red_fft_index, green_fft_index, blue_fft_index):
-        self.IrFreqencySamplingError = self.freq_bpm[ir_fft_index + 1] - self.freq_bpm[ir_fft_index - 1]
+        #TODO: Porbably due to different fps of color and IR
+        if(((ir_fft_index +1) >= len(self.freq_bpmIr))):
+            ir_fft_index = ir_fft_index -1
+            print('ir_fft_index reduced by 1 : ' + str(ir_fft_index))
+
+        if(((grey_fft_index +1) >= len(self.freq_bpmColor))):
+            grey_fft_index = grey_fft_index -1
+            print('grey_fft_index reduced by 1 : ' + str(grey_fft_index))
+
+        if(((red_fft_index +1) >= len(self.freq_bpmColor))):
+            red_fft_index = red_fft_index -1
+            print('red_fft_index reduced by 1 : ' + str(red_fft_index))
+
+        if(((green_fft_index +1) >= len(self.freq_bpmColor))):
+            green_fft_index = green_fft_index -1
+            print('green_fft_index reduced by 1 : ' + str(green_fft_index))
+
+        if((blue_fft_index +1) >= len(self.freq_bpmColor)):
+            blue_fft_index = blue_fft_index -1
+            print('blue_fft_index reduced by 1 : ' + str(blue_fft_index))
+
+        self.IrFreqencySamplingError = self.freq_bpmIr[ir_fft_index + 1] - self.freq_bpmIr[ir_fft_index - 1]
         if (not self.ignoreGray):
-            self.GreyFreqencySamplingError = self.freq_bpm[grey_fft_index + 1] - self.freq_bpm[grey_fft_index - 1]
+            self.GreyFreqencySamplingError = self.freq_bpmColor[grey_fft_index + 1] - self.freq_bpmColor[grey_fft_index - 1]
         else:
             self.GreyFreqencySamplingError = 0.0
-        self.RedFreqencySamplingError = self.freq_bpm[red_fft_index + 1] - self.freq_bpm[red_fft_index - 1]
-        self.GreenFreqencySamplingError = self.freq_bpm[green_fft_index + 1] - self.freq_bpm[green_fft_index - 1]
-        self.BlueFreqencySamplingError = self.freq_bpm[blue_fft_index + 1] - self.freq_bpm[blue_fft_index - 1]
+        self.RedFreqencySamplingError = self.freq_bpmColor[red_fft_index + 1] - self.freq_bpmColor[red_fft_index - 1]
+        self.GreenFreqencySamplingError = self.freq_bpmColor[green_fft_index + 1] - self.freq_bpmColor[green_fft_index - 1]
+        self.BlueFreqencySamplingError = self.freq_bpmColor[blue_fft_index + 1] - self.freq_bpmColor[blue_fft_index - 1]

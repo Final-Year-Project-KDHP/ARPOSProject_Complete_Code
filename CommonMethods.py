@@ -11,7 +11,7 @@ import numpy as np
 GetGroundTruth:
 get ground truth data of a participant by heart rate status (resting or active)
 """
-def GetGroundTruth(participant_number, position,diskpath):
+def GetGroundTruth(participant_number, position,diskpath,totalTimeinSeconds=0):
     filepath = diskpath + "\\GroundTruthData" + "\\" + participant_number + "\\" + position + "\\"
     HrFile =  filepath + "HR.txt"
     SPOFile =  filepath + "SPO.txt"
@@ -22,6 +22,10 @@ def GetGroundTruth(participant_number, position,diskpath):
 
     HrGr =HrFiledata.read().split("\n")
     SpoGr =SPOFiledata.read().split("\n")
+
+    if (totalTimeinSeconds > 0):
+        HrGr= HrGr[:totalTimeinSeconds]
+        SpoGr=SpoGr[:totalTimeinSeconds]
 
     HrFiledata.close()
     SPOFiledata.close()

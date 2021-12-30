@@ -24,8 +24,11 @@ class GlobalData:
     ColorfpswithTime=[]
     IRfpswithTime=[]
 
+    ColorEstimatedFPS=0
+    IREstimatedFPS=0
+
     def __init__(self, timecolor, timecolorcount,timeir,timeircount,Frametime_list_ir,Frametime_list_color,
-                 red,green,blue,grey,ir,distanceM,totalTimeinSeconds,ColorfpswithTime=None, IRfpswithTime=None):
+                 red,green,blue,grey,ir,distanceM,totalTimeinSeconds,ColorEstimatedFPS, IREstimatedFPS,ColorfpswithTime=None, IRfpswithTime=None):
         self.time_list_color = timecolor
         self.timecolorCount = timecolorcount
         self.time_list_ir = timeir
@@ -41,7 +44,8 @@ class GlobalData:
         self.Frametime_list_ir = Frametime_list_ir
         self.Frametime_list_color = Frametime_list_color
         self.totalTimeinSeconds = totalTimeinSeconds
-
+        self.ColorEstimatedFPS=ColorEstimatedFPS
+        self.IREstimatedFPS=IREstimatedFPS
 
     def getAllData(self):
         OriginalData =  np.c_[self.blue, self.green, self.red, self.grey, self.Irchannel]

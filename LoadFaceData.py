@@ -1,6 +1,7 @@
 import os
 import glob
 import cv2
+import numpy as np
 from cv2 import IMREAD_UNCHANGED
 import datetime
 import collections
@@ -35,8 +36,9 @@ class LoadFaceData:
     StartTime = datetime.datetime.now()
     EndTime = datetime.datetime.now()
 
-    # Ohter constatns
-    EstimatedFPS = 30  # TODO fix for variable fps
+    # Ohter constatns# TODO fix for variable fps
+    ColorEstimatedFPS = 0
+    IREstimatedFPS = 0
 
     def Clear(self):
         self.red = []
@@ -56,18 +58,34 @@ class LoadFaceData:
         self.StartTime = datetime.datetime.now()
         self.EndTime = datetime.datetime.now()
 
+
+    def getDuplicateValue(self,ini_dict):
+        # finding duplicate values
+        flipped = {}
+        for key, value in ini_dict.items():
+            if value not in flipped:
+                flipped[value] = 1
+            else:
+                val = flipped.get(value)
+                flipped[value] = val + 1
+        # print(str(max(flipped.values())))
+        # printing result
+        # print("final_dictionary", str(flipped))
+        key = [fps for fps, count in flipped.items() if count == max(flipped.values())]
+        return key[0]
+
     """
     GetEstimatedFPS:
     Get and print Color and IR frame rate (to identify what is fps rate for data collected)
     """
-    def GetEstimatedFPS(self):
+    ##TODO: MAKE EFFICIENT
+    def GetEstimatedFPS(self,distnacepath):
         # Get FPS for color
         ColorfpswithTime = {}
         fpscountcolor = 0
         isVariable = False
         Prevlisttime = datetime.time(self.Frametime_list_color[0].hour, self.Frametime_list_color[0].minute,
                                      self.Frametime_list_color[0].second)
-
         for time in self.Frametime_list_color:
             TrimmedTime = datetime.time(time.hour, time.minute, time.second)
             if (Prevlisttime == TrimmedTime):
@@ -76,6 +94,9 @@ class LoadFaceData:
                 ColorfpswithTime[Prevlisttime] = fpscountcolor
                 Prevlisttime = TrimmedTime
                 fpscountcolor = 1
+
+        ColorFPS = self.getDuplicateValue(ColorfpswithTime)
+        self.ColorEstimatedFPS= ColorFPS
 
         # print
         # print("Color fps:")
@@ -90,7 +111,36 @@ class LoadFaceData:
                     break;
 
             count=count+1
-        #     print('Time: ' + str(k) + ' , FPS: ' + str(v))
+            # print('Time: ' + str(k) + ' , FPS: ' + str(v))
+
+        total_frames=0
+        for item in self.Frametime_list_color:
+            total_frames = total_frames + 1
+            frame_count = total_frames
+            FPS = self.ColorEstimatedFPS
+            td = datetime.timedelta(seconds=(frame_count / FPS))
+            self.time_list_color.append(td)
+
+        ####
+        # print data acquistion time details
+        # print('Start Time for Color:' + str(self.StartTime))
+        # print('End Time for Color:' + str(self.EndTime))
+        # print('Total Time:' + str(self.EndTime - self.StartTime))
+
+        timeDifference = (self.EndTime - self.StartTime)
+        self.totalTimeinSeconds = timeDifference.total_seconds()
+
+        estimatedseconds = len(self.time_list_color) / self.ColorEstimatedFPS
+        if (self.totalTimeinSeconds > estimatedseconds):
+            self.totalTimeinSeconds = estimatedseconds
+
+        Timecount = 1
+        for time in self.time_list_color:
+            self.timecolorCount.append(Timecount)
+            Timecount = Timecount + 1
+        # End
+        # print('Color ROI loaded..')
+        #####################################
 
         # Get FPS for IR
         IRfpswithTime = {}
@@ -120,10 +170,83 @@ class LoadFaceData:
                     break;
 
             count=count+1
+            # print('Time: ' + str(k) + ' , FPS: ' + str(v))
 
-        #     print('Time: ' + str(k) + ' , FPS: ' + str(v))
+        IRFPS = self.getDuplicateValue(IRfpswithTime)
 
-        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable
+        self.IREstimatedFPS = IRFPS
+
+
+        for time in self.Frametime_list_ir:
+            # Add Time Stamp
+            total_frames = total_frames + 1
+            frame_count = total_frames
+            FPS = self.IREstimatedFPS
+            td = datetime.timedelta(seconds=(frame_count / FPS))
+            self.time_list_ir.append(td)
+
+        # print time details for ir
+        # print('Start Time for IR:' + str(self.StartTime))
+        # print('End Time for IR:' + str(self.EndTime))
+        # print('Total Time:' + str(self.EndTime - self.StartTime))
+        fdistancem = open(distnacepath, "r")
+
+        # add distance
+        for x in fdistancem:
+            fullline = x
+            if (fullline.__contains__("Distance datetime")):
+                fulllineSplited = fullline.split(" , with distance : ")
+                dm = float(fulllineSplited[1])
+                dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
+                dttimesplit = dt.split(" ")
+
+                converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
+                hour = int(converteddtime[0])
+                min = int(converteddtime[1])
+                second = int(converteddtime[2])
+                disFrameTime = datetime.time(hour, min, second, 0)
+
+                if (disFrameTime == self.StartTime.time()):  # SKIP FIRST SECOND
+                    # Do nothing or add steps here if required
+                    test = 0
+                elif (disFrameTime == self.EndTime.time()):  # SKIP LAST SECOND
+                    test2 = 0  # Do nothing or add steps here if required
+                else:
+                    for x in range(0, self.IREstimatedFPS):
+                        self.distanceM.append(float(np.abs(dm)))
+
+        Timecount = 1
+        for time in self.time_list_ir:
+            self.timeirCount.append(Timecount)
+            Timecount = Timecount + 1
+        # End IR
+        # print('IR ROI loaded..')
+
+        # FIX TODO if not same
+        if (len(self.time_list_ir) > len(self.time_list_color)):
+            differnce = len(self.time_list_ir) - len(self.time_list_color)
+            for i in range(0, differnce):
+                self.time_list_ir.pop()
+                self.Frametime_list_ir.pop()
+                self.timeirCount.pop()
+                self.Irchannel.pop()
+                # self.distanceM.pop()
+
+        if (len(self.time_list_color) > len(self.time_list_ir)):
+            differnce = len(self.time_list_color) - len(self.time_list_ir)
+            for i in range(0, differnce):
+                self.time_list_color.pop()
+                self.Frametime_list_color.pop()
+                self.timecolorCount.pop()
+                self.red.pop()
+                self.green.pop()
+                self.blue.pop()
+                self.grey.pop()
+            # Reevaluate seconds
+            self.totalTimeinSeconds = len(self.time_list_color) / self.IREstimatedFPS
+
+
+        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable, ColorFPS, IRFPS
 
     """
     LoadFiles:
@@ -180,7 +303,6 @@ class LoadFaceData:
 
         Image_Files = self.LoadFiles(filepath)
         Image_Files = self.SortLoadedFiles(Image_Files)
-        total_frames=0
         LastFileTimeStamp = list(Image_Files.keys())[-1]
         self.EndTime = self.GetFrameTime(LastFileTimeStamp.hour, LastFileTimeStamp.minute, LastFileTimeStamp.second, 0)
 
@@ -224,43 +346,16 @@ class LoadFaceData:
                 # Add Time Stamp with miliseconds
                 self.Frametime_list_color.append(FrameTimeStamp)
 
-                total_frames = total_frames + 1
-
-                frame_count = total_frames
-                FPS = self.EstimatedFPS
-                td = datetime.timedelta(seconds=(frame_count / FPS))
-                self.time_list_color.append(td)
-
-        #print data acquistion time details
-        # print('Start Time for Color:' + str(self.StartTime))
-        # print('End Time for Color:' + str(self.EndTime))
-        # print('Total Time:' + str(self.EndTime - self.StartTime))
-
-        timeDifference = (self.EndTime - self.StartTime)
-        self.totalTimeinSeconds = timeDifference.total_seconds()
-
-        estimatedseconds = len(self.time_list_color)/self.EstimatedFPS
-        if(self.totalTimeinSeconds > estimatedseconds):
-            self.totalTimeinSeconds = estimatedseconds
-
-        Timecount = 1
-        for time in self.time_list_color:
-            self.timecolorCount.append(Timecount)
-            Timecount = Timecount + 1
-        # End
-        # print('Color ROI loaded..')
-
     """
     ProcessIRImagestoArray:
     Load IR region of interests, get average of b,g,r and time and distance
     also make sure color and ir data has same x and y values for processing and plotting
     skip first and last seconds 
     """
-    def ProcessIRImagestoArray(self, filepath, distnacepath):
+    def ProcessIRImagestoArray(self, filepath):
 
         Image_Files = self.LoadFiles(filepath)
         Image_Files = self.SortLoadedFiles(Image_Files)
-        fdistancem = open(distnacepath, "r")
         total_frames=0
         # Go through each image
         for key, value in Image_Files.items():
@@ -284,67 +379,3 @@ class LoadFaceData:
                 self.Irchannel.append(ImgmeanValues[0])
 
                 self.Frametime_list_ir.append(FrameTimeStamp)
-
-                # Add Time Stamp
-                total_frames = total_frames + 1
-                frame_count = total_frames
-                FPS = self.EstimatedFPS
-                td = datetime.timedelta(seconds=(frame_count / FPS))
-                self.time_list_ir.append(td)
-
-        #print time details for ir
-        # print('Start Time for IR:' + str(self.StartTime))
-        # print('End Time for IR:' + str(self.EndTime))
-        # print('Total Time:' + str(self.EndTime - self.StartTime))
-
-        # add distance
-        for x in fdistancem:
-            fullline = x
-            if (fullline.__contains__("Distance datetime")):
-                fulllineSplited = fullline.split(" , with distance : ")
-                dm = float(fulllineSplited[1])
-                dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
-                dttimesplit = dt.split(" ")
-
-                converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
-                hour = int(converteddtime[0])
-                min = int(converteddtime[1])
-                second = int(converteddtime[2])
-                disFrameTime = datetime.time(hour, min, second, 0)
-
-                if (disFrameTime == self.StartTime.time()):  # SKIP FIRST SECOND
-                    # Do nothing or add steps here if required
-                    test = 0
-                elif (disFrameTime == self.EndTime.time()):  # SKIP LAST SECOND
-                    test2 = 0  # Do nothing or add steps here if required
-                else:
-                    for x in range(0, self.EstimatedFPS):
-                        self.distanceM.append(float(dm))
-
-        Timecount = 1
-        for time in self.time_list_ir:
-            self.timeirCount.append(Timecount)
-            Timecount = Timecount + 1
-        # End IR
-        # print('IR ROI loaded..')
-
-        # FIX TODO if not same
-        if (len(self.time_list_ir) > len(self.time_list_color)):
-            differnce = len(self.time_list_ir) - len(self.time_list_color)
-            for i in range(0, differnce):
-                self.time_list_ir.pop()
-                self.Frametime_list_ir.pop()
-                self.timeirCount.pop()
-                self.Irchannel.pop()
-                self.distanceM.pop()
-
-        if (len(self.time_list_color) > len(self.time_list_ir)):
-            differnce = len(self.time_list_color) - len(self.time_list_ir)
-            for i in range(0, differnce):
-                self.time_list_color.pop()
-                self.Frametime_list_color.pop()
-                self.timecolorCount.pop()
-                self.red.pop()
-                self.green.pop()
-                self.blue.pop()
-                self.grey.pop()

@@ -4,7 +4,8 @@ from matplotlib import gridspec
 
 class Plots:
     figNumber =0
-
+    ColorEstimatedFPS = 0
+    IREstimatedFPS = 0
     '''
     '''
     def plotGraphAllWithoutTimewithParam(self, Savefilepath,filename, blue,green,red, grey,ir,xlabel,ylabel):
@@ -92,14 +93,14 @@ class Plots:
 
     '''
     '''
-    def plotAllinOne(self,Savefilepath, blue,green,red, grey,ir,filename,fps,windowsize,xlabel,ylabel):
+    def plotAllinOne(self,Savefilepath, blue,green,red, grey,ir,filename,windowsize,xlabel,ylabel):
 
         plt.switch_backend('agg')
         plt.ioff()
         plt.rcParams.update({'figure.max_open_warning': 0})
         plt.clf()
-        T = 1 / fps  # sampling frequency
-        tx = np.arange(0, windowsize, T)
+
+        Colortx, IRtx = self.getTimeStep(red, ir)
 
         self.figNumber = self.figNumber + 1
         plt.figure(self.figNumber, figsize=(20, 16))
@@ -114,11 +115,11 @@ class Plots:
         plt.rc('axes', labelsize=16)  # fontsize of the x and y labels
         plt.rc('xtick', labelsize=16)  # fontsize of the tick labels
         plt.rc('ytick', labelsize=16)  # fontsize of the tick labels
-        plt.plot(tx, blue, 'blue')
-        plt.plot(tx, green, 'green')
-        plt.plot(tx, red, 'red')
-        plt.plot(tx, grey, 'gray')
-        plt.plot(tx, ir, 'black')
+        plt.plot(Colortx, blue, 'blue')
+        plt.plot(Colortx, green, 'green')
+        plt.plot(Colortx, red, 'red')
+        plt.plot(Colortx, grey, 'gray')
+        plt.plot(IRtx, ir, 'black')
 
         plt.legend(["blue", "green", "red","grey","Ir"])
         plt.xlabel(xlabel, fontsize=18)
@@ -126,17 +127,32 @@ class Plots:
 
         plt.savefig(Savefilepath + filename + '.png')#, dpi=300, bbox_inches='tight'
 
+    def getTimeStep(self, signal, signalIR):
+        # tx = np.arange(0, windowsize, T)
+
+        ##For Color
+        signalL = len(signal)
+        T = 1 / self.ColorEstimatedFPS  # sampling frequency
+        max_time = signalL / self.ColorEstimatedFPS
+        Colortx = np.linspace(0, max_time, signalL) #time_steps
+
+        ##For IR
+        signalL = len(signalIR)
+        T = 1 / self.IREstimatedFPS  # sampling frequency
+        max_time = signalL / self.IREstimatedFPS
+        IRtx = np.linspace(0, max_time, signalL) #time_steps
+
+        return  Colortx, IRtx
     '''
     '''
     def plotGraphAllwithParam(self, Savefilepath, filename, timearrycolor, timeir, blue, green, red, grey, ir, xlabel,
-                              ylabel, fps, windowsize):
+                              ylabel):
         plt.switch_backend('agg')
         plt.ioff()
         plt.rcParams.update({'figure.max_open_warning': 0})
         plt.clf()
 
-        T = 1 / fps  # sampling frequency
-        tx = np.arange(0, windowsize, T)
+        Colortx, IRtx = self.getTimeStep(red, ir)
 
         fig, (ax1, ax2, ax4, ax5) = plt.subplots(4, sharex=True, figsize=(20, 11))
 
@@ -145,15 +161,15 @@ class Plots:
         plt.rcParams.update({'font.size': 18})
 
         fig.suptitle(filename)
-        ax1.plot(tx, red, 'red', label='Red channel')
+        ax1.plot(Colortx, red, 'red', label='Red channel')
         ax1.legend(loc="upper right")
-        ax2.plot(tx, green, 'green', label='Green channel')
+        ax2.plot(Colortx, green, 'green', label='Green channel')
         ax2.legend(loc="upper right")
         # ax3.plot( blue, 'blue',label = 'Blue channel')
         # ax3.legend(loc="upper right")
-        ax4.plot(tx, grey, 'gray', label='Grey channel')
+        ax4.plot(Colortx, grey, 'gray', label='Grey channel')
         ax4.legend(loc="upper right")
-        ax5.plot(tx, ir, 'black', label='IR channel')
+        ax5.plot(IRtx, ir, 'black', label='IR channel')
         ax5.legend(loc="upper right")
 
         # Set the tick labels font
@@ -184,7 +200,7 @@ class Plots:
 
     '''
     '''
-    def PlotFFT(self,blue, green,red,grey,ir,freq,title,Savefilepath,filename):
+    def PlotFFT(self,blue, green,red,grey,ir,colorfreq,irfreq,title,Savefilepath,filename):
         plt.switch_backend('agg')
         plt.ioff()
         plt.rcParams.update({'figure.max_open_warning': 0})
@@ -202,14 +218,14 @@ class Plots:
         ax4.title.set_text('Gray')
         ax5.title.set_text('IR')
 
-        ax2.stem(freq, np.abs(green), 'green',label="green")
+        ax2.stem(colorfreq, np.abs(green), 'green',label="green")
         ax2.legend(loc="upper right")
-        ax3.stem(freq, np.abs(red), 'red',label="red")
+        ax3.stem(colorfreq, np.abs(red), 'red',label="red")
         ax3.legend(loc="upper right")
 
-        ax4.stem(freq, np.abs(grey), 'gray',label="gray"  )#markerfmt=" ", basefmt="-b"
+        ax4.stem(colorfreq, np.abs(grey), 'gray',label="gray"  )#markerfmt=" ", basefmt="-b"
         ax4.legend(loc="upper right")
-        ax5.stem(freq, np.abs(ir), 'black',label="IR" )#markerfmt=" ", basefmt="-b"
+        ax5.stem(irfreq, np.abs(ir), 'black',label="IR" )#markerfmt=" ", basefmt="-b"
         ax5.legend(loc="upper right")
 
         plt.xlabel('Freq (Hz)', fontsize=16)

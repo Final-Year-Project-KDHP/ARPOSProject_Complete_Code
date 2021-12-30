@@ -124,6 +124,7 @@ class LoadWriteROI:
                 # if (getFramewithDetection and len(detections) > 0):
                 #     break
 
+            countImg=0
             for f1 in dataImages:
                 # read the image
                 Original = f1.copy()
@@ -194,6 +195,12 @@ class LoadWriteROI:
                         #crop_img = Original[y:y + h, x:x + w]
                         h, w, c =roi.shape
 
+                        # # #Display cropped image
+                        # cv2.imshow("Image", Original)
+                        # cv2.waitKey(0)
+                        # # #Display cropped image
+                        # cv2.imshow("Image", roi)
+                        # cv2.waitKey(0)
 
                         # if key == "lip":
                         #     #remove for full roi
@@ -238,10 +245,14 @@ class LoadWriteROI:
                         # cv2.waitKey(0)
                         #roi = Original[y:y + h, x:x + w]
 
-
-                        # #Display cropped image
-                        # cv2.imshow("Image", roi)
-                        # cv2.waitKey(0)
+                        if (h<=0 or w <=0):#if roi is not correctly detected and cropped
+                            print('SELECT REGION: ' + key)
+                            # Select ROI
+                            ROI0 = cv2.selectROI(Original, 0, 0)
+                            # # Crop image
+                            roi = Original[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
+                            cv2.waitKey(0)
+                            cv2.destroyAllWindows()
 
                         # store roi
                         if key == "lip":
@@ -252,6 +263,8 @@ class LoadWriteROI:
                             leftcheek.append(roi)
                         elif key == "forehead":
                             forehead.append(roi)
+
+                        countImg = countImg +1
 
         count = 0
 

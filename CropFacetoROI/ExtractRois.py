@@ -75,6 +75,6 @@ class ExtractROIdata:
 
 objExtractData = ExtractROIdata()
 # objExtractData.InitiateProcess('All', '', '')
-# objExtractData.InitiateProcess('Single','Resting1','PIS-5456')
-objExtractData.InitiateProcess('Single','Resting2','PIS-5456')
-objExtractData.InitiateProcess('Single','AfterExcersize','PIS-5456')
+objExtractData.InitiateProcess('Single','Resting1','PIS-9167')
+objExtractData.InitiateProcess('Single','Resting2','PIS-9167')
+objExtractData.InitiateProcess('Single','AfterExcersize','PIS-9167')

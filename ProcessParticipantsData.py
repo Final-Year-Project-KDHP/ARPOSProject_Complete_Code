@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 import numpy as np
@@ -61,7 +62,7 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
 
     # Windows for regions (should be same for all)
     LengthofAllFrames = len(ROIStore.get(objConfig.roiregions[0]).getAllData())  # all have same lenghts
-    TimeinSeconds = LengthofAllFrames / objProcessData.EstimatedFPS  # FIX TODO change for differnt fps
+    TimeinSeconds = LengthofAllFrames / objProcessData.ColorEstimatedFPS  # FIX TODO change for differnt fps
     step = 30  # slide window for 1 second or 30 frames
     WindowSlider = step * timeinSeconds  # step * 5 second,  window can hold  150 frames or 5 second data
     WindowCount = 0
@@ -204,8 +205,8 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
     finaloxy = 0.0
     freqencySamplingError = 0.0
     smallestOxygenError = sys.float_info.max
-    timeinSeconds = ROIStore.get(
-        "lips").totalTimeinSeconds  # this is same for all regions as no of frames are same recorded for that time peroid so we can use any region to get time
+    timeinSeconds = ROIStore.get("lips").totalTimeinSeconds  # this is same for all regions as no of frames are same recorded for that time peroid so we can use any region to get time
+    # leng = len(ROIStore.get("lips").Irchannel)
 
     # Initialise object to process face regions signal data
     objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,

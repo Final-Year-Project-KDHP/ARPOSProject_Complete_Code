@@ -12,8 +12,8 @@ pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tessera
 #Global
 DiskPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\SouthAsian_BrownSkin_Group\\"
 
-ParticipantNumbers= ["PIS-5456"]
-hearratestatus = ["Resting1", "Resting2", "AfterExcersize"] # heart rate status example resting state and after small workout
+ParticipantNumbers= ["PIS-7180"]
+hearratestatus = [ "Resting1", "Resting2", "AfterExcersize"] # , "AfterExcersize"heart rate status example resting state and after small workout
 
 # ParticipantNumber= "PIS-4709"#"PIS-1118,PIS-2212, PIS-3252, PIS-3807, PIS-4497, PIS-5868, PIS-8308, PIS-8343, PIS-9219
 # position = "Resting1"
@@ -88,17 +88,17 @@ for ParticipantNumber in ParticipantNumbers:
 
                         #Changes as per mobile resolution
 
-                        Col0 = 504 #571
-                        Col1 = 235 #231
-                        Col2 =  115 #135
-                        Col3 = 65 #79
+                        Col0 = 497 #571
+                        Col1 = 234 #231
+                        Col2 =  131 #135
+                        Col3 = 77 #79
                         crop_imgspo = img[Col1:int(Col1 + Col3), Col0:int(Col0 + Col2)]# img[311:int(311 + 126), 838:int(838 + 214)]
 
 
                         Col0 =489#584
-                        Col1 = 460#534
-                        Col2 = 129#114
-                        Col3 = 68#72
+                        Col1 = 457#534
+                        Col2 = 127#114
+                        Col3 = 69#72
                         crop_imghr = img[Col1:int(Col1 + Col3), Col0:int(Col0 + Col2)]#img[668:int(668 + 123), 826:int(826 + 240)]
                         # # Display cropped image
                         # cv2.imshow("Image", crop_imgspo)

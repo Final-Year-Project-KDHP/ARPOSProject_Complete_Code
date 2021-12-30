@@ -10,30 +10,32 @@ Global and configuration parameters defined in this class
 """
 class Configurations:
     # change path here for uncompressed dataset
-    def __init__(self, isMain=False):
+    def __init__(self, isMain=False, skinGroup='None'):
         if(isMain):
             # Get participant Ids
-            self.getParticipantNumbers()
+            self.getParticipantNumbers(skinGroup)
+            self.setDiskPath(skinGroup)
 
     #Global parameters
     DiskPath = ""
     SavePath = ""
     UnCompressed_dataPath = ""
-    Skin_Group_Types = ["Europe_WhiteSkin_Group", "OtherAsian_OtherSkin_Group", "SouthAsian_BrownSkin_Group"]
+    # Skin_Group_Types = ["Europe_WhiteSkin_Group", "OtherAsian_OtherSkin_Group", "SouthAsian_BrownSkin_Group"]
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA", "PCA", "ICAPCA", "None"]#, "Jade"
+    AlgoList = ["FastICA", "PCA", "ICAPCA", "None","Jade"]#,
 
     #FFT method types
-    fftTypeList = ["M1", "M2", "M3", "M7"]#"M4", "M5", "M6",-> similar in graph  but test later with other types later
+    fftTypeList = ["M1",  "M3"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result
-    filtertypeList = [6, 2, 4, 5,  7]#3, -> no result, FL1 and FL6 are same 1,
+    filtertypeList = [6]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
 
     #Pre processing techniques
     preprocesses = [1, 3, 4, 5]#2 (same as 3), 6, 7, 8
+    ##preprcess 5 does not produce good results for after excersize
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
     resulttypeList = [1, 2, 3] #, 4 similar
@@ -140,7 +142,7 @@ class Configurations:
     getParticipantNumbers:
     Store all the participant ids to variable [ParticipantNumbers]
     """
-    def getParticipantNumbers(self):
+    def getParticipantNumbers(self,skinGroup):
         #Read participantid file to get list of participants
         AppDataPath = os.getcwd() + '\\' + 'AppData' + '\\'
         objFile = FileIO()
@@ -151,6 +153,14 @@ class Configurations:
             Lineid = Line.split(', ')
             if(Lineid[len(Lineid)-1].__contains__('Yes')): #Is participating
                 if(Lineid[len(Lineid)-2] != 'UNOCCUPIED'): #Is occupied
-                    piId = Lineid[1] #participantId
-                    self.ParticipantNumbers.append(piId)
-                    self.Participantnumbers_SkinGroupTypes[piId] = Lineid[len(Lineid)-2]
+                    if(skinGroup == 'None'):
+                        piId = Lineid[1] #participantId
+                        self.ParticipantNumbers.append(piId)
+                        self.Participantnumbers_SkinGroupTypes[piId] = Lineid[len(Lineid)-2]
+                    else:
+                        if (Lineid[len(Lineid)-2] == skinGroup):
+                            piId = Lineid[1]  # participantId
+                            self.ParticipantNumbers.append(piId)
+                            self.Participantnumbers_SkinGroupTypes[piId] = Lineid[len(Lineid) - 2]
+                        else:
+                            skip=True

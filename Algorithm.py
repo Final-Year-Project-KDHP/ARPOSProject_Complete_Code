@@ -32,8 +32,11 @@ class AlgorithmCollection:
     fft_MaxVal=0
     fft_frq=0
 
-    freq = []
-    EstimatedFPS = 30
+    Colorfreq = []
+    IRfreq = []
+    # EstimatedFPS = 0
+    ColorEstimatedFPS = 0
+    IREstimatedFPS = 0
     NumberofSample = 0
 
     powerfftblue = []
@@ -50,14 +53,14 @@ class AlgorithmCollection:
 
         self.apply_rfft(yf,ignoregray)
         self.apply_Abs(ignoregray)
-        self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
+        self.Colorfreq = np.fft.rfftfreq(len(yf),1/self.ColorEstimatedFPS)
+        self.IRfreq = np.fft.rfftfreq(len(yf),1/self.IREstimatedFPS)
 
-        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.freq
+        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.Colorfreq, self.IRfreq
 
     def Apply_FFT_M2_eachsignal(self,S_, ignoregray): #rfft, abs, get power and its freq
 
         N = len(S_)  # Number of data points
-        T = 1. / self.EstimatedFPS  # delta between frames (s)
         '''perform fourier transform'''
         self.fftblue = fftpack.fft(S_[:, 0])  # blue
         self.fftblue = 2.0 / N * np.abs(self.fftblue[0:N // 2])
@@ -77,18 +80,24 @@ class AlgorithmCollection:
         self.fftIR = fftpack.fft(S_[:, index])  # ir
         self.fftIR = 2.0 / N * np.abs(self.fftIR[0:N // 2])
 
-        self.freq = np.linspace(0.0, 1 / (T * 2), N // 2)  # replot complex data over freq domain
+        # self.freq = np.linspace(0.0, 1 / (T * 2), N // 2)  # replot complex data over freq domain
+        T = 1. / self.ColorEstimatedFPS  # delta between frames (s)
+        self.Colorfreq = np.linspace(0.0, 1 / (T * 2), N // 2)  # replot complex data over freq domain
+        T = 1. / self.IREstimatedFPS  # delta between frames (s)
+        self.IRfreq = np.linspace(0.0, 1 / (T * 2), N // 2)  # replot complex data over freq domain
 
-        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.freq
+        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.Colorfreq, self.IRfreq
 
     def Apply_FFT_M1_byeachsignal(self,yf,ignoregray): #rfft, abs, get power and its freq
 
         self.apply_rfft(yf,ignoregray)
         self.apply_Abs(ignoregray)
         self.getPower(ignoregray)
-        self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
+        # self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
+        self.Colorfreq = np.fft.rfftfreq(len(yf),1/self.ColorEstimatedFPS)
+        self.IRfreq = np.fft.rfftfreq(len(yf),1/self.IREstimatedFPS)
 
-        return self.powerfftblue, self.powerfftGreen, self.powerfftRed, self.powerfftGrey, self.powerfftIR, self.freq
+        return self.powerfftblue, self.powerfftGreen, self.powerfftRed, self.powerfftGrey, self.powerfftIR, self.Colorfreq, self.IRfreq
 
     def ApplyFFT9(self,S,ignoregray):
         # obtain the frequencies using scipy function
@@ -127,7 +136,7 @@ class AlgorithmCollection:
             ir_sig_fft = fft(ir_x)
             grey_sig_fft = []
 
-        return blue_sig_fft,green_sig_fft,red_sig_fft,grey_sig_fft,ir_sig_fft,self.freq
+        return blue_sig_fft,green_sig_fft,red_sig_fft,grey_sig_fft,ir_sig_fft,self.Colorfreq, self.IRfreq
 
     def Apply_FFT_M6_Individual(self, yf,ignoregray): #original 5
         N = len(yf)
@@ -149,7 +158,7 @@ class AlgorithmCollection:
             self.fftGrey = self.fftGrey / np.sqrt(len(self.fftGrey))
         self.fftIR = self.fftIR / np.sqrt(len(self.fftIR))
 
-        xf = self.get_Freq(N)
+        xf, xf2 = self.get_Freq(N)
         yplotIR = abs(self.fftIR) #with and without abs
         yplotRed = abs(self.fftRed)
         yplotGreen = abs(self.fftGreen)
@@ -159,7 +168,7 @@ class AlgorithmCollection:
         else:
             yplotGrey= []
 
-        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf
+        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf,xf2
 
     def Apply_FFT_M5_Individual(self, yf,ignoregray): #original 4
         N =len(yf)
@@ -185,8 +194,9 @@ class AlgorithmCollection:
 
         self.fftIR = self.fftIR / np.sqrt(len(self.fftIR))
 
-        xf = self.get_Freq(N)
+        xf,xf2 = self.get_Freq(N)
         xf = np.fft.fftshift(xf)
+        xf2 = np.fft.fftshift(xf2)
 
         yplotIR = np.fft.fftshift(abs(self.fftIR))
         yplotRed = np.fft.fftshift(abs(self.fftRed))
@@ -197,35 +207,38 @@ class AlgorithmCollection:
         else:
             yplotGrey = []
 
-        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf
+        return yplotBlue,yplotGreen,yplotRed,yplotGrey,yplotIR,xf,xf2
 
     def Apply_FFT_forpreprocessed(self,yf,ignoregray): #rfft, abs, get power and its freq
         '''Apply Fast Fourier Transform'''
         L = len(yf)
-        self.freq = float(self.EstimatedFPS) / L * np.arange(L / 2 + 1)
+        # self.freq = float(self.EstimatedFPS) / L * np.arange(L / 2 + 1)
 
+        # self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
+        self.Colorfreq = np.fft.rfftfreq(len(yf),1/self.ColorEstimatedFPS)
+        self.IRfreq = np.fft.rfftfreq(len(yf),1/self.IREstimatedFPS)
         # self.fftblue =S_[:, 0]
-        raw_fft = np.fft.rfft(yf[:, 0] * 30)
+        raw_fft = np.fft.rfft(yf[:, 0] * self.ColorEstimatedFPS)
         self.fftblue = np.abs(raw_fft) ** 2
 
-        raw_fft = np.fft.rfft(yf[:, 1] * 30)
+        raw_fft = np.fft.rfft(yf[:, 1] * self.ColorEstimatedFPS)
         self.fftGreen = np.abs(raw_fft) ** 2
 
-        raw_fft = np.fft.rfft(yf[:, 2] * 30)
+        raw_fft = np.fft.rfft(yf[:, 2] * self.ColorEstimatedFPS)
         self.fftRed = np.abs(raw_fft) ** 2
 
         index=3
         if(not ignoregray):
-            raw_fft = np.fft.rfft(yf[:, 3] * 30)
+            raw_fft = np.fft.rfft(yf[:, 3] * self.ColorEstimatedFPS)
             self.fftGrey = np.abs(raw_fft) ** 2
             index=4
         else:
             self.fftGrey = []
 
-        raw_fft = np.fft.rfft(yf[:, index] * 30)
+        raw_fft = np.fft.rfft(yf[:, index] * self.IREstimatedFPS)
         self.fftIR = np.abs(raw_fft) ** 2
 
-        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.freq
+        return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.Colorfreq, self.IRfreq
 
     #########------FFT------#############
 
@@ -296,9 +309,11 @@ class AlgorithmCollection:
         return xf
 
     def get_Freq(self,N):
-        time_step = 1 / self.EstimatedFPS
-        self.freq = np.fft.fftfreq(N, d=time_step)
-        return self.freq
+        time_step = 1 / self.ColorEstimatedFPS
+        self.Colorfreq = np.fft.fftfreq(N, d=time_step)
+        time_step = 1 / self.IREstimatedFPS
+        self.IRfreq = np.fft.fftfreq(N, d=time_step)
+        return self.Colorfreq, self.IRfreq
 
     #########------Algorithms------#############
 
