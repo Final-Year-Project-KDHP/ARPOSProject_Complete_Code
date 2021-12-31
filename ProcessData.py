@@ -455,7 +455,7 @@ class ProcessFaceData:
                 processedGrey = self.preprocessdataType3(np.array(processedGrey), self.timecolorCount, True)
             processedIR = self.preprocessdataType3(np.array(processedIR), self.timeirCount, True)
 
-        elif (self.Preprocess_type == 6):##Fails
+        elif (self.Preprocess_type == 6):##
             processedBlue = self.preprocessdataType3(np.array(processedBlue), self.timecolorCount, False)
             processedGreen = self.preprocessdataType3(np.array(processedGreen), self.timecolorCount, False)
             processedRed = self.preprocessdataType3(np.array(processedRed), self.timecolorCount, False)
