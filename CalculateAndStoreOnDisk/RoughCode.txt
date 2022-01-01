@@ -1,0 +1,51 @@
+
+    # def GenerateOriginalRawData(self,participant_number,position):
+    #     #for each region of interest
+    #     for region in self.objConfig.roiregions:
+    #
+    #         # Init for each region
+    #         objFaceImage = LoadFaceData()
+    #         objFaceImage.Clear()
+    #
+    #         ##get loading path
+    #         LoadColordataPath, LoadIRdataPath, LoadDistancePath, ProcessedDataPath = self.objConfig.getLoadPath(participant_number,
+    #                                                                                          position,
+    #                                                                                          region)
+    #         # Load Roi data (ALL)
+    #         # print("Loading and processing color roi data")
+    #         objFaceImage.ProcessColorImagestoArray(LoadColordataPath)
+    #
+    #         # print("Loading and processing ir roi data")
+    #         objFaceImage.ProcessIRImagestoArray(LoadIRdataPath)
+    #
+    #         # GET FPS and distance and other data
+    #         ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable, ColorFPS, IRFPS = objFaceImage.GetEstimatedFPS(LoadDistancePath)
+    #
+    #         # Create global data object and use dictionary (ROI Store) to uniquely store a regions data
+    #         #Store data to disk
+    #         self.WritetoDisk(ProcessedDataPath,'objFaceImage_'+region,objFaceImage) # self.WritetoDisk(ProcessedDataPath,'redChannel',objFaceImage.red)
+    #         self.GenerateGraph(objFaceImage,ProcessedDataPath,region)
+    #
+    #         # delete face image object
+    #         del objFaceImage
+    #
+    # def ReadOriginalRawData(self, participant_number, position):
+    #     # objFaceStore= {}
+    #     # set path
+    #     self.objConfig.setSavePath(participant_number, position)
+    #     #for each region of interest
+    #     for region in self.objConfig.roiregions:
+    #         # Init for each region
+    #         objFaceImage = LoadFaceData()
+    #         objFaceImage.Clear()
+    #         ProcessedDataPath = self.objConfig.DiskPath+ '\\ProcessedData\\' + participant_number +'\\'+ position +'\\'+'RawOriginal\\'
+    #         #Load from disk
+    #         objFaceImage = self.ReadfromDisk(ProcessedDataPath,'objFaceImage_'+region)
+    #
+    #         #Add to store
+    #         # objFaceStore[region]= objFaceImage
+    #
+    #         #Clear
+    #         del objFaceImage
+    #
+    #     # return objFaceStore

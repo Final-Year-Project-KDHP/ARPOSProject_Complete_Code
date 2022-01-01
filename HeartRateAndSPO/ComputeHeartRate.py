@@ -168,7 +168,7 @@ class ComputerHeartRate:
         SNR = self.getSNR(ir_fft_maxVal, ir_fft_realabs, grey_fft_maxVal, grey_fft_realabs, red_fft_maxVal,
                     red_fft_realabs, green_fft_maxVal, green_fft_realabs, blue_fft_maxVal, blue_fft_realabs)
 
-        self.WriteDetails(SNR)
+        # self.WriteDetails(SNR)
 
     def WriteDetails(self, SNR):
         # Write to file
@@ -223,7 +223,7 @@ class ComputerHeartRate:
         #### GET SAMPLING ERROR ####
         SNR = self.getSamplingError(IR_sig_max_peak, Gy_sig_max_peak, R_sig_max_peak, G_sig_max_peak, B_sig_max_peak)
 
-        self.WriteDetails(SNR)
+        # self.WriteDetails(SNR)
 
     def OriginalARPOSmethod(self, B_fft_Copy, G_fft_Copy, R_fft_Copy, Gy_fft_Copy, IR_fft_Copy):
 
@@ -366,7 +366,7 @@ class ComputerHeartRate:
         SNR= self.getSNR(ir_fft_maxVal, ir_fft_realabs, grey_fft_maxVal, grey_fft_realabs, red_fft_maxVal,
                     red_fft_realabs, green_fft_maxVal, green_fft_realabs, blue_fft_maxVal, blue_fft_realabs)
 
-        self.WriteDetails(SNR)
+        # self.WriteDetails(SNR)
     '''
     getBPM:
     '''

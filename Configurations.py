@@ -11,10 +11,13 @@ Global and configuration parameters defined in this class
 class Configurations:
     # change path here for uncompressed dataset
     def __init__(self, isMain=False, skinGroup='None'):
-        if(isMain):
-            # Get participant Ids
-            self.getParticipantNumbers(skinGroup)
-            self.setDiskPath(skinGroup)
+        # Get participant Ids
+        self.getParticipantNumbers(skinGroup)
+        self.setDiskPath(skinGroup)
+        # if(isMain):
+        #     # Get participant Ids
+        #     self.getParticipantNumbers(skinGroup)
+        #     self.setDiskPath(skinGroup)
 
     #Global parameters
     DiskPath = ""
@@ -31,10 +34,11 @@ class Configurations:
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result
-    filtertypeList = [6,4]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
+    filtertypeList = [1,2,3,4,5,6,7]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
 
     #Pre processing techniques
-    preprocesses = [1, 3, 6,7,4, 5]#2 and 8 (same as 3 adn 7), 6, 7, 8
+    preprocesses = [1,2,3,4,5,6] # FOR THE NEW PARTIAL CLASS
+        #OLD-> FOR OLD CLASS[1, 3, 6,7,4, 5]#2 and 8 (same as 3 adn 7), 6, 7, 8
     ##preprcess 5 does not produce good results for after excersize
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
@@ -136,7 +140,11 @@ class Configurations:
         LoadColordataPath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + 'Cropped\\' + 'Color\\' + region + '\\'  ## Loading path for color data
         LoadIRdataPath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + 'Cropped\\' + 'IR\\' + region + '\\'  ## Loading path for IR data
         LoadDistancePath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + '\\ParticipantInformation.txt'  ## Loading path for depth and other information
-        return LoadColordataPath,LoadIRdataPath,LoadDistancePath
+        ProcessedDataPath = self.DiskPath + '\\ProcessedData\\'+ participantNumber + '\\' + position+ '\\' +'RawOriginal\\'  ## Loading path for storing processed data
+        # Create save path if it does not exists
+        if not os.path.exists(ProcessedDataPath):
+            os.makedirs(ProcessedDataPath)
+        return LoadColordataPath,LoadIRdataPath,LoadDistancePath,ProcessedDataPath
 
     """
     getParticipantNumbers:
@@ -144,7 +152,8 @@ class Configurations:
     """
     def getParticipantNumbers(self,skinGroup):
         #Read participantid file to get list of participants
-        AppDataPath = os.getcwd() + '\\' + 'AppData' + '\\'
+        ROOT_DIR = os.path.dirname(os.path.abspath(os.curdir)) # This is your Project Root
+        AppDataPath = ROOT_DIR + '\\' + 'AppData' + '\\'
         objFile = FileIO()
         participantIds = objFile.ReaddatafromFile(AppDataPath,'ParticipantIds')
 

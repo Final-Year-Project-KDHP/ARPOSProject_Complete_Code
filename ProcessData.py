@@ -638,7 +638,6 @@ class ProcessFaceData:
     '''
     FilterTechniques: Applies filters on signal data
     '''
-
     def FilterTechniques(self, B_fft, G_fft, R_fft, Gy_fft, IR_fft ):
         # cuttoff,  butterworth and other
         if (self.ignoreGray):
