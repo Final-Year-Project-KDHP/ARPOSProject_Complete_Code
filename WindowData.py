@@ -63,6 +63,7 @@ class Window_Data:
                          datetime.now().time().hour, datetime.now().time().minute,
                          datetime.now().time().second, datetime.now().time().microsecond)
     self.TimeLog[LogItem] = logTime
+    return logTime
 
   def timeDifferences(self):
     startTime = self.TimeLog[LogItems.Start_Total]

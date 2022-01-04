@@ -32,7 +32,7 @@ class InitiateProcessingStorage:
             data = pickle.load(filehandle)
         return data
 
-    def GenerateOriginalRawData(self,participant_number,position,objFaceImage,region):
+    def GenerateOriginalRawData(self,participant_number,position,objFaceImage,region): #TODO: CHANGE AS PER NEW CHANGES OTHER WISE WILL GIVE ERROR
         ##get loading path
         LoadColordataPath, LoadIRdataPath, LoadDistancePath, self.ProcessedDataPath = self.objConfig.getLoadPath(participant_number,
                                                                                          position,
@@ -273,6 +273,8 @@ class InitiateProcessingStorage:
         self.objConfig.ParticipantNumbers.remove('PIS-7381')
         self.objConfig.ParticipantNumbers.remove('PIS-6729')
         self.objConfig.ParticipantNumbers.remove('PIS-6327')
+        self.objConfig.ParticipantNumbers.remove('PIS-6888')
+        self.objConfig.ParticipantNumbers.remove('PIS-4709')
         # each particpant
         for participant_number in self.objConfig.ParticipantNumbers:
             # each position

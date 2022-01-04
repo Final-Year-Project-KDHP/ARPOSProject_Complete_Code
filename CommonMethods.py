@@ -64,3 +64,4 @@ def AvegrageGroundTruth(groundtruth):
     AvgValue = round(np.average(groundtruth))
 
     return AvgValue
+

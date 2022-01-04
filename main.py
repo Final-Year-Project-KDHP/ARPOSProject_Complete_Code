@@ -31,8 +31,8 @@ class Main:
     getEstimatedFrame:
     """
     def getEstimatedFrame(self, objFaceImage,distnacepath):
-        ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable, ColorFPS, IRFPS = objFaceImage.GetEstimatedFPS(distnacepath)
-        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable, ColorFPS, IRFPS
+        ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable = objFaceImage.GetEstimatedFPS(distnacepath) #, ColorFPS, IRFPS
+        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable #, ColorFPS, IRFPS
 
     """
     getData:
@@ -52,18 +52,7 @@ class Main:
 
         # GET FPS and distance and other data
         # if(region == 'lips'):
-        ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable, ColorFPS, IRFPS = self.getEstimatedFrame(objFaceImage,LoadDistancePath)
-
-        # ##If using single fps
-        # if (ColorFPS != IRFPS):
-        #     if(ColorFPS< IRFPS):
-        #         estimatedfps = ColorFPS
-        #     else:
-        #         estimatedfps = IRFPS
-        #     print('Color ' + str(ColorFPS) + ' and IR ' + str(IRFPS) + ' fps is different')
-        # else:
-        #     estimatedfps = ColorFPS
-
+        objFaceImage.GetDistance(LoadDistancePath) #TODO: DOUBLE CHECK ARRAY SIZE
 
         # Create global data object and use dictionary (ROI Store) to uniquely store a regions data
         self.ROIStore[region] =  GlobalData(objFaceImage.time_list_color, objFaceImage.timecolorCount,
@@ -71,7 +60,8 @@ class Main:
                                            objFaceImage.Frametime_list_ir, objFaceImage.Frametime_list_color,
                                            objFaceImage.red, objFaceImage.green, objFaceImage.blue, objFaceImage.grey,
                                            objFaceImage.Irchannel, objFaceImage.distanceM,
-                                           objFaceImage.totalTimeinSeconds,ColorFPS, IRFPS,ColorfpswithTime, IRfpswithTime)
+                                           objFaceImage.totalTimeinSeconds,objFaceImage.ColorEstimatedFPS, objFaceImage.IREstimatedFPS,
+                                            objFaceImage.ColorfpswithTime, objFaceImage.IRfpswithTime)
 
         return objFaceImage.totalTimeinSeconds
         # return estimatedfps
@@ -234,12 +224,10 @@ class Main:
                         HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
                                                                            self.objConfig.DiskPath,int(totalTimeinSeconds))
 
-                                ##Process and get result of participants data
-
+                        ##Process and get result of participants data
                         self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth)
 
-                    # self.CaseList.remove(case)
-                    t=0
+                    stop=0
 
 
 objMain = Main('Europe_WhiteSkin_Group') #Add none here to process all skin types

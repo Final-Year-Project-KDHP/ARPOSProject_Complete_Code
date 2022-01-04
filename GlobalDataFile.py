@@ -47,7 +47,12 @@ class GlobalData:
         self.ColorEstimatedFPS=ColorEstimatedFPS
         self.IREstimatedFPS=IREstimatedFPS
 
-    def getAllData(self):
-        OriginalData =  np.c_[self.blue, self.green, self.red, self.grey, self.Irchannel]
-        return OriginalData
+    # def getAllData(self): # only works if all same size
+    #     OriginalData =  np.c_[self.blue, self.green, self.red, self.grey, self.Irchannel]
+    #     return OriginalData
 
+    def getLengthColor(self):
+        return len(self.grey)
+
+    def getLengthIR(self):
+        return len(self.Irchannel)
