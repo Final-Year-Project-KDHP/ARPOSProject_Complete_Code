@@ -41,7 +41,7 @@ class Main:
         # estimatedfps=0
 
         ##get loading path
-        LoadColordataPath, LoadIRdataPath, LoadDistancePath = self.objConfig.getLoadPath(participant_number, position,
+        LoadColordataPath, LoadIRdataPath, LoadDistancePath,ProcessedDataPath = self.objConfig.getLoadPath(participant_number, position,
                                                                                          region)
         # Load Roi data (ALL)
         # print("Loading and processing color roi data")
@@ -66,12 +66,13 @@ class Main:
 
 
         # Create global data object and use dictionary (ROI Store) to uniquely store a regions data
-        self.ROIStore[region] = GlobalData(objFaceImage.time_list_color, objFaceImage.timecolorCount,
+        self.ROIStore[region] =  GlobalData(objFaceImage.time_list_color, objFaceImage.timecolorCount,
                                            objFaceImage.time_list_ir, objFaceImage.timeirCount,
                                            objFaceImage.Frametime_list_ir, objFaceImage.Frametime_list_color,
                                            objFaceImage.red, objFaceImage.green, objFaceImage.blue, objFaceImage.grey,
                                            objFaceImage.Irchannel, objFaceImage.distanceM,
                                            objFaceImage.totalTimeinSeconds,ColorFPS, IRFPS,ColorfpswithTime, IRfpswithTime)
+
         return objFaceImage.totalTimeinSeconds
         # return estimatedfps
 
@@ -79,7 +80,7 @@ class Main:
     GenerateResultsfromParticipants:
     """
     def GenerateResultsfromParticipants(self,participant_number,position,HrGr,SpoGr,fileName ,algoType,fftype ,filtertype , resulttype , preprocesstype , isSmooth):
-        self.objConfig.SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
+        self.objConfig.SavePath = self.objConfig.SavePath + 'RawOriginal\\' #+fileName + '\\'
         self.objFileIO.CreatePath(self.objConfig.SavePath)
         # if(not ParticipantsHRfileName in ParticipantsProcessedHeartRateData):
         # Generate Data for all Techniques
@@ -156,7 +157,7 @@ class Main:
                                 fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
                                     filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
                                     preprocesstype) + "_SM-" + str(isSmooth)
-                                print(fileName)
+                                # print(fileName)
                                 # if(fftype == 'M4'): #Run only once when all cases are done to generate filtering for process type 1 with M4 FFT
                                 #     # # Best works with filter type 1 ## later try with filte filter 6 and 4 as well
                                 #     # self.Filter_type = 1
@@ -165,9 +166,9 @@ class Main:
                                 if(fileName not in self.CaseList):
                                     self.CaseList.append(fileName)
 
-    def CheckIfGenerated(self,fileName, participant_number,position):
-        SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
-        pathExsists = objFile.FileExits(SavePath + 'HeartRate_' + fileName + ".txt")
+    def CheckIfGenerated(self,fileName):
+        # SavePath = self.objConfig.SavePath + fileName + '\\'
+        pathExsists = objFile.FileExits(self.objConfig.SavePath + 'HeartRate_' + fileName + ".txt")
 
         #already generated
         if(pathExsists):
@@ -186,10 +187,10 @@ class Main:
                 prevParticipantId = ''
 
                 # set path
-                self.objConfig.setSavePath(participant_number, position)
+                self.objConfig.setSavePath(participant_number, position,'WindowProcessedData')
 
                 for case in self.CaseList:
-                    IsGenerated = self.CheckIfGenerated(case, participant_number, position)
+                    IsGenerated = self.CheckIfGenerated(case)
                     if(IsGenerated):
                         stop = True
                     else:

@@ -91,7 +91,7 @@ class Configurations:
     GenerateGraphs = False
 
     #Run for window or for entire signal
-    RunAnalysisForEntireSignalData = True
+    RunAnalysisForEntireSignalData = False
 
     # setup highpass filter
     ignore_freq_below_bpm = 40
@@ -118,9 +118,9 @@ class Configurations:
     GetSavePath:
     Store all the generated graphs and files to this path
     """
-    def setSavePath(self,participantNumber,position):
+    def setSavePath(self,participantNumber,position,pathname='ProcessedData'):
         self.setDiskPath(self.Participantnumbers_SkinGroupTypes.get(participantNumber))
-        self.SavePath = self.DiskPath + '\\Result\\' + participantNumber + '\\' + position + '\\'
+        self.SavePath = self.DiskPath + '\\' + pathname + '\\' + participantNumber + '\\' + position + '\\'
         #Create save path if it does not exists
         if not os.path.exists(self.SavePath):
             os.makedirs(self.SavePath)
@@ -140,7 +140,7 @@ class Configurations:
         LoadColordataPath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + 'Cropped\\' + 'Color\\' + region + '\\'  ## Loading path for color data
         LoadIRdataPath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + 'Cropped\\' + 'IR\\' + region + '\\'  ## Loading path for IR data
         LoadDistancePath = self.DiskPath + '\\UnCompressed\\' + participantNumber + '\\' + position + '\\ParticipantInformation.txt'  ## Loading path for depth and other information
-        ProcessedDataPath = self.DiskPath + '\\ProcessedData\\'+ participantNumber + '\\' + position+ '\\' +'RawOriginal\\'  ## Loading path for storing processed data
+        ProcessedDataPath = self.SavePath +'RawOriginal\\'  ## Loading path for storing processed data
         # Create save path if it does not exists
         if not os.path.exists(ProcessedDataPath):
             os.makedirs(ProcessedDataPath)

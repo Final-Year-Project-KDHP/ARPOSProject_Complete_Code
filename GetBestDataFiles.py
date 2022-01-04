@@ -309,7 +309,7 @@ class GeneratedDataFiltering:
                                            "_algotype-" + str(algoType) + '_PreProcessType-' + str(preprocesstype) + \
                                           "_Smoothed-" + str(isSmooth)
                                 #ResultType_RS-1_Filtered_FL-1FFTtype-M1_algotype-FastICA_PreProcessType-1_Smoothed-True
-                                print(fileName)
+                                # print(fileName)
                                 CaseList.append(fileName)
         return  CaseList
 
@@ -415,6 +415,26 @@ class GeneratedDataFiltering:
             df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
         t=0
 
+    def getBestCasesFromCSV(self,position):
+        df1 = pd.read_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
+
+        BestCaseList = []
+        for index, row in df1.iterrows():
+            currentCase = row[1]
+            addCase= True
+            for column in df1:
+                if(column.__contains__('Unnamed') or column.__contains__('Case')):
+                    continue
+                colIndex = df1.columns.get_loc(column) #df1[column] just column in df1 get entire columns values
+                colValueInRow =  df1.iloc[index, colIndex]
+                if(np.isnan(colValueInRow)):
+                    addCase = False
+
+            if(addCase):
+                BestCaseList.append(currentCase)
+
+        for item in BestCaseList:
+            print(item)
     """
        LoadFiles:
        Load file from path
@@ -460,8 +480,8 @@ class GeneratedDataFiltering:
         df1 = pd.DataFrame({
             'CaseNames': CaseList
         })
-        self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949"]
-        self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
+        self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949","PIS-3186","PIS-7381","PIS-5937"]
+        self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
 
         for participant_number in self.objConfig.ParticipantNumbers:
             df1[participant_number] = None
@@ -496,7 +516,8 @@ objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
 objFilterData.AcceptableDifference = 10
 # objFilterData.Run(AcceptableDifference)
 # objFilterData.RunCasewise()
-objFilterData.RunAllCaseParticipantwise()
+# objFilterData.RunAllCaseParticipantwise() ## RUN THIS TO GENERATE CSV FOR CASES
+objFilterData.getBestCasesFromCSV('Resting1')
 # objFilterData.RunParticipantWiseAll()
 
 # Only run after best files are generated

@@ -36,22 +36,22 @@ def GetGroundTruth(participant_number, position,diskpath,totalTimeinSeconds=0):
     return HrGr, SpoGr
 
 
-def splitGroundTruth(groundtruth,TotalWindows):
-    initialEndindex =5
+def splitGroundTruth(groundtruth,TotalWindows,step):
+    initialEndindex =step #5 in seconds
     initialindex = 0
     AvgValue = 0
     HrAvgList = []
     TotalWindows= round(TotalWindows)
     groundtruth = np.array(groundtruth)
     for j in range(0, TotalWindows):
-        #initialEndindex = initialEndindex + 5
-        initialEndindex =5 +j
+        #initialEndindex = initialEndindex + step
+        initialEndindex =step +j
         for x in range(j, initialEndindex):
             if(x< len(groundtruth)):
                 #print(HrGr[x])
                 AvgValue = AvgValue + int(groundtruth[x])
 
-        AvgValue = AvgValue / 5
+        AvgValue = AvgValue / step
         HrAvgList.append(round(AvgValue))
         AvgValue=0
 

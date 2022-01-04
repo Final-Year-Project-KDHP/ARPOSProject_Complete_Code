@@ -168,12 +168,12 @@ class ProcessFaceData:
         self.region = region
 
     '''
-    getSingalData: 
+    getSingalDataWindow: 
     This method records original data by calling previously defined method 'setSignalSourceData(ROIStore, region)'
     and splits data to window size to process it
     '''
 
-    def getSingalData(self, ROIStore, region, WindowSlider, step, WindowCount):
+    def getSingalDataWindow(self, ROIStore, region, WindowSlider, step, WindowCount):
         # set estimated fps
         self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS #IREstimatedFPS
         self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
@@ -875,6 +875,9 @@ class ProcessFaceData:
         # Combine r,g,b,gy,ir in one array
         S = self.getSignalDataCombined(blue, green, red, grey, Irchannel)
 
+        #Save
+        self.WritetoDisk(self.SavePath + self.Window_count + '\\', 'objWindowProcessedData_RawSignal', S)
+
         # generate raw data plot
         if (self.GenerateGraphs):
             self.GenerateGrapth("RawData", S[:, 0],S[:, 1],S[:, 2],S[:, self.grayIndex],S[:, self.IRIndex])
@@ -884,6 +887,9 @@ class ProcessFaceData:
         # PreProcess Signal
         S = self.preprocessSignalData(S[:, 0], S[:, 1], S[:, 2], S[:, 3], S[:, 4])
         windowList.LogTime(LogItems.End_PreProcess)
+
+        #Save
+        self.WritetoDisk(self.SavePath + self.Window_count + '\\', 'objWindowProcessedData_RawSignal', S)
 
         # Apply Algorithm
         windowList.LogTime(LogItems.Start_Algorithm)

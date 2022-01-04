@@ -1,5 +1,6 @@
 import math
 import os
+import pickle
 import sys
 import numpy as np
 import CommonMethods
@@ -30,13 +31,17 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
     return  ListHrdata, ListSPOdata, IsSuccess
 
 
+def WritetoDisk(location, filename, data):
+    ##STORE Data
+    with open(location + filename, 'wb') as filehandle:
+        pickle.dump(data, filehandle)
+
 '''
 Process participants data in window size over the signal
 '''
 def Process_Participants_Data_Windows(ROIStore, SavePath,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen, HrType, isCompressed,
-                                      snrType):
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen, snrType):
 
     objReliability = CheckReliability()
     # Lists to hold heart rate and blood oxygen data
@@ -49,51 +54,63 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
     freqencySamplingError = 0.0
     previousComputedHeartRate = 0.0
     smallestOxygenError = sys.float_info.max
-    timeinSeconds = 5
+    timeinSeconds = 10
     finaloxy = 0.0
 
     # Initialise object to process face regions signal data
     objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
-                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, HrType, timeinSeconds,
-                                     isCompressed, snrType)
-
+                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,  timeinSeconds,
+                                     snrType)
     # ROI Window Result list
     WindowRegionList = {}
 
     # Windows for regions (should be same for all)
     LengthofAllFrames = len(ROIStore.get(objConfig.roiregions[0]).getAllData())  # all have same lenghts
-    TimeinSeconds = LengthofAllFrames / objProcessData.ColorEstimatedFPS  # FIX TODO change for differnt fps
+    TimeinSeconds = ROIStore.get("lips").totalTimeinSeconds # LengthofAllFrames / objProcessData.ColorEstimatedFPS  # take color as color and ir would run for same window
     step = 30  # slide window for 1 second or 30 frames
     WindowSlider = step * timeinSeconds  # step * 5 second,  window can hold  150 frames or 5 second data
     WindowCount = 0
 
     # TotalWindows in this sample
-    TotalWindows = (TimeinSeconds - 5) + 1  # 5 second window gorup
+    TotalWindows = (TimeinSeconds - timeinSeconds) + 1  # second window gorup
 
     # Split ground truth data
-    HrAvgList = CommonMethods.splitGroundTruth(HrGr, TotalWindows)
-    SPOAvgList = CommonMethods.splitGroundTruth(SpoGr, TotalWindows)
+    HrAvgList = CommonMethods.splitGroundTruth(HrGr, TotalWindows,timeinSeconds)
+    SPOAvgList = CommonMethods.splitGroundTruth(SpoGr, TotalWindows,timeinSeconds)
+
+    ##Original Data storage
+    objWindowProcessedData = WindowProcessedData()
+    objWindowProcessedData.HrAvgList = HrAvgList
+    objWindowProcessedData.SPOAvgList = SPOAvgList
+    objWindowProcessedData.LengthofAllFrames = LengthofAllFrames
+    objWindowProcessedData.TimeinSeconds = TimeinSeconds
+    objWindowProcessedData.step = step
+    objWindowProcessedData.WindowSlider = WindowSlider
+    objWindowProcessedData.TotalWindows = TotalWindows
+    objWindowProcessedData.ROIStore = ROIStore
+
+    WritetoDisk(SavePath,'objWindowProcessedData_FullWindow',objWindowProcessedData)
 
     # Loop through signal data
     for j in range(0, int(TimeinSeconds)):
         if LengthofAllFrames >= WindowSlider:  # has atleast enoguth data to process and  all rois have same no of data
 
             # Lips
-            objProcessData.getSingalData(ROIStore, objConfig.roiregions[0], WindowSlider, step, WindowCount)
+            objProcessData.getSingalDataWindow(ROIStore, objConfig.roiregions[0], WindowSlider, step, WindowCount)
             lipsResult = objProcessData.Process_EntireSignalData()
 
             # Forehead
-            objProcessData.getSingalData(ROIStore, objConfig.roiregions[1], WindowSlider, step,
+            objProcessData.getSingalDataWindow(ROIStore, objConfig.roiregions[1], WindowSlider, step,
                                          WindowCount)  # Lips
             foreheadResult = objProcessData.Process_EntireSignalData()
 
             # LeftCheek
-            objProcessData.getSingalData(ROIStore, objConfig.roiregions[2], WindowSlider, step,
+            objProcessData.getSingalDataWindow(ROIStore, objConfig.roiregions[2], WindowSlider, step,
                                          WindowCount)
             leftcheekResult = objProcessData.Process_EntireSignalData()
 
             # RightCheek
-            objProcessData.getSingalData(ROIStore, objConfig.roiregions[3], WindowSlider, step,
+            objProcessData.getSingalDataWindow(ROIStore, objConfig.roiregions[3], WindowSlider, step,
                                          WindowCount)
             rightcheekResult = objProcessData.Process_EntireSignalData()
 
@@ -167,15 +184,15 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
 
     # filename
     fileNameHr = "HRdata_" + regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
-        Filter_type) + "_RS-" + str(Result_type) + "_HR-" + str(HrType) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
-        isSmoothen) + "_CP-" + str(isCompressed)
+        Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+        isSmoothen)
     # Write data to file
     objFile.WriteListDatatoFile(SavePath, fileNameHr, ListHrdata)
 
     # filename
     fileNameSpo = "SPOdata_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
-        Filter_type) + "_RS-" + str(Result_type) + "_HR-" + str(HrType) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
-        isSmoothen) + "_CP-" + str(isCompressed)
+        Filter_type) + "_RS-" + str(Result_type)  + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+        isSmoothen)
     # Write data to file
     objFile.WriteListDatatoFile(SavePath, fileNameSpo, ListSPOdata)
 
@@ -434,3 +451,13 @@ def Process_Participants_Data_GetBestHR(objresultProcessedDataLips,objresultProc
     del objReliability
 
     # return ListHrdata
+
+class WindowProcessedData:
+    HrAvgList = None
+    SPOAvgList = None
+    LengthofAllFrames= None
+    TimeinSeconds= None
+    step= None
+    WindowSlider = None
+    TotalWindows = None
+    ROIStore= None

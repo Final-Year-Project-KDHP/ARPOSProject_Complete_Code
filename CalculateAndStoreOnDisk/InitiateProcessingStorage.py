@@ -259,13 +259,20 @@ class InitiateProcessingStorage:
                                            '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
                                 fName = fileName.replace('_REGION_','') + '.txt'
                                 if not os.path.exists(self.ProcessedDataPath +fName ):
-                                    print(fileName)
+                                    # print(fileName)
                                     CaseList.append(fileName)
-
+        print('Files Loaded')
         return CaseList
 
     def ProduceFinalResult(self):
         self.objConfig.ParticipantNumbers.remove('PIS-8073')
+        self.objConfig.ParticipantNumbers.remove('PIS-2047')
+        self.objConfig.ParticipantNumbers.remove('PIS-4014')
+        self.objConfig.ParticipantNumbers.remove('PIS-1949')
+        self.objConfig.ParticipantNumbers.remove('PIS-3186')
+        self.objConfig.ParticipantNumbers.remove('PIS-7381')
+        self.objConfig.ParticipantNumbers.remove('PIS-6729')
+        self.objConfig.ParticipantNumbers.remove('PIS-6327')
         # each particpant
         for participant_number in self.objConfig.ParticipantNumbers:
             # each position
