@@ -1,3 +1,4 @@
+import pickle
 from datetime import datetime
 import numpy as np
 from scipy import signal
@@ -178,10 +179,10 @@ class ProcessFaceData:
         self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
         #Set in algorithm class
         self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS  # TODO FIX FOR VAIOIURS FPS
-        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS  # TODO FIX FOR VAIOIURS FPS
+        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS
         #Set in plot class
-        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS  # TODO FIX FOR VAIOIURS FPS
-        self.objPlots.IREstimatedFPS = self.IREstimatedFPS  # TODO FIX FOR VAIOIURS FPS
+        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objPlots.IREstimatedFPS = self.IREstimatedFPS
         # Split ROI Store region data
         if (WindowCount == 0):
             self.setSignalSourceData(ROIStore, region)
@@ -845,6 +846,12 @@ class ProcessFaceData:
         self.IRfrequency=IRfreq
 
         return S_fft, self.Colorfrequency, self.IRfrequency
+
+
+    def WritetoDisk(self,location, filename, data):
+        ##STORE Data
+        with open(location + filename, 'wb') as filehandle:
+            pickle.dump(data, filehandle)
 
     '''
     Process_EntireSignalData: Process signal data

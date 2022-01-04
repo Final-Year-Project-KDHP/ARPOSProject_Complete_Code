@@ -302,18 +302,54 @@ class GeneratedDataFiltering:
                     for resulttype in self.objConfig.resulttypeList:
                         for filtertype in self.objConfig.filtertypeList:
                             for isSmooth in self.objConfig.Smoothen:
-                                fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
-                                    filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
-                                    preprocesstype) + "_SM-" + str(isSmooth)
+                                # fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
+                                #     filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
+                                #     preprocesstype) + "_SM-" + str(isSmooth)
+                                fileName = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-" + str(filtertype) +  "FFTtype-" + str(fftype)+\
+                                           "_algotype-" + str(algoType) + '_PreProcessType-' + str(preprocesstype) + \
+                                          "_Smoothed-" + str(isSmooth)
+                                #ResultType_RS-1_Filtered_FL-1FFTtype-M1_algotype-FastICA_PreProcessType-1_Smoothed-True
                                 print(fileName)
                                 CaseList.append(fileName)
         return  CaseList
+
+    """
+       Gemerate cases:
+       """
+
+    def GenerateCasesNewMethod(self,region):
+        CaseList = []
+        for preprocesstype in self.objConfig.preprocesses:
+            for algoType in self.objConfig.AlgoList:
+                for fftype in self.objConfig.fftTypeList:
+                    for resulttype in self.objConfig.resulttypeList:
+                        for filtertype in self.objConfig.filtertypeList:
+                            for isSmooth in self.objConfig.Smoothen:
+                                fileName = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "_"+ region+ "_FFTtype-" + str(fftype)  + "_algotype-" + str(algoType) +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+                                print(fileName)
+                                CaseList.append(fileName)
+
+        return CaseList
 
     def getCase(self,fileName,participant_number,position):
         SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
         filepath = SavePath + 'HeartRate_' + fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
 
         pathExsists = self.objFile.FileExits(SavePath + 'HeartRate_' + fileName + ".txt")
+        data =None
+        # already generated
+        if (pathExsists):
+            Filedata = open(filepath, "r")
+            data = Filedata.read().split("\n")[0]
+            Filedata.close()
+        return data
+
+    def getCaseNew(self,fileName,participant_number,position):
+        SavePath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\FinalComputedResult\\' #+ fileName + '\\'
+        filepath = SavePath +  fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False 'HeartRate_' +
+
+        pathExsists = self.objFile.FileExits(filepath)#+ ".txt"
         data =None
         # already generated
         if (pathExsists):
@@ -341,10 +377,11 @@ class GeneratedDataFiltering:
         #     differenceValue=int(dataRow[2])
         # else:
         differenceValue = avgGroundTruth - generatedResult
-        return differenceValue
+        errorrate = (differenceValue/avgGroundTruth)*100
+        return errorrate
 
     def RunCasewise(self):
-        CaseList = self.RunParticipantWiseAll() #GET Directories or generate below
+        CaseList = self.GenerateCasesNewMethod() #GET Directories or generate below
         # CaseList = self.GenerateCases() # or generate
 
         df1 = pd.DataFrame({
@@ -417,12 +454,49 @@ class GeneratedDataFiltering:
                     # file.close()
 
 
+    def RunAllCaseParticipantwise(self):
+        CaseList = self.GenerateCases() # or generate
+
+        df1 = pd.DataFrame({
+            'CaseNames': CaseList
+        })
+        self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949"]
+        self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
+
+        for participant_number in self.objConfig.ParticipantNumbers:
+            df1[participant_number] = None
+
+        for position in self.objConfig.hearratestatus:
+            RowIndex = 0 #
+            for case in CaseList:
+                ColumnIndex = 1  # so doesntt replace case names
+                for participant_number in self.objConfig.ParticipantNumbers:
+                    #for position in self.objConfig.hearratestatus:
+                    CaseData = self.getCaseNew(case, participant_number, position)
+                    if(CaseData != None):
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        isAcceptable = self.IsAcceptableDifference(differenceVal)
+                        if(isAcceptable):
+                            df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                    else:
+                        df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
+                    # else:
+                    #     df1.iloc[RowIndex, ColumnIndex] = None
+                    ColumnIndex = ColumnIndex +1
+                    # print(df1)
+                RowIndex = RowIndex +1
+
+            # write dataFrame to SalesRecords CSV file
+            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
+        t=0
+
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
-objFilterData.AcceptableDifference = 8
+objFilterData.AcceptableDifference = 10
 # objFilterData.Run(AcceptableDifference)
-objFilterData.RunCasewise()
+# objFilterData.RunCasewise()
+objFilterData.RunAllCaseParticipantwise()
 # objFilterData.RunParticipantWiseAll()
 
 # Only run after best files are generated

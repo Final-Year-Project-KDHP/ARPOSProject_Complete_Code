@@ -3,6 +3,8 @@ import os
 class FileIO:
 
     def WriteListDatatoFile(self,savePath,fileName, dataList):
+        self.CreatePath(savePath)
+
         file = open(savePath + fileName + ".txt", "w+")
 
         i = 0

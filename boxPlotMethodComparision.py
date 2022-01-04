@@ -8,6 +8,8 @@ import numpy as np
 from numpy.testing._private.parameterized import param
 
 from Configurations import Configurations
+from FileIO import FileIO
+
 
 class BoxPlot:
     objConfig =None
@@ -118,7 +120,7 @@ class BoxPlot:
         plt.close(f)
 
 
-    def Genrateboxplot(self,data,savepath,methodtype,filtertype,resulttype,processtype,isSmooth,boxTitle,filename):
+    def Genrateboxplot(self,data,savepath,boxTitle,filename):
         if not os.path.exists(savepath):
             os.makedirs(savepath)
         plt.ioff()
@@ -168,8 +170,8 @@ class BoxPlot:
                       alpha=0.5)
 
         # x-axis labels
-        ax.set_yticklabels(['None', 'ICA',
-                            'PCAICA', 'PCA', 'GroundTruth'])
+        ax.set_yticklabels(['None', 'FastICA',
+                            'PCAICA', 'PCA', 'Jade', 'GroundTruth'])
 
         # Adding title
         # fftfilterIndex = [x for x in range(len(fftTypeList)) if fftTypeList[x] == methodtype][0]  # np.where(fftTypeList == methodtype)
@@ -513,7 +515,122 @@ class BoxPlot:
               " , Jade count: " +str(algoCount_Jade ))
 
 
+    """
+       Gemerate cases:
+       """
+
+    def GenerateCasesNewMethod(self):
+        for preprocesstype in self.objConfig.preprocesses:
+            for fftype in self.objConfig.fftTypeList:
+                for resulttype in self.objConfig.resulttypeList:
+                    for filtertype in self.objConfig.filtertypeList:
+                        for isSmooth in self.objConfig.Smoothen:
+                                #AlgoList = ["FastICA", "PCA", "ICAPCA", "None","Jade"]
+                                fileNameFastICA = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "FFTtype-" + str(fftype)  + "_algotype-" + str('FastICA') +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+
+                                fileNamePCA = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "FFTtype-" + str(fftype)  + "_algotype-" + str('PCA') +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+
+                                fileNameICAPCA = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "FFTtype-" + str(fftype)  + "_algotype-" + str('ICAPCA') +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+
+                                fileNameNone = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "FFTtype-" + str(fftype)  + "_algotype-" + str('None') +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+
+                                fileNameJade = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "FFTtype-" + str(fftype)  + "_algotype-" + str('Jade') +\
+                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+
+                                self.boxPlotCasePariticipantWise('Resting1', fileNameFastICA,fileNamePCA,fileNameICAPCA,fileNameNone,fileNameJade)
+
+                            #Genereate
+
+
+    def readcase(self,fileName,participant_number,position):
+        SavePath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\FinalComputedResult\\'
+        filepath = SavePath +  fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
+        objFile = FileIO()
+        pathExsists = objFile.FileExits(filepath)
+        data =None
+        # already generated
+        if (pathExsists):
+            Filedata = open(filepath, "r")
+            data = Filedata.read().split("\n")[0]
+            Filedata.close()
+        del objFile
+        return data
+
+    def splitDataRow(self,DataRow,participant_number,position): #"None", loadpath,methodtype
+        dataRow = DataRow.split(",\t")
+        # 0 index for GroundTruth, 1 index for generatedresult by arpos, 2 index for diference
+        generatedResult = int(dataRow[1]) #change index here
+        avgGroundTruth = int(dataRow[0])
+        # if(avgGroundTruthStored != round(avgGroundTruth)):
+        #     differenceValue=int(dataRow[2])
+        # else:
+        differenceValue = avgGroundTruth - generatedResult
+        differenceValue = np.abs( differenceValue/avgGroundTruth)*100
+        return differenceValue, avgGroundTruth
+
+    def boxPlotCasePariticipantWise(self,position, fileNameFastICA,fileNamePCA,fileNameICAPCA,fileNameNone,fileNameJade):
+
+        ResultAlogrithm={}
+        ParticipantsCaseData = {}
+        self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949"]
+        self.objConfig.Participantnumbers_SkinGroupTypes["PIS-8073"]='Europe_WhiteSkin_Group'
+        self.objConfig.Participantnumbers_SkinGroupTypes["PIS-2047"]='Europe_WhiteSkin_Group'
+        self.objConfig.Participantnumbers_SkinGroupTypes["PIS-4014"]='Europe_WhiteSkin_Group'
+        self.objConfig.Participantnumbers_SkinGroupTypes["PIS-1949"]='Europe_WhiteSkin_Group'
+        for participant_number in self.objConfig.ParticipantNumbers:
+            self.objConfig.setSavePath(participant_number,position)
+
+            ##read data for all pariticpants
+
+            # if (caseDetail != None):
+            caseDetail = self.readcase(fileNameFastICA,participant_number,position)
+            FastICAerrorrate,avgGroundTruth = self.splitDataRow(caseDetail, participant_number, position)  # ROW,COlum
+            ResultAlogrithm['FastICA'] = FastICAerrorrate
+
+            caseDetail = self.readcase(fileNamePCA,participant_number,position)
+            PCAerrorrate,avgGroundTruth = self.splitDataRow(caseDetail, participant_number, position)  # ROW,COlum
+            ResultAlogrithm['PCA'] = PCAerrorrate
+
+            caseDetail = self.readcase(fileNameICAPCA,participant_number,position)
+            ICAPCAerrorrate,avgGroundTruth = self.splitDataRow(caseDetail, participant_number, position)  # ROW,COlum
+            ResultAlogrithm['ICAPCA'] =  ICAPCAerrorrate
+
+            caseDetail = self.readcase(fileNameNone,participant_number,position)
+            Noneerrorrate,avgGroundTruth = self.splitDataRow(caseDetail, participant_number, position)  # ROW,COlum
+            ResultAlogrithm['None'] = Noneerrorrate
+
+            caseDetail = self.readcase(fileNameJade,participant_number,position)
+            Jadeerrorrate,avgGroundTruth = self.splitDataRow(caseDetail, participant_number, position)  # ROW,COlum
+            ResultAlogrithm['Jade'] = Jadeerrorrate
+            avgGroundTruth=0
+            ResultAlogrithm['GR'] = avgGroundTruth
+            ParticipantsCaseData[participant_number] = ResultAlogrithm
+
+        data = []
+        fastica = []
+        icapca = []
+        pca = []
+        none = []
+        jade = []
+        gr = []
+        for k, v in ParticipantsCaseData.items():
+            fastica.append(v.get('FastICA'))
+            icapca.append(v.get('PCA'))
+            pca.append(v.get('ICAPCA'))
+            none.append(v.get('None'))
+            jade.append(v.get('Jade'))
+            gr.append(v.get('GR'))
+
+        data = [none, fastica,icapca, pca,jade, gr]
+        self.Genrateboxplot(data,'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\',fileNameFastICA.replace('FASTICA',''),fileNameFastICA.replace('FASTICA',''))
+
+
 # objboxplot = BoxPlot('Europe_WhiteSkin_Group')
+# objboxplot.GenerateCasesNewMethod()
 # GenerateGroundTruthFile() #Run to generate speerate groudntruth file
 ##Uncomment for all box plot
 # RunBoxplotgeneration(True) #Set True to generate differnce box plot

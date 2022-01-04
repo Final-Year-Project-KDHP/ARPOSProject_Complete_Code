@@ -42,20 +42,20 @@ class Configurations:
     ##preprcess 5 does not produce good results for after excersize
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
-    resulttypeList = [1, 2, 3] #, 4 similar
+    resulttypeList = [ 1,2,3] #, 4 similar1, 2,
 
     #geting heart rate by different methods in bpm
-    hrTypeList = [1,2,3]
+    hrTypeList = [1,2,3] #NOT USED ANYMORE
 
     #geting signal to noise ratio
-    SNRTypeList = [1,2]
+    SNRTypeList = [1,2] #NOT USED ANYMORE
 
     #Smoothen Curve after filtering frequency
-    Smoothen = [False, True]
+    Smoothen = [ False,True]#
 
     # Compressed filtered fft result (remove zeros) before caluclating snr
     # to check if this creates better snr or not
-    Compressed = [False, True]
+    Compressed = [False, True] #NOT USED ANYMORE
 
     #region of interests, add or reduce here.. (make sure it matches foldername is same as roi region name holding the data)
     roiregions = ["lips", "forehead", "leftcheek", "rightcheek"]
@@ -73,7 +73,7 @@ class Configurations:
     fully variable
     "PIS-6327","PIS-4709"
     """
-    ParticipantNumbers = ["PIS-4497", "PIS-2212"]
+    ParticipantNumbers = []
     Participantnumbers_SkinGroupTypes = {}
 
     # Processed_participants_data = {}
@@ -81,14 +81,14 @@ class Configurations:
     # heart rate status example resting state and after small workout "Resting1","Resting2","AfterExcersize"
     hearratestatus = ["Resting1","Resting2","AfterExcersize"]
 
-    #Generate HTML Summary #TODO : ADD detail
-    GenerateSummary = False
+    #Generate HTML Summary
+    GenerateSummary = False #NOT USED ANYMORE
 
     #Ignore gray when processing signals (only process r,g,b and ir)
-    ignoregray = False
+    ignoregray = False #NOT USED ANYMORE
 
     #Generate graphs when processing signals (only process r,g,b and ir)
-    GenerateGraphs = True
+    GenerateGraphs = False
 
     #Run for window or for entire signal
     RunAnalysisForEntireSignalData = True
@@ -153,7 +153,11 @@ class Configurations:
     def getParticipantNumbers(self,skinGroup):
         #Read participantid file to get list of participants
         ROOT_DIR = os.path.dirname(os.path.abspath(os.curdir)) # This is your Project Root
-        AppDataPath = ROOT_DIR + '\\' + 'AppData' + '\\'
+        AppDataPath=''
+        if(ROOT_DIR.__contains__('ARPOSProject')):
+            AppDataPath = ROOT_DIR + '\\' + 'AppData' + '\\'
+        else:
+            AppDataPath = ROOT_DIR + '\\ARPOSProject\\' + 'AppData' + '\\'
         objFile = FileIO()
         participantIds = objFile.ReaddatafromFile(AppDataPath,'ParticipantIds')
 

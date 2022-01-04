@@ -586,6 +586,7 @@ class ProcessDataPartial:
                          "Filtered_FL-"+ str(Filter_type)+ "_"+ region+ "_FFTtype-" + str(FFT_type)  + "_algotype-" + str(Algotype) +
                          '_PreProcessType-'+str(preProcessType)+ "_Smoothed-" + str(isSmoothed)
                          ,objProcessedData)
+        h=0
 
         # region calculate result (HR in bpm) using frequency
 

@@ -2,6 +2,7 @@ import enum
 from datetime import datetime
 
 class Window_Data:
+  #Current Window Caluculations
   BestBPM =0.0
   BestSnR =0.0
   IrSnr = 0.0
@@ -36,6 +37,20 @@ class Window_Data:
   oxygenSaturationValueError = 0.0
   oxygenSaturationValueValue = 0.0
   oxygenSaturationSTD=0.0
+
+  #Storage on everystep details
+  SignalWindowOriginal = None
+  SignalWindowPreProcessed = None
+  SignalWindowAfterAlgorithm = None
+  SignalWindowSmoothed = None
+  SignalWindowFFT = None
+  SignalWindowFiltered = None
+  SignalWindowHeartRateCalculation = None
+  SignalWindowBestBPM = None
+  SignalWindowBestSPO = None
+
+  def getFileNameForWindow(self,windowCount, resultType):
+    return 'test_' + str(windowCount) + str(resultType)
 
   #Log Details
   diffTime = 0.0

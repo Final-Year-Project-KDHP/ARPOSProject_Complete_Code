@@ -334,3 +334,103 @@ def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
     del objProcessData
 
     return ListHrdata, ListSPOdata, IsSuccess
+
+
+
+'''
+Process participants data over the entire signal data
+'''
+def Process_Participants_Data_GetBestHR(objresultProcessedDataLips,objresultProcessedDataForehead,objresultProcessedDataRcheek,objresultProcessedDataLCheek, SavePath,HrGr,filename):
+    ##Copy obj compute HR data to local class
+    # objresultProcessedData.IrSnr = objComputerHeartRate.IrSnr
+    # objresultProcessedData.GreySnr = objComputerHeartRate.GreySnr
+    # objresultProcessedData.RedSnr = objComputerHeartRate.RedSnr
+    # objresultProcessedData.GreenSnr = objComputerHeartRate.GreenSnr
+    # objresultProcessedData.BlueSnr = objComputerHeartRate.BlueSnr
+    # objresultProcessedData.IrBpm = objComputerHeartRate.IrBpm
+    # objresultProcessedData.GreyBpm = objComputerHeartRate.GreyBpm
+    # objresultProcessedData.RedBpm = objComputerHeartRate.RedBpm
+    # objresultProcessedData.GreenBpm = objComputerHeartRate.GreenBpm
+    # objresultProcessedData.BlueBpm = objComputerHeartRate.BlueBpm
+    # objresultProcessedData.IrFreqencySamplingError = objComputerHeartRate.IrFreqencySamplingError
+    # objresultProcessedData.GreyFreqencySamplingError = objComputerHeartRate.GreyFreqencySamplingError
+    # objresultProcessedData.RedFreqencySamplingError = objComputerHeartRate.RedFreqencySamplingError
+    # objresultProcessedData.GreenFreqencySamplingError = objComputerHeartRate.GreenFreqencySamplingError
+    # objresultProcessedData.BlueFreqencySamplingError = objComputerHeartRate.BlueFreqencySamplingError
+    # objresultProcessedData.startTime = startTime
+    # objresultProcessedData.endTime = endTime
+    # objresultProcessedData.diffTime = diffTime
+    # objresultProcessedData.blue_fft_realabs = blue_fft_realabs
+    # objresultProcessedData.green_fft_realabs = green_fft_realabs
+    # objresultProcessedData.red_fft_realabs = red_fft_realabs
+    # objresultProcessedData.grey_fft_realabs = grey_fft_realabs
+    # objresultProcessedData.ir_fft_realabs = ir_fft_realabs
+    # Lists to hold heart rate and blood oxygen data
+    ListHrdata = []
+
+    objReliability = CheckReliability()
+
+    diffNow = 0.0
+    regiontype = ''
+    freqencySamplingError = 0.0
+
+    # ROI Window Result list
+    WindowRegionList = {}
+
+    # Average ground truth data
+    HrAvegrage = (np.average(CommonMethods.AvegrageGroundTruth(HrGr)))
+
+    # Store Data in Window List
+    WindowRegionList['lips'] = objresultProcessedDataLips
+    WindowRegionList['forehead'] = objresultProcessedDataForehead
+    WindowRegionList['rightcheek'] = objresultProcessedDataRcheek
+    WindowRegionList['leftcheek'] = objresultProcessedDataLCheek
+
+    # get best bpm and heart rate period in one region
+    bestHeartRateSnr = 0.0
+    bestBpm = 0.0
+
+    # Get best region data
+    for k, v in WindowRegionList.items():
+        if (v.IrSnr > bestHeartRateSnr):
+            bestHeartRateSnr = v.IrSnr
+            bestBpm = v.IrBpm
+            freqencySamplingError= v.IrFreqencySamplingError
+
+        if (v.GreySnr > bestHeartRateSnr):
+            bestHeartRateSnr = v.GreySnr
+            bestBpm = v.GreyBpm
+            freqencySamplingError= v.GreyFreqencySamplingError
+
+        if (v.RedSnr > bestHeartRateSnr):
+            bestHeartRateSnr = v.RedSnr
+            bestBpm = v.RedBpm
+            freqencySamplingError= v.RedFreqencySamplingError
+
+        if (v.GreenSnr > bestHeartRateSnr):
+            bestHeartRateSnr = v.GreenSnr
+            bestBpm = v.GreenBpm
+            freqencySamplingError= v.GreenFreqencySamplingError
+
+        if (v.BlueSnr > bestHeartRateSnr):
+            bestHeartRateSnr = v.BlueSnr
+            bestBpm = v.BlueBpm
+            freqencySamplingError= v.BlueFreqencySamplingError
+
+    # Check reliability and record best readings
+    heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
+
+    # Get difference and append data (heart rate)
+    difference = round(float(HrAvegrage) - float(heartRateValue))
+    ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
+
+    # printTime = str(start) + ': ' + str(v) + '\n'
+
+    objFile = FileIO()
+    # objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
+    objFile.WriteListDatatoFile(SavePath,filename,ListHrdata)
+    del objFile
+
+    del objReliability
+
+    # return ListHrdata
