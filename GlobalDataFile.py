@@ -56,3 +56,15 @@ class GlobalData:
 
     def getLengthIR(self):
         return len(self.Irchannel)
+
+
+'''
+WindowProcessedData:
+'''
+class WindowProcessedData:
+    HrGroundTruthList = None
+    SPOGroundTruthList = None
+    ColorLengthofAllFrames= None
+    IRLengthofAllFrames= None
+    TimeinSeconds= None
+    ROIStore= None

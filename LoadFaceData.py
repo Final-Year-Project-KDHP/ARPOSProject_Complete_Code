@@ -80,41 +80,85 @@ class LoadFaceData:
         key = [fps for fps, count in flipped.items() if count == max(flipped.values())]
         return key[0]
 
+
     """
-    GetEstimatedFPS:
-    Get and print Color and IR frame rate (to identify what is fps rate for data collected)
+    SortLoadedFiles:
+    sorts file in time stamp order
     """
-    def GetDistance(self,distnacepath):
+    def SortTime(self, dstimeList):
+        UnsortedFiles = {}
+        for k,v in dstimeList.items():
+            # GET Time from filename
+            # Skip first and last second
+            FrameTimeStamp = k
+            distance =v
+            UnsortedFiles[FrameTimeStamp] = distance
 
-        fdistancem = open(distnacepath, "r")
-
-        # add distance
-        for x in fdistancem:
-            fullline = x
-            if (fullline.__contains__("Distance datetime")):
-                fulllineSplited = fullline.split(" , with distance : ")
-                dm = float(fulllineSplited[1])
-                dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
-                dttimesplit = dt.split(" ")
-
-                converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
-                hour = int(converteddtime[0])
-                min = int(converteddtime[1])
-                second = int(converteddtime[2])
-                disFrameTime = datetime.time(hour, min, second, 0)
-
-                if (disFrameTime == self.StartTime.time()):  # SKIP FIRST SECOND
-                    # Do nothing or add steps here if required
-                    skpi = 0
-                elif (disFrameTime == self.EndTime.time()):  # SKIP LAST SECOND
-                    skpi = 0  # Do nothing or add steps here if required
-                else:
-                    if(self.IRfpswithTime.__contains__(disFrameTime)):
-                        currentTimeFPS = self.IRfpswithTime.get(disFrameTime)
-                        for x in range(0, currentTimeFPS): #for constant use self.IREstimatedFPS
-                            self.distanceM.append(float(np.abs(dm)))
-        self.totalTimeinSeconds = len(self.Irchannel) / self.IREstimatedFPS
-        sthop = 0
+        SortedFiles = collections.OrderedDict(sorted(UnsortedFiles.items()))
+        return SortedFiles
+    # """
+    # GetEstimatedFPS:
+    # Get and print Color and IR frame rate (to identify what is fps rate for data collected)
+    # # """
+    # def GetDistance(self,distnacepath):
+    #
+    #     fdistancem = open(distnacepath, "r")
+    #     dstimeList= {}
+    #     ##Sort first
+    #     for x in fdistancem:
+    #         fullline = x
+    #         if (fullline.__contains__("Distance datetime")):
+    #             fulllineSplited = fullline.split(" , with distance : ")
+    #             dm = float(fulllineSplited[1])
+    #             dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
+    #             dttimesplit = dt.split(" ")
+    #
+    #             converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
+    #             hour = int(converteddtime[0])
+    #             min = int(converteddtime[1])
+    #             second = int(converteddtime[2])
+    #             disFrameTime = datetime.time(hour, min, second, 0)
+    #             dstimeList[disFrameTime] = dm
+    #
+    #     SortedFiles = self.SortTime(dstimeList)
+    #
+    #     for key, value in SortedFiles.items():
+    #         if (key == self.StartTime.time()):  # SKIP FIRST SECOND
+    #             # Do nothing or add steps here if required
+    #             continue
+    #         elif (key == self.EndTime.time()):  # SKIP LAST SECOND
+    #             continue  # Do nothing or add steps here if required
+    #         else:
+    #             if (self.IRfpswithTime.__contains__(key)):
+    #                 currentTimeFPS = self.IRfpswithTime.get(key)
+    #                 for x in range(1, currentTimeFPS):  # for constant use self.IREstimatedFPS
+    #                     self.distanceM.append(float(np.abs(value)))
+    #     # add distance
+    #     for x in fdistancem:
+    #         fullline = x
+    #         if (fullline.__contains__("Distance datetime")):
+    #             fulllineSplited = fullline.split(" , with distance : ")
+    #             dm = float(fulllineSplited[1])
+    #             dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
+    #             dttimesplit = dt.split(" ")
+    #
+    #             converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
+    #             hour = int(converteddtime[0])
+    #             min = int(converteddtime[1])
+    #             second = int(converteddtime[2])
+    #             disFrameTime = datetime.time(hour, min, second, 0)
+    #
+    #             if (disFrameTime == self.StartTime.time()):  # SKIP FIRST SECOND
+    #                 # Do nothing or add steps here if required
+    #                 skpi = 0
+    #             elif (disFrameTime == self.EndTime.time()):  # SKIP LAST SECOND
+    #                 skpi = 0  # Do nothing or add steps here if required
+    #             else:
+    #                 if(self.IRfpswithTime.__contains__(disFrameTime)):
+    #                     currentTimeFPS = self.IRfpswithTime.get(disFrameTime)
+    #                     for x in range(0, currentTimeFPS): #for constant use self.IREstimatedFPS
+    #                         self.distanceM.append(float(np.abs(dm)))
+    #     sthop = 0
 
         # # REMOVING BELOW as no longer constaant for ir and color
         # if (len(self.Irchannel) > len(self.grey)):
@@ -219,10 +263,10 @@ class LoadFaceData:
                 self.HasStartTime = 1
 
             if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
-                skip =True
+                continue
                 # Do nothing or add steps here if required
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
-                skip = True
+                continue
                 # Do nothing or add steps here if required
             else:
                 img = value
@@ -265,14 +309,34 @@ class LoadFaceData:
         # temp = np.array(temp).reshape((len(temp), 1))
 
 
+    def getDistance(self,distnacepath):
+        fdistancem = open(distnacepath, "r")
+        dstimeList = {}
+        ##Sort first
+        for x in fdistancem:
+            fullline = x
+            if (fullline.__contains__("Distance datetime")):
+                fulllineSplited = fullline.split(" , with distance : ")
+                dm = float(fulllineSplited[1])
+                dt = fulllineSplited[0].replace("Distance datetime : ", "")  # 27/05/2021 06:39:10
+                dttimesplit = dt.split(" ")
 
+                converteddtime = dttimesplit[1].split(":")  # datetime.datetime.strptime(dt, '%y/%m/%d %H:%M:%S')
+                hour = int(converteddtime[0])
+                min = int(converteddtime[1])
+                second = int(converteddtime[2])
+                disFrameTime = datetime.time(hour, min, second, 0)
+                dstimeList[disFrameTime] = dm
+
+        distanceData = self.SortTime(dstimeList)
+        return distanceData
     """
     ProcessIRImagestoArray:
     Load IR region of interests, get average of b,g,r and time and distance
     also make sure color and ir data has same x and y values for processing and plotting
     skip first and last seconds 
     """
-    def ProcessIRImagestoArray(self, filepath):
+    def ProcessIRImagestoArray(self, filepath,LoadDistancePath):
 
         Image_Files = self.LoadFiles(filepath)
         Image_Files = self.SortLoadedFiles(Image_Files)
@@ -281,6 +345,7 @@ class LoadFaceData:
         prevFrameTimeStamp=None
         count = 0
         countIR = 0
+        distanceData = self.getDistance(LoadDistancePath)
         # Go through each image
         for key, value in Image_Files.items():
 
@@ -292,10 +357,10 @@ class LoadFaceData:
 
             if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
                 # Do nothing or add steps here if required
-                skip = True
+                continue
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
                 # Do nothing or add steps here if required
-                skip = True
+                continue
             else:
                 img = value
                 # dimensions = img.shape
@@ -304,14 +369,12 @@ class LoadFaceData:
                 self.Irchannel.append(ImgmeanValues[0])
 
                 TrimmedTime = datetime.time(FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second)
-                ColorTrimmedTime = datetime.time(self.Frametime_list_color[count].hour, self.Frametime_list_color[count].minute, self.Frametime_list_color[count].second)
-                if(ColorTrimmedTime ==TrimmedTime):
-                    test = 0
-                else:
-                    skip = 0
 
                 self.Frametime_list_ir.append(FrameTimeStamp)
                 self.timeirCount.append(countIR)
+                #Distance
+                distanceinM = distanceData.get(TrimmedTime)
+                self.distanceM.append(float(np.abs(distanceinM)))
                 countIR = countIR +1
                 count = count+1
 
@@ -330,3 +393,5 @@ class LoadFaceData:
         # A=0
         self.IREstimatedFPS = self.getDuplicateValue(IRfpswithTime)
         self.IRfpswithTime = IRfpswithTime
+        self.totalTimeinSeconds = len(self.Irchannel) / self.IREstimatedFPS
+

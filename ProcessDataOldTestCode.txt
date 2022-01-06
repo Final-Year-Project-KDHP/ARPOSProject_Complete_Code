@@ -517,3 +517,158 @@ PREPROCESSING
         grey_fft_maxVal = 0
         ir_fft_index = 0
         ir_fft_maxVal = 0
+
+        ####generating data
+          # ParticipantsProcessedHeartRateData[ParticipantsHRfileName] = ListHrdata
+            # ParticipantsProcessedBloodOxygenData[ParticipantsSPOfileName] = ListSPOdata
+            # print(str(algoType) +"_"+ str(fftype) +"_"+ str(filtertype)  +"_"+ str(resulttype)+
+            #       "_" +  str(preprocesstype)  +"_"+  str(isSmooth)  +"_"+str(hrType)+"_" +
+            #       str(isCompressed)  +"_"+ str(snrType))
+            # objConfig.RunAnalysisForEntireSignalData, ROIStore, objConfig.SavePath, algoType, fftype, HrGr, SpoGr, filtertype, resulttype, preprocesstype, isSmooth,hrType,isCompressed,snrType
+            # objConfig.Processed_participants_data[participant_number] =
+
+        # Start generating data fo following types
+        # for preprocesstype in self.objConfig.preprocesses:
+        #     for algoType in self.objConfig.AlgoList:
+        #         # Create path for each algorithm type to store results in
+        #         # objFileIO.CreatePath(objConfig.SavePath + algoType)
+        #         for fftype in self.objConfig.fftTypeList:
+        #             for resulttype in self.objConfig.resulttypeList:
+        #                 # for hrType in self.objConfig.hrTypeList:
+        #                 for filtertype in self.objConfig.filtertypeList:
+        #                     for isSmooth in self.objConfig.Smoothen:
+        #                         #TODO: CHECK IF COMPRESSED are neccessary
+        #                         # for isCompressed in self.objConfig.Compressed:
+        #                         # for snrType in self.objConfig.SNRTypeList:
+        #                         # Sort to list for writing to disk later
+        #                         #+ "_HR-" + str(hrType)+ "_CP-" + str('None')
+        #                         fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
+        #                             filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(preprocesstype) + "_SM-" + str(
+        #                             isSmooth) #+ "_SNR-" + str(snrType) #isCompressed
+        #                         print(fileName)
+        #
+
+            # Write all results to file
+            # for k, v in ParticipantsProcessedHeartRateData.items():
+            #     fileDetails = k.split('*')
+            #     participantnumber = fileDetails[0]
+            #     fileName = fileDetails[1]
+            #     objFile.WriteListDatatoFile(objConfig.SavePath, fileName, v)
+            #
+            # for k, v in ParticipantsProcessedBloodOxygenData.items():
+            #     fileDetails = k.split('*')
+            #     participantnumber = fileDetails[0]
+            #     fileName = fileDetails[1]
+            #     objFile.WriteListDatatoFile(objConfig.SavePath, fileName, v)
+            #
+            # ParticipantsProcessedHeartRateData = {}
+            # ParticipantsProcessedBloodOxygenData = {}
+
+
+    """
+    getEstimatedFrame:
+    """
+    def getEstimatedFrame(self, objFaceImage,distnacepath):
+        ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable = objFaceImage.GetEstimatedFPS(distnacepath) #, ColorFPS, IRFPS
+        return ColorfpswithTime, IRfpswithTime, isVariable, isIRVariable #, ColorFPS, IRFPS
+
+    def executeProgramOldMethod(self):
+        # Check cases
+        self.GenerateCases()
+        currentParticipantId = ''
+        for participant_number in self.objConfig.ParticipantNumbers:
+            # for each heart rate status (resting or active)
+            for position in self.objConfig.hearratestatus:
+                print(participant_number + ', ' + position)
+                currentParticipantId = ''
+
+                # set path
+                self.objConfig.setSavePath(participant_number, position, 'WindowProcessedData')
+
+                for case in self.CaseList:
+                    IsGenerated = self.CheckIfGenerated(case)
+                    if (IsGenerated):
+                        stop = True
+                    else:
+                        splitCase = case.split('_')
+                        fileName = case
+                        algoType = splitCase[0]
+                        fftype = splitCase[1].replace('FFT-', '')
+                        filtertype = int(splitCase[2].replace('FL-', ''))
+                        resulttype = int(splitCase[3].replace('RS-', ''))
+                        preprocesstype = int(splitCase[4].replace('PR-', ''))
+                        isSmooth = splitCase[5].replace('SM-', '')
+                        if (isSmooth == 'True'):
+                            isSmooth = True
+                        else:
+                            isSmooth = False
+                        # Gneerate
+                        # Load all data for each roi and create roi store
+                        if (currentParticipantId != participant_number):
+                            currentParticipantId = participant_number
+                            # estimatedfps = 0
+                            totalTimeinSeconds = 0
+                            for region in self.objConfig.roiregions:
+                                # Init for each region
+                                objFaceImage = LoadFaceData()
+                                objFaceImage.Clear()
+
+                                ##get ROI Store
+                                totalTimeinSeconds = self.getData(participant_number, position, region, objFaceImage)
+
+                                # objFaceImage.EstimatedFPS = estimatedfps
+                                # delete face image object
+                                del objFaceImage
+
+                            # # Print FPS Detail
+                            # print('ESTIMATED FPS USED: ' + str(estimatedfps))
+                            # print(str(participant_number) + ', type= ' + str(position) + ' color min FPS: ' + str(
+                            #     min(ColorfpswithTime.values())) + ' ' + str(isVariable) +
+                            #       ', IR min FPS: ' + str(min(IRfpswithTime.values())) + ' ' + str(isIRVariable))
+
+                        ###Get ground Truth
+                        HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
+                                                                   self.objConfig.DiskPath, int(totalTimeinSeconds))
+
+                        ##Process and get result of participants data
+                        self.GenerateResultsfromParticipants(participant_number, position, HrGr, SpoGr, fileName,
+                                                             algoType, fftype, filtertype, resulttype, preprocesstype,
+                                                             isSmooth)
+
+                    stop = 0
+##############################
+
+            # if (v.IrSnr > bestHeartRateSnr):
+            #     bestHeartRateSnr = v.IrSnr
+            #     bestBpm = v.IrBpm
+            #     channeltype = 'IR'
+            #     regiontype = k
+            #     freqencySamplingError = v.IrFreqencySamplingError
+            #
+            # if (v.GreySnr > bestHeartRateSnr):
+            #     bestHeartRateSnr = v.GreySnr
+            #     bestBpm = v.GreyBpm
+            #     channeltype = 'Grey'
+            #     regiontype = k
+            #     freqencySamplingError = v.GreyFreqencySamplingError
+            #
+            # if (v.RedSnr > bestHeartRateSnr):
+            #     bestHeartRateSnr = v.RedSnr
+            #     bestBpm = v.RedBpm
+            #     channeltype = 'Red'
+            #     regiontype = k
+            #     freqencySamplingError = v.RedFreqencySamplingError
+            #
+            # if (v.GreenSnr > bestHeartRateSnr):
+            #     bestHeartRateSnr = v.GreenSnr
+            #     bestBpm = v.GreenBpm
+            #     channeltype = 'Green'
+            #     regiontype = k
+            #     freqencySamplingError = v.GreenFreqencySamplingError
+            #
+            # if (v.BlueSnr > bestHeartRateSnr):
+            #     bestHeartRateSnr = v.BlueSnr
+            #     bestBpm = v.BlueBpm
+            #     channeltype = 'Blue'
+            #     regiontype = k
+            #     freqencySamplingError = v.BlueFreqencySamplingError

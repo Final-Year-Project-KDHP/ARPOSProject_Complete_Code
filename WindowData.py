@@ -15,9 +15,9 @@ class Window_Data:
   RedBpm = 0.0
   GreenBpm = 0.0
   BlueBpm = 0.0
-  WindowNo = 0
   regiontype = ''
   isSmooth = False
+  channeltype= ''
 
   BestSnR2 =0.0
   IrSnr2 = 0.0
@@ -27,6 +27,7 @@ class Window_Data:
   BlueSnr2 = 0.0
   BestBPM2 = 0.0
   BestSnR2 = 0.0
+  SNRSummary = ''
 
   IrFreqencySamplingError = 0.0
   GreyFreqencySamplingError = 0.0
@@ -39,6 +40,7 @@ class Window_Data:
   oxygenSaturationSTD=0.0
 
   #Storage on everystep details
+  WindowNo = 0
   SignalWindowOriginal = None
   SignalWindowPreProcessed = None
   SignalWindowAfterAlgorithm = None
@@ -48,6 +50,11 @@ class Window_Data:
   SignalWindowHeartRateCalculation = None
   SignalWindowBestBPM = None
   SignalWindowBestSPO = None
+  SignalWindowSPOgrey = None
+  SignalWindowSPOGy_filtered = None
+  SignalWindowSPOIrchannel = None
+  SignalWindowSPOred = None
+  SignalWindowSPOdistance = None
 
   def getFileNameForWindow(self,windowCount, resultType):
     return 'test_' + str(windowCount) + str(resultType)

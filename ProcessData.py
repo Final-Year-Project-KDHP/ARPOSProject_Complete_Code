@@ -1,7 +1,9 @@
 import pickle
 from datetime import datetime
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy import signal
+from scipy.interpolate import interp1d
 from sklearn import preprocessing
 from Algorithm import AlgorithmCollection
 from HeartRateAndSPO.ComputeHeartRate import ComputerHeartRate
@@ -66,7 +68,6 @@ class ProcessFaceData:
     ramp_end_hz = 0
     freq_bpmColor = []
     freq_bpmIR = []
-    NumSamples = 0
     ignore_freq_index_below = 0
     ignore_freq_index_above = 0
     ramp_start = 0
@@ -86,6 +87,7 @@ class ProcessFaceData:
     # Input Parameters
     Algorithm_type = ''
     FFT_type = ''
+    DumpToDisk= ''
     Filter_type = 0
     Result_type = 0
     HrType = 0
@@ -116,7 +118,9 @@ class ProcessFaceData:
     bestHeartRateSnr = 0.0
     beatsPerSecond = 0.0
     bestBpm = 0.0
+    channeltype= ''
     heartRatePeriod = 0.0
+    SNRSummary=''
 
     # Objects
     objPlots = Plots()
@@ -124,9 +128,10 @@ class ProcessFaceData:
 
     # constructor
     def __init__(self, Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath, ignoreGray,
-                 isSmoothen, GenerateGraphs, timeinSeconds, snrType):
+                 isSmoothen, GenerateGraphs, timeinSeconds,DumpToDisk):
         self.Algorithm_type = Algorithm_type
         self.FFT_type = FFT_type
+        self.DumpToDisk = DumpToDisk
         self.Filter_type = Filter_type
         self.Result_type = Result_type
         self.Preprocess_type = Preprocess_type
@@ -135,7 +140,7 @@ class ProcessFaceData:
         self.isSmoothen = isSmoothen
         self.GenerateGraphs = GenerateGraphs
         self.timeinSeconds = timeinSeconds
-        self.snrType = snrType
+        # self.snrType = snrType
 
         # setup highpass filter
         self.ignore_freq_below_bpm = 40
@@ -173,20 +178,31 @@ class ProcessFaceData:
         self.timeirCount = self.regionStore.timeirCount
         self.Frametime_list_ir = self.regionStore.Frametime_list_ir
         self.Frametime_list_color = self.regionStore.Frametime_list_color
-        self.IRfpswithTime = self.regionStore.IRfpswithTime
-        self.ColorfpswithTime = self.regionStore.ColorfpswithTime
-        self.region = region
 
     '''
     getSingalDataWindow: 
     This method records original data by calling previously defined method 'setSignalSourceData(ROIStore, region)'
     and splits data to window size to process it
     '''
+    def getSingalDataWindow(self, ROIStore, region, WindowCount, TotalWindows, timeinSeconds):
 
-    def getSingalDataWindow(self, ROIStore, region, WindowSlider, step, WindowCount, TotalWindows, timeinSeconds):
-
+        self.IRfpswithTime = ROIStore.get(region).IRfpswithTime
+        self.ColorfpswithTime = ROIStore.get(region).ColorfpswithTime
+        self.region = region
         self.TotalWindows = TotalWindows
         self.timeinSecondsWindow = timeinSeconds
+        ###CALCULATE NEW FPS
+        # calculate window slider as per fps?
+        # stepinSecond = 1
+        # WindowtimeinSeconds = 10
+        # WindowSliderinFrame = self.getWindowSliderinFrame()
+        self.WindowIRfpswithTime, WindowSliderIR,stepIR = self.reCalculateFPS(self.IRfpswithTime, WindowCount,
+                                                                       self.timeinSecondsWindow)  ##CHECK on how to do this for each window size
+        self.WindowColorfpswithTime, WindowSliderColor,stepColor = self.reCalculateFPS(self.ColorfpswithTime, WindowCount,
+                                                                             self.timeinSecondsWindow)
+
+
+
         # Split ROI Store region data
         if (WindowCount == 0):
             self.setSignalSourceData(ROIStore, region)
@@ -197,46 +213,43 @@ class ProcessFaceData:
             OrignialGrey = self.regionGreyData
             OrignialIr = self.regionIRData
 
-            OrignialBlue = OrignialBlue[step:]  # from steps till end and disacard rest
-            OrignialGreen = OrignialGreen[step:]
-            OrignialRed = OrignialRed[step:]
-            OrignialGrey = OrignialGrey[step:]
-            OrignialIr = OrignialIr[step:]
+            OrignialBlue = OrignialBlue[stepColor:]  # from steps till end and disacard rest
+            OrignialGreen = OrignialGreen[stepColor:]
+            OrignialRed = OrignialRed[stepColor:]
+            OrignialGrey = OrignialGrey[stepColor:]
+            OrignialIr = OrignialIr[stepIR:]
             self.regionBlueData = OrignialBlue  # np.c_[OrignialBlue, OrignialGreen, OrignialRed, OrignialGrey, OrignialIr]
             self.regionGreenData = OrignialGreen
             self.regionRedData = OrignialRed
             self.regionGreyData = OrignialGrey
             self.regionIRData = OrignialIr
-            self.distanceM = self.distanceM[step:]
+            self.distanceM = self.distanceM[stepIR:]
             # self.time_list_color = self.time_list_color[step:]
-            self.timecolorCount = self.timecolorCount[step:]
+            self.timecolorCount = self.timecolorCount[stepColor:]
             # self.time_list_ir = self.time_list_ir[step:]
-            self.timeirCount = self.timeirCount[step:]
-            self.Frametime_list_ir = self.Frametime_list_ir[step:]
-            self.Frametime_list_color = self.Frametime_list_color[step:]
+            self.timeirCount = self.timeirCount[stepColor:]
+            self.Frametime_list_ir = self.Frametime_list_ir[stepIR:]
+            self.Frametime_list_color = self.Frametime_list_color[stepColor:]
+
 
         # split to window size
         self.Window_count = WindowCount
         # self.regionWindowSignalData = self.regionSignalData[:WindowSlider]
-        self.regionWindowBlueData = self.regionBlueData[:WindowSlider]
-        self.regionWindowGreenData = self.regionGreenData[:WindowSlider]
-        self.regionWindowRedData = self.regionRedData[:WindowSlider]
-        self.regionWindowGreyData = self.regionGreyData[:WindowSlider]
-        self.regionWindowIRData = self.regionIRData[:WindowSlider]
-        self.WindowdistanceM = self.distanceM[:WindowSlider]
+        self.regionWindowBlueData = self.regionBlueData[:WindowSliderColor]
+        self.regionWindowGreenData = self.regionGreenData[:WindowSliderColor]
+        self.regionWindowRedData = self.regionRedData[:WindowSliderColor]
+        self.regionWindowGreyData = self.regionGreyData[:WindowSliderColor]
+        self.regionWindowIRData = self.regionIRData[:WindowSliderIR]
+        self.WindowdistanceM = self.distanceM[:WindowSliderIR]
         # self.Windowtime_list_color = self.time_list_color[:WindowSlider]
-        self.WindowtimecolorCount = self.timecolorCount[:WindowSlider]
+        self.WindowtimecolorCount = self.timecolorCount[:WindowSliderColor]
         # self.Windowtime_list_ir = self.time_list_ir[:WindowSlider]
-        self.WindowtimeirCount = self.timeirCount[:WindowSlider]
-        self.WindowFrametime_list_ir = self.Frametime_list_ir[:WindowSlider]
-        self.WindowFrametime_list_color = self.Frametime_list_color[:WindowSlider]
+        self.WindowtimeirCount = self.timeirCount[:WindowSliderIR]
+        self.WindowFrametime_list_ir = self.Frametime_list_ir[:WindowSliderIR]
+        self.WindowFrametime_list_color = self.Frametime_list_color[:WindowSliderColor]
         # self.ColorfpswithTime=self.ColorfpswithTime[:WindowSlider]
         # self.IRfpswithTime=self.IRfpswithTime[:WindowSlider]
 
-        ###CALCULATE NEW FPS
-        self.WindowIRfpswithTime = self.reCalculateFPS(self.IRfpswithTime, WindowCount,
-                                                       self.timeinSecondsWindow)  ##CHECK on how to do this for each window size
-        self.WindowColorfpswithTime = self.reCalculateFPS(self.ColorfpswithTime, WindowCount, self.timeinSecondsWindow)
         self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
         self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
         # set estimated fps
@@ -297,22 +310,30 @@ class ProcessFaceData:
         return key[0]
 
     def reCalculateFPS(self, dataDictionary, currentWindow, WindowLength):
-        initialindex = currentWindow + 1
+        initialindex = currentWindow + 1 #TODO: DOUBLE CHECK IF THIS IS CORRECT
         fpsList = {}
-        endIndex = initialindex + WindowLength
+        endIndex = WindowLength + currentWindow#-1#initialindex + WindowLength
         count = 1
-
+        WindowSlider=0
+        step=0
         for key, val in dataDictionary.items():
+            # if(initialindex == 1 and step == 0):#if its first window
+            #     step = val
             if (count == initialindex):
                 fpsList[key] = val
+                WindowSlider = WindowSlider +val
+                if (step == 0):
+                    step = val
             else:
                 if (count <= endIndex):
-                    fpsList[key] = val
+                    if(len(fpsList)>0):
+                        fpsList[key] = val
+                        WindowSlider = WindowSlider +val
                 else:
                     break
             count = count + 1
 
-        return fpsList
+        return fpsList,WindowSlider,step
 
     # region Graph path and name methods
     '''
@@ -411,22 +432,57 @@ class ProcessFaceData:
     # endregion
 
     # region pre process signal data
+    def preprocessdataType3(self, bufferArray, FPS):
+        """remove NaN and Inf values"""
+        output = bufferArray[(np.isnan(bufferArray) == 0) & (np.isinf(bufferArray) == 0)]
+        #UpSample
+        # L = len(output) #forplloting
+        # max_time = L / FPS #forplloting
+        # t = np.linspace(0, max_time, L) forplloting
+        output = signal.resample(output, len(output) * 2)
+        # t2 = np.linspace(0, max_time, len(output))  #forplloting# time_steps
+
+        detrended_data = signal.detrend(output)
+
+        try:
+            '''interpolation data buffer to make the signal become more periodic (advoid spectral leakage) '''
+            L = len(detrended_data)
+            max_time = L / FPS
+            timeCount = np.linspace(0, max_time, L)  # time_steps
+            even_times = np.linspace(timeCount[0], timeCount[-1],
+                                     len(timeCount))
+            interp = np.interp(even_times, timeCount, detrended_data)
+            interpolated_data = np.hamming(L) * interp
+            # plt.plot(timeCount, detrended_data, 'blue')
+            # plt.plot(timeCount, interpolated_data, 'red')
+            # plt.show()
+        except:
+            interpolated_data = detrended_data
+
+        '''removes noise'''
+        # N = 3
+        # """ x == an array of data. N == number of samples per average """
+        # cumsum = np.cumsum(np.insert(interpolated_data, [0, 0, 0], 0))
+        # rm = (cumsum[N:] - cumsum[:-N]) / float(N)
+
+        '''normalize the input data buffer '''
+        normalized_data = interpolated_data / np.linalg.norm(interpolated_data)
+        return normalized_data
+
     def preprocessdataType1(self, bufferArray, isDetrend, FPS):
         """remove NaN and Inf values"""
         output = bufferArray[(np.isnan(bufferArray) == 0) & (np.isinf(bufferArray) == 0)]
-
         detrended_data = output
-
         if (isDetrend):
             detrended_data = signal.detrend(output)
 
         try:
             '''interpolation data buffer to make the signal become more periodic (advoid spectral leakage) '''
             L = len(detrended_data)
-            max_time = L / self.ColorEstimatedFPS
+            max_time = L / FPS
             timeCount = np.linspace(0, max_time, L)  # time_steps
-            even_times = np.linspace(detrended_data[0], detrended_data[-1],
-                                     L)  ## TODO: DOUBLE CHECK IF THIS IS CORRECT WAY OF DONIG THIS , and check https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
+            even_times = np.linspace(timeCount[0], timeCount[-1],
+                                     len(timeCount))
             interp = np.interp(even_times, timeCount, detrended_data)
             interpolated_data = np.hamming(L) * interp
         except:
@@ -445,20 +501,18 @@ class ProcessFaceData:
     def preprocessdataType2(self, bufferArray, isDetrend, FPS):
         """remove NaN and Inf values"""
         output = bufferArray[(np.isnan(bufferArray) == 0) & (np.isinf(bufferArray) == 0)]
-
         detrended_data = output
         if (isDetrend):
             detrended_data = signal.detrend(output)
-
         try:
             '''interpolation data buffer to make the signal become more periodic (advoid spectral leakage) '''
             L = len(detrended_data)
             max_time = L / FPS
             timeCount = np.linspace(0, max_time, L)  # time_steps
-            even_times = np.linspace(detrended_data[0], detrended_data[-1],
-                                     L)  ## TODO: DOUBLE CHECK IF THIS IS CORRECT WAY OF DONIG THIS ,
+            even_times = np.linspace(timeCount[0], timeCount[-1],len(timeCount))  ## TODO: DOUBLE CHECK IF THIS IS CORRECT WAY OF DONIG THIS ,
             interp = np.interp(even_times, timeCount, detrended_data)
             interpolated_data = np.hamming(L) * interp
+
         except:
             interpolated_data = detrended_data
 
@@ -481,44 +535,64 @@ class ProcessFaceData:
         processedGrey = grey
         processedIR = Irchannel
 
-        if (self.Preprocess_type == 6):
-            processedBlue = self.preprocessdataType1(np.array(processedBlue), True, self.ColorEstimatedFPS)
-            processedGreen = self.preprocessdataType1(np.array(processedGreen), True, self.ColorEstimatedFPS)
-            processedRed = self.preprocessdataType1(np.array(processedRed), True, self.ColorEstimatedFPS)
-            processedGrey = self.preprocessdataType1(np.array(processedGrey), True, self.ColorEstimatedFPS)
-            processedIR = self.preprocessdataType1(np.array(processedIR), True, self.IREstimatedFPS)
+        if (self.Preprocess_type == 7):
+            if(len(processedGrey)>0):
+                processedBlue = self.preprocessdataType3(np.array(processedBlue),  self.ColorEstimatedFPS)
+                processedGreen = self.preprocessdataType3(np.array(processedGreen),  self.ColorEstimatedFPS)
+                processedRed = self.preprocessdataType3(np.array(processedRed),  self.ColorEstimatedFPS)
+                processedGrey = self.preprocessdataType3(np.array(processedGrey),  self.ColorEstimatedFPS)
+            if(len(processedIR)>0):
+                processedIR = self.preprocessdataType3(np.array(processedIR),  self.IREstimatedFPS)
+
+        elif (self.Preprocess_type == 6):
+            if(len(processedGrey)>0):
+                processedBlue = self.preprocessdataType1(np.array(processedBlue), True, self.ColorEstimatedFPS)
+                processedGreen = self.preprocessdataType1(np.array(processedGreen), True, self.ColorEstimatedFPS)
+                processedRed = self.preprocessdataType1(np.array(processedRed), True, self.ColorEstimatedFPS)
+                processedGrey = self.preprocessdataType1(np.array(processedGrey), True, self.ColorEstimatedFPS)
+            if(len(processedIR)>0):
+                processedIR = self.preprocessdataType1(np.array(processedIR), True, self.IREstimatedFPS)
 
         elif (self.Preprocess_type == 5):
-            processedBlue = self.preprocessdataType1(np.array(processedBlue), False, self.ColorEstimatedFPS)
-            processedGreen = self.preprocessdataType1(np.array(processedGreen), False, self.ColorEstimatedFPS)
-            processedRed = self.preprocessdataType1(np.array(processedRed), False, self.ColorEstimatedFPS)
-            processedGrey = self.preprocessdataType1(np.array(processedGrey), False, self.ColorEstimatedFPS)
-            processedIR = self.preprocessdataType1(np.array(processedIR), False, self.IREstimatedFPS)
+            if (len(processedGrey) > 0):
+                processedBlue = self.preprocessdataType1(np.array(processedBlue), False, self.ColorEstimatedFPS)
+                processedGreen = self.preprocessdataType1(np.array(processedGreen), False, self.ColorEstimatedFPS)
+                processedRed = self.preprocessdataType1(np.array(processedRed), False, self.ColorEstimatedFPS)
+                processedGrey = self.preprocessdataType1(np.array(processedGrey), False, self.ColorEstimatedFPS)
+            if(len(processedIR)>0):
+                processedIR = self.preprocessdataType1(np.array(processedIR), False, self.IREstimatedFPS)
 
         elif (self.Preprocess_type == 4):
-            processedBlue = self.preprocessdataType2(np.array(processedBlue), True, self.ColorEstimatedFPS)
-            processedGreen = self.preprocessdataType2(np.array(processedGreen), True, self.ColorEstimatedFPS)
-            processedRed = self.preprocessdataType2(np.array(processedRed), True, self.ColorEstimatedFPS)
-            processedGrey = self.preprocessdataType2(np.array(processedGrey), True, self.ColorEstimatedFPS)
-            processedIR = self.preprocessdataType2(np.array(processedIR), True, self.IREstimatedFPS)
+            if (len(processedGrey) > 0):
+                processedBlue = self.preprocessdataType2(np.array(processedBlue), True, self.ColorEstimatedFPS)
+                processedGreen = self.preprocessdataType2(np.array(processedGreen), True, self.ColorEstimatedFPS)
+                processedRed = self.preprocessdataType2(np.array(processedRed), True, self.ColorEstimatedFPS)
+                processedGrey = self.preprocessdataType2(np.array(processedGrey), True, self.ColorEstimatedFPS)
+            if(len(processedIR)>0):
+                processedIR = self.preprocessdataType2(np.array(processedIR), True, self.IREstimatedFPS)
 
         elif (self.Preprocess_type == 3):
-            processedBlue = self.preprocessdataType2(np.array(processedBlue), False, self.ColorEstimatedFPS)
-            processedGreen = self.preprocessdataType2(np.array(processedGreen), False, self.ColorEstimatedFPS)
-            processedRed = self.preprocessdataType2(np.array(processedRed), False, self.ColorEstimatedFPS)
-            processedGrey = self.preprocessdataType2(np.array(processedGrey), False, self.ColorEstimatedFPS)
-            processedIR = self.preprocessdataType2(np.array(processedIR), False, self.IREstimatedFPS)
+            if(len(processedGrey)>0):
+                processedBlue = self.preprocessdataType2(np.array(processedBlue), False, self.ColorEstimatedFPS)
+                processedGreen = self.preprocessdataType2(np.array(processedGreen), False, self.ColorEstimatedFPS)
+                processedRed = self.preprocessdataType2(np.array(processedRed), False, self.ColorEstimatedFPS)
+                processedGrey = self.preprocessdataType2(np.array(processedGrey), False, self.ColorEstimatedFPS)
+            if(len(processedIR)>0):
+                processedIR = self.preprocessdataType2(np.array(processedIR), False, self.IREstimatedFPS)
 
         elif (self.Preprocess_type == 2):
-            SCombined = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey,
-                                                   processedIR)
+            SCombined = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+            if (len(processedIR) == len(processedGrey)):
+                SCombined = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
             SCombined = preprocessing.normalize(SCombined)
             # split
-            processedBlue = SCombined[:, 0]
+            if(len(processedGrey)>0):
+                processedBlue = SCombined[:, 0]
             processedGreen = SCombined[:, 1]
             processedRed = SCombined[:, 2]
             processedGrey = SCombined[:, 3]
-            processedIR = SCombined[:, 4]
+            if(len(processedIR)>0):
+                processedIR = SCombined[:, 4]
         else:  # 1
             processedBlue = blue
             processedGreen = green
@@ -552,49 +626,132 @@ class ProcessFaceData:
     '''
     ApplyAlgorithm: Applies algorithms on signal data
     '''
-
     def ApplyAlgorithm(self, processedBlue, processedGreen, processedRed, processedGrey, processedIR):
-        processedBlue = np.array(processedBlue).reshape((len(processedBlue), 1))
-        processedGreen = np.array(processedGreen).reshape((len(processedGreen), 1))
-        processedRed = np.array(processedRed).reshape((len(processedRed), 1))
-        processedGrey = np.array(processedGrey).reshape((len(processedGrey), 1))
-        processedIR = np.array(processedIR).reshape((len(processedIR), 1))
+        S=np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+        self.components = 4
+        if(len(processedIR) == len(processedGrey)):
+            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
+            self.components = 5
+        # colorShape = np.array(processedGrey).shape
+        # IRShape = np.array(processedIR).shape
+        if (len(processedGrey) > 0):
+            processedBlue = np.array(processedBlue).reshape((len(processedBlue), 1))
+            processedGreen = np.array(processedGreen).reshape((len(processedGreen), 1))
+            processedRed = np.array(processedRed).reshape((len(processedRed), 1))
+            processedGrey = np.array(processedGrey).reshape((len(processedGrey), 1))
+        if (len(processedIR) > 0):
+            processedIR = np.array(processedIR).reshape((len(processedIR), 1))
         # Apply by Algorithm_type
+        # self.components = 1  # makes no difference with 1 to 15 components
         if (self.Algorithm_type == "FastICA"):
-            AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
-            AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
-            AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
-            AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
-            AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
+            if (len(processedGrey) > 0):
+                self.components=1# TODO: TEST FOr differnt components
+                AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
+                AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
+                AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
+                AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
+
+            #Change Shape
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
+                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
+                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
+                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        elif (self.Algorithm_type == "FastICACombined"):
+            S_ = self.objAlgorithm.ApplyICA(S, self.components)
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = S_[:, 0]
+                AlgoprocessedGreen =S_[:, 1]
+                AlgoprocessedRed = S_[:, 2]
+                AlgoprocessedGrey = S_[:, 3]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = S_[:, 4]
+
         elif (self.Algorithm_type == "PCA"):
-            AlgoprocessedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
-            AlgoprocessedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
-            AlgoprocessedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
-            AlgoprocessedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
-            AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
+            self.components = 1
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
+                AlgoprocessedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
+                AlgoprocessedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
+                AlgoprocessedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
+
+            #Change Shape
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
+                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
+                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
+                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        elif (self.Algorithm_type == "PCACombined"):
+            S_ = self.objAlgorithm.ApplyPCA(S, self.components)
+            # plt.plot(AlgoprocessedGrey, 'grey')
+            # plt.plot(S_[:, 3], 'black')
+            # plt.show()
+
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = S_[:, 0]
+                AlgoprocessedGreen =S_[:, 1]
+                AlgoprocessedRed = S_[:, 2]
+                AlgoprocessedGrey = S_[:, 3]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = S_[:, 4]
+
         elif (self.Algorithm_type == "PCAICA"):
+            self.components = 1
+            if (len(processedGrey) > 0):
+                processedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
+                processedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
+                processedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
+                processedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
+            if (len(processedIR) > 0):
+                processedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
 
-            processedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
-            processedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
-            processedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
-            processedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
-            processedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
+                AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
+                AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
+                AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
 
-            AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
-            AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
-            AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
-            AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
-            AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
+            #Change Shape
+
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
+                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
+                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
+                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        elif (self.Algorithm_type == "PCAICACombined"):
+            S = self.objAlgorithm.ApplyPCA(S, self.components)
+            S_ = self.objAlgorithm.ApplyICA(S, self.components)
+
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = S_[:, 0]
+                AlgoprocessedGreen =S_[:, 1]
+                AlgoprocessedRed = S_[:, 2]
+                AlgoprocessedGrey = S_[:, 3]
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = S_[:, 4]
 
         elif (self.Algorithm_type == "Jade"):
             # https://github.com/kellman/heartrate_matlab/blob/master/jadeR.m
             # r4 is slwoer and f5 is faster
-            AlgoprocessedBlue = self.objAlgorithm.jadeOptimised(processedBlue, self.components)
-            AlgoprocessedGreen = self.objAlgorithm.jadeOptimised(processedGreen, self.components)
-            AlgoprocessedRed = self.objAlgorithm.jadeOptimised(processedRed, self.components)
-            AlgoprocessedGrey = self.objAlgorithm.jadeOptimised(processedGrey, self.components)
-            AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR, self.components)
+            # S = np.c_[processedBlue,processedGreen,processedRed,processedGrey]
+            S_ = self.objAlgorithm.jadeOptimised(S, self.components) #Only allows same or less components as array size
 
+            # AlgoprocessedGreen = self.objAlgorithm.jadeOptimised(processedGreen, self.components)
             # Split data
             # newBlue = S_[0].real
             # newGreen = np.array(S_[1])[0].real
@@ -602,11 +759,18 @@ class ProcessFaceData:
             # if (not self.ignoreGray):
             #     newGrey = np.array(S_[self.grayIndex])[0].real
             # newIr = np.array(S_[self.IRIndex])[0].real
-            AlgoprocessedBlue = np.array(AlgoprocessedBlue)[0].real
-            AlgoprocessedGreen = np.array(AlgoprocessedGreen)[0].real
-            AlgoprocessedRed = np.array(AlgoprocessedRed)[0].real
-            AlgoprocessedGrey = np.array(AlgoprocessedGrey)[0].real
-            AlgoprocessedIR = np.array(AlgoprocessedIR)[0].real
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = np.array(S_[ 0])[0].real #S_[:, 0]
+                AlgoprocessedGreen = np.array(S_[1])[0].real
+                AlgoprocessedRed = np.array(S_[2])[0].real
+                AlgoprocessedGrey = np.array(S_[3])[0].real
+
+            if (self.components == 4):
+                if (len(processedIR) > 0):
+                    AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR,1)  # Only allows same or less components as array size
+            else:
+                if (len(processedIR) > 0):
+                    AlgoprocessedIR = np.array(S_[4])[0].real
 
         if (self.GenerateGraphs):
             self.GenerateGrapth("Algorithm", AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
@@ -682,7 +846,7 @@ class ProcessFaceData:
                                             order=ordno)
         return B_bp, G_bp, R_bp, Gy_bp, IR_bp
 
-    def Filterfft_LimitFreq_Belowfilter(self, signal):
+    def Filterfft_LimitFreq_Belowfilter(self, signal,type):
         if (type == 'color'):
             interest_idx = np.where((self.Colorfrequency >= self.ignore_freq_below))[0]
             interest_idx_sub = interest_idx.copy()  # [:-1] advoid the indexing error
@@ -840,30 +1004,19 @@ class ProcessFaceData:
         y = np.convolve(w / w.sum(), s, mode='valid')
         return y
 
-    def SmoothenData(self, S_):
-        Smoothenblue = self.smooth(S_[:, 0])
-        Smoothengreen = self.smooth(S_[:, 1])
-        Smoothenred = self.smooth(S_[:, 2])
-        if (not self.ignoreGray):
-            Smoothengrey = self.smooth(S_[:, self.grayIndex])
-        else:
-            Smoothengrey = []
-        SmoothenIR = self.smooth(S_[:, self.IRIndex])
-
-        # Combine into one array
-        S_ = self.getSignalDataCombined(Smoothenblue, Smoothengreen, Smoothenred, Smoothengrey, SmoothenIR)
-
-        if (self.GenerateGraphs):
-            self.GenerateGrapth("Smooth", S_[:, 0], S_[:, 1], S_[:, 2], S_[:, self.grayIndex], S_[:, self.IRIndex])
-
-        return S_
+    def SmoothenData(self, Signal):
+        SmoothenSignal = self.smooth(Signal)
+        # if (not self.ignoreGray):
+        #     Smoothengrey = self.smooth(S_[:, self.grayIndex])
+        # else:
+        #     Smoothengrey = []
+        return SmoothenSignal
 
     '''
     ApplyFFT: types of fft on signal data
     '''
 
     def ApplyFFT(self, AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR):
-
         if (self.FFT_type == "M1"):
             B_fft, Gr_fft, R_fft, Gy_fft, IR_fft, Colorfreq, IRfreq = self.objAlgorithm.Apply_FFT_WithoutPower_M4_eachsignal(
                 AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR,
@@ -924,7 +1077,7 @@ class ProcessFaceData:
         self.Colorfrequency = Colorfreq
         self.IRfrequency = IRfreq
 
-        return B_fft, Gr_fft, R_fft, Gy_fft, IR_fft, self.Colorfrequency, self.IRfrequency
+        return B_fft, Gr_fft, R_fft, Gy_fft, IR_fft
 
     def WritetoDisk(self, location, filename, data):
         ##STORE Data
@@ -954,6 +1107,18 @@ class ProcessFaceData:
         self.WritetoDisk(self.SavePath + self.Window_count + '\\', 'objWindowProcessedData_' + filename,
                          objProcessedData)  #
 
+    def getSignalforStoring(self,processedBlue, processedGreen, processedRed, processedGrey, processedIR,Colorfreq=False, IRfreq=False):
+        Signal = {}
+        Signal['blue'] = processedBlue
+        Signal['green'] = processedGreen
+        Signal['red'] = processedRed
+        Signal['grey'] = processedGrey
+        Signal['Ir'] = processedIR
+        if(Colorfreq):
+            Signal['Colorfrequency'] = self.Colorfrequency
+        if (IRfreq):
+            Signal['IRfrequency'] = self.IRfrequency
+        return Signal
     '''
     Process_EntireSignalData: Process signal data
     '''
@@ -961,6 +1126,7 @@ class ProcessFaceData:
     def Process_EntireSignalData(self, IsEntireSignal=True):  # TODO : Implement without Gray
         # window data object
         windowList = Window_Data()
+        windowList.WindowNo = self.Window_count
         windowList.LogTime(LogItems.Start_Total)
         windowList.isSmooth = self.isSmoothen
 
@@ -968,16 +1134,15 @@ class ProcessFaceData:
         green = self.regionWindowGreenData
         red = self.regionWindowRedData
         grey = self.regionWindowGreyData
-        self.getLineSpace(red)
-
         Irchannel = self.regionWindowIRData
+        distanceM = self.WindowdistanceM
 
         # Record Window Raw data
-        self.StoreData('RawSignal', blue, green, red, grey, Irchannel, None, None)
+        # self.StoreData('RawSignal', blue, green, red, grey, Irchannel, None, None)
 
         # generate raw data plot
         if (self.GenerateGraphs):
-            self.GenerateGrapth("RawData", blue, green, red, grey, Irchannel)
+            self.GenerateGrapth("RawData", blue, green, red, grey, Irchannel) #todo: put condition for if array len is 0
 
         # Log Start Time preprcessing signal data
         startlogTime = windowList.LogTime(LogItems.Start_PreProcess)
@@ -987,9 +1152,10 @@ class ProcessFaceData:
                                                                                                             Irchannel)
         endlogTime = windowList.LogTime(LogItems.End_PreProcess)
 
-        # Record Window Raw data
-        self.StoreData('PreProcess', processedBlue, processedGreen, processedRed, processedGrey, processedIR,
-                       startlogTime, endlogTime, True)
+        # # Record Window Raw data
+        windowList.SignalWindowPreProcessed = self.getSignalforStoring(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
+        # self.StoreData('PreProcess', processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+        #                startlogTime, endlogTime, True)
 
         # Apply Algorithm
         startlogTime = windowList.LogTime(LogItems.Start_Algorithm)
@@ -998,34 +1164,47 @@ class ProcessFaceData:
         endlogTime = windowList.LogTime(LogItems.End_Algorithm)
 
         # Record Window Raw data
-        self.StoreData('Algorithm', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
-                       AlgoprocessedIR, startlogTime, endlogTime, True)
+        windowList.SignalWindowAfterAlgorithm = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
+        # self.StoreData('Algorithm', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
+        #                AlgoprocessedIR, startlogTime, endlogTime, True)
 
         # Apply smoothen only before fft
+        # self.isSmoothen= True
         if (self.isSmoothen):
             # Smooth data
             startlogTime = windowList.LogTime(LogItems.Start_Smooth)
-            AlgoprocessedBlue = self.SmoothenData(AlgoprocessedBlue)
-            AlgoprocessedGreen = self.SmoothenData(AlgoprocessedGreen)
-            AlgoprocessedRed = self.SmoothenData(AlgoprocessedRed)
-            AlgoprocessedGrey = self.SmoothenData(AlgoprocessedGrey)
-            AlgoprocessedIR = self.SmoothenData(AlgoprocessedIR)
+            if (len(processedGrey) > 0):
+                AlgoprocessedBlue = self.SmoothenData(AlgoprocessedBlue)
+                AlgoprocessedGreen = self.SmoothenData(AlgoprocessedGreen)
+                AlgoprocessedRed = self.SmoothenData(AlgoprocessedRed)
+                AlgoprocessedGrey = self.SmoothenData(AlgoprocessedGrey)
+            if (len(processedIR) > 0):
+                AlgoprocessedIR = self.SmoothenData(AlgoprocessedIR)
             endlogTime = windowList.LogTime(LogItems.End_Smooth)
 
+            if (self.GenerateGraphs):
+                self.GenerateGrapth("Smooth", AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
+
+            # Record Window  data
+            windowList.SignalWindowSmoothed = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen,
+                                                                             AlgoprocessedRed, AlgoprocessedGrey,
+                                                                             AlgoprocessedIR)
             # Record Window Raw data
-            self.StoreData('Smoothed', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
-                           AlgoprocessedIR, startlogTime, endlogTime, True)
+            # self.StoreData('Smoothed', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
+            #                AlgoprocessedIR, startlogTime, endlogTime, True)
 
         # Apply fft
         startlogTime = windowList.LogTime(LogItems.Start_FFT)
-        FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, Colorfreq, IRfreq = self.ApplyFFT(AlgoprocessedBlue,
+        FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR = self.ApplyFFT(AlgoprocessedBlue,
                                                                                      AlgoprocessedGreen,
                                                                                      AlgoprocessedRed,
                                                                                      AlgoprocessedGrey, AlgoprocessedIR)
         endlogTime = windowList.LogTime(LogItems.End_FFT)
 
-        # Record Window Raw data
-        self.StoreData('FFT', FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, startlogTime, endlogTime, True)
+        # Record Window  data
+        windowList.SignalWindowFFT = self.getSignalforStoring(FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR,True,True)
+        # # Record Window Raw data
+        # self.StoreData('FFT', FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, startlogTime, endlogTime, True)
 
         if (self.GenerateGraphs):
             self.GenerateGrapth("FFT", FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR)
@@ -1038,11 +1217,11 @@ class ProcessFaceData:
             self.GenerateGrapth("Filtered", B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered)
 
         # Record Window Raw data
-        self.StoreData('Filtered', B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, startlogTime, endlogTime, True)
+        # self.StoreData('Filtered', B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, startlogTime, endlogTime, True)
+        windowList.SignalWindowFiltered = self.getSignalforStoring(B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered,True,True)
 
         startlogTime =windowList.LogTime(LogItems.Start_ComputerHRSNR)
-        self.generateHeartRateandSNR(B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, self.Result_type,
-                                     self.HrType, self.isCompressed)
+        self.generateHeartRateandSNR(B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, self.Result_type)
         endlogTime =windowList.LogTime(LogItems.End_ComputerHRSNR)
 
         # get best bpm and heart rate period in one region
@@ -1052,11 +1231,22 @@ class ProcessFaceData:
 
         # calculate SPO
         windowList.LogTime(LogItems.Start_SPO)
-        std, err, oxylevl = self.getSpo(grey, Gy_filtered, Irchannel, red)
+        std, err, oxylevl = self.getSpo(grey, Gy_filtered, Irchannel, red,distanceM)
         windowList.LogTime(LogItems.End_SPO)
 
         windowList.LogTime(LogItems.End_Total)
 
+
+        # SPO
+        windowList.SignalWindowSPOgrey = grey
+        windowList.SignalWindowSPOIrchannel = Irchannel
+        windowList.SignalWindowSPOred = red
+        windowList.SignalWindowSPOdistance = distanceM
+        windowList.SignalWindowSPOGy_filtered = Gy_filtered
+
+        #HR
+        windowList.SNRSummary = self.SNRSummary
+        windowList.channeltype = self.channeltype
         windowList.WindowNo = self.Window_count
         windowList.BestBPM = self.bestBpm
         windowList.BestSnR = self.bestHeartRateSnr
@@ -1082,6 +1272,7 @@ class ProcessFaceData:
         windowList.timeDifferences()
 
         return windowList
+
 
     # region CalcualateSPO
     '''
@@ -1159,7 +1350,7 @@ class ProcessFaceData:
     #         oxygenLevels.append(0)
     #     return self.OxygenSaturation, self.OxygenSaturationError, str(oxygenLevels[0])
 
-    def getSpo(self, OriginalGrey, G_bp, Irchannel, red):
+    def getSpo(self, OriginalGrey, G_bp, Irchannel, red,distanceM):
         # =====================================SPO =====================================
         # =====================================SPO =====================================
         # we select the one that has the smallest error
@@ -1175,7 +1366,7 @@ class ProcessFaceData:
         std, err, oxylevl = self.CalcualateSPOWithout(OriginalGrey, filteredgrey, self.heartRatePeriod, filteredir,
                                                       filteredred,
                                                       None,
-                                                      self.distanceM, smallestOxygenError,
+                                                      distanceM, smallestOxygenError,
                                                       self.region)  # CalcualateSPOPart2 ,CalcualateSPOWithout
 
         oxygenSaturationValueError = self.OxygenSaturationError
@@ -1206,6 +1397,16 @@ class ProcessFaceData:
 
         # get the values of the ir and red channels at the grey peeks
         oxygenLevels = []
+        # newgrayMaxPeekIndice = []
+        # if(len(grayMaxPeekIndice)> len(IR_bp)):
+        #     #remove zeros from gray peak array
+        #     grayMaxPeekIndice = [i for i in grayMaxPeekIndice if i != 0]
+        #     for item in grayMaxPeekIndice:
+        #         newIndex = item/len(IR_bp)
+        #         newgrayMaxPeekIndice.append(int(round(newIndex)))
+        # else:
+        #     newgrayMaxPeekIndice =grayMaxPeekIndice
+
         for index in grayMaxPeekIndice:
             # if self.ignore_freq_below <= freqs[index] <= self.ignore_freq_above:
             irValue = IR_bp[index].real  # ir cahnnel original before
@@ -1293,22 +1494,27 @@ class ProcessFaceData:
         if (self.IrSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.IrSnr
             self.bestBpm = self.IrBpm
+            self.channeltype = 'IR'
 
         if (self.GreySnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.GreySnr
             self.bestBpm = self.GreyBpm
+            self.channeltype = 'Grey'
 
         if (self.RedSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.RedSnr
             self.bestBpm = self.RedBpm
+            self.channeltype = 'Red'
 
         if (self.GreenSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.GreenSnr
             self.bestBpm = self.GreenBpm
+            self.channeltype = 'Green'
 
         if (self.BlueSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.BlueSnr
             self.bestBpm = self.BlueBpm
+            self.channeltype = 'Blue'
 
         # work out the length of time of one heart beat - the heart rate period
         if (self.bestBpm > 0):
@@ -1318,13 +1524,15 @@ class ProcessFaceData:
 
         colorHRperiod = self.ColorEstimatedFPS / self.beatsPerSecond  # window size in sample
         IRHRperiod = self.IREstimatedFPS / self.beatsPerSecond  # window size in sample
-        if (colorHRperiod == IRHRperiod):
-            self.heartRatePeriod = IRHRperiod
-        else:
-            if (IRHRperiod > colorHRperiod):
-                self.heartRatePeriod = IRHRperiod
-            else:
-                self.heartRatePeriod = colorHRperiod
+        self.heartRatePeriod = IRHRperiod
+        #
+        # if (colorHRperiod == IRHRperiod):
+        #     self.heartRatePeriod = IRHRperiod
+        # else:
+        #     if (IRHRperiod > colorHRperiod):
+        #         self.heartRatePeriod = IRHRperiod
+        #     else:
+        #         self.heartRatePeriod = colorHRperiod
 
     # Not used
     # def ComputeIndices(self):
@@ -1614,7 +1822,7 @@ class ProcessFaceData:
     def CopyCalculatedata_fromHRComputerobject(self, IrSnr, GreySnr, RedSnr, GreenSnr, BlueSnr,
                                                IrBpm, GreyBpm, RedBpm, GreenBpm, BlueBpm, IrFreqencySamplingError,
                                                GreyFreqencySamplingError, RedFreqencySamplingError,
-                                               GreenFreqencySamplingError, BlueFreqencySamplingError):
+                                               GreenFreqencySamplingError, BlueFreqencySamplingError,SNR):
         # ResultData
         self.IrSnr = IrSnr
         self.GreySnr = GreySnr
@@ -1631,10 +1839,12 @@ class ProcessFaceData:
         self.RedFreqencySamplingError = RedFreqencySamplingError
         self.GreenFreqencySamplingError = GreenFreqencySamplingError
         self.BlueFreqencySamplingError = BlueFreqencySamplingError
+        self.SNRSummary = SNR
+
+
 
     # region calculate result (HR in bpm) using frequency
-    def generateHeartRateandSNR(self, B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, type, hrtype,
-                                iscompress):
+    def generateHeartRateandSNR(self, B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, type):
         # Create copy of channels
         ir_fft_realabs = IR_filtered.copy()
         if (not self.ignoreGray):
@@ -1644,28 +1854,30 @@ class ProcessFaceData:
         blue_fft_realabs = B_filtered.copy()
 
         # Calculate samples
-        self.NumSamples = len(grey_fft_realabs)
+        ColorNumSamples = len(grey_fft_realabs)
+        IRNumSamples = len(ir_fft_realabs)
         self.freq_bpmColor = 60 * self.Colorfrequency
         self.freq_bpmIr = 60 * self.IRfrequency
 
         # Compute heart rate and snr
-        objComputerHeartRate = ComputerHeartRate(self.snrType, self.ignoreGray, self.NumSamples, self.grayIndex,
+        objComputerHeartRate = ComputerHeartRate(self.snrType, self.ignoreGray, ColorNumSamples, self.grayIndex,
                                                  self.IRIndex, self.components,
                                                  self.ColorEstimatedFPS, self.IREstimatedFPS, self.ramp_end_bpm,
                                                  self.ramp_start_percentage, self.ramp_end_percentage,
                                                  self.ignore_freq_below_bpm, self.ignore_freq_above_bpm,
                                                  self.freq_bpmColor, self.freq_bpmIr, self.Colorfrequency,
-                                                 self.IRfrequency, self.SavePath, self.region)
+                                                 self.IRfrequency, self.SavePath, self.region,IRNumSamples)
 
-
+        SNR =''
+        type =3
         if (type == 1):
-            objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
+            SNR=objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
                                                      grey_fft_realabs, ir_fft_realabs)
         elif (type == 2):
-            objComputerHeartRate.getHeartRate_fromFrequency(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
+            SNR=objComputerHeartRate.getHeartRate_fromFrequency(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
                                                             grey_fft_realabs, ir_fft_realabs)
         elif (type == 3):
-            objComputerHeartRate.getHearRate_fromFrequencyWithFilter_Main(blue_fft_realabs, green_fft_realabs,
+            SNR=objComputerHeartRate.getHearRate_fromFrequencyWithFilter_Main(blue_fft_realabs, green_fft_realabs,
                                                                           red_fft_realabs, grey_fft_realabs,
                                                                           ir_fft_realabs)
 
@@ -1680,9 +1892,14 @@ class ProcessFaceData:
                                                     objComputerHeartRate.GreyFreqencySamplingError,
                                                     objComputerHeartRate.RedFreqencySamplingError,
                                                     objComputerHeartRate.GreenFreqencySamplingError,
-                                                    objComputerHeartRate.BlueFreqencySamplingError)
+                                                    objComputerHeartRate.BlueFreqencySamplingError,SNR)
+
+
         ##delete obj compute hr data
         del objComputerHeartRate
+
+        ##Copy for storage
+        # ResultData
 
 
 class ProcessedData:

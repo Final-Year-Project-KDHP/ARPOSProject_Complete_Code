@@ -21,7 +21,8 @@ class ComputerHeartRate:
     freq_bpmIr= []
     Colorfrequency= []
     IRfrequency= []
-    NumSamples = 0
+    ColorNumSamples = 0
+    IRNumSamples = 0
     ignore_freq_index_below = 0
     ignore_freq_index_above = 0
     ramp_start = 0
@@ -62,8 +63,8 @@ class ComputerHeartRate:
     region = ''
 
     # Constructor
-    def __init__(self, snrType, ignoreGray,NumSamples,grayIndex,IRIndex,components,ColorEstimatedFPS,IREstimatedFPS,ramp_end_bpm,ramp_start_percentage,
-                 ramp_end_percentage,ignore_freq_below_bpm,ignore_freq_above_bpm,freq_bpmColor,freq_bpmIr,Colorfrequency,IRfrequency,SavePath,region):
+    def __init__(self, snrType, ignoreGray,ColorNumSamples,grayIndex,IRIndex,components,ColorEstimatedFPS,IREstimatedFPS,ramp_end_bpm,ramp_start_percentage,
+                 ramp_end_percentage,ignore_freq_below_bpm,ignore_freq_above_bpm,freq_bpmColor,freq_bpmIr,Colorfrequency,IRfrequency,SavePath,region,IRNumSamples):
 
         # Constants
         self.region = region
@@ -81,7 +82,8 @@ class ComputerHeartRate:
         self.freq_bpmIr = freq_bpmIr
         self.Colorfrequency = Colorfrequency
         self.IRfrequency = IRfrequency
-        self.NumSamples = NumSamples
+        self.ColorNumSamples = ColorNumSamples
+        self.IRNumSamples =IRNumSamples
         self.ignore_freq_index_below = 0
         self.ignore_freq_index_above = 0
         self.ramp_start = 0
@@ -167,7 +169,7 @@ class ComputerHeartRate:
         ### GET SNR ###
         SNR = self.getSNR(ir_fft_maxVal, ir_fft_realabs, grey_fft_maxVal, grey_fft_realabs, red_fft_maxVal,
                     red_fft_realabs, green_fft_maxVal, green_fft_realabs, blue_fft_maxVal, blue_fft_realabs)
-
+        return SNR
         # self.WriteDetails(SNR)
 
     def WriteDetails(self, SNR):
@@ -217,12 +219,12 @@ class ComputerHeartRate:
         # self.GreyBpm = np.abs(self.frequency)[grey_fft_realabs[np.abs(self.frequency) <= self.ignore_freq_above].argmax()] * 60
 
         ### GET SNR ###
-        self.getSNR(IR_freqValueAtPeak, ir_fft_realabs, Gy_freqValueAtPeak, grey_fft_realabs, R_freqValueAtPeak,
+        SNR =self.getSNR(IR_freqValueAtPeak, ir_fft_realabs, Gy_freqValueAtPeak, grey_fft_realabs, R_freqValueAtPeak,
                     red_fft_realabs, G_freqValueAtPeak, green_fft_realabs, B_freqValueAtPeak, blue_fft_realabs)
 
         #### GET SAMPLING ERROR ####
-        SNR = self.getSamplingError(IR_sig_max_peak, Gy_sig_max_peak, R_sig_max_peak, G_sig_max_peak, B_sig_max_peak)
-
+        self.getSamplingError(IR_sig_max_peak, Gy_sig_max_peak, R_sig_max_peak, G_sig_max_peak, B_sig_max_peak)
+        return SNR
         # self.WriteDetails(SNR)
 
     def OriginalARPOSmethod(self, B_fft_Copy, G_fft_Copy, R_fft_Copy, Gy_fft_Copy, IR_fft_Copy):
@@ -231,12 +233,12 @@ class ComputerHeartRate:
         # ##FOR COLOR###
         # define index for the low and high pass frequency filter in frequency space that has just been created
         # (depends on number of samples).
-        self.ignore_freq_index_below = np.rint(((self.ignore_freq_below * self.NumSamples) / self.ColorEstimatedFPS))  # high pass
-        self.ignore_freq_index_above = np.rint(((self.ignore_freq_above * self.NumSamples) / self.ColorEstimatedFPS))  # low pass
+        self.ignore_freq_index_below = np.rint(((self.ignore_freq_below * self.ColorNumSamples) / self.ColorEstimatedFPS))  # high pass
+        self.ignore_freq_index_above = np.rint(((self.ignore_freq_above * self.ColorNumSamples) / self.ColorEstimatedFPS))  # low pass
 
         # compute the ramp filter start and end indices double
         self.ramp_start = self.ignore_freq_index_below
-        self.ramp_end = np.rint(((self.ramp_end_hz * self.NumSamples) / self.ColorEstimatedFPS))
+        self.ramp_end = np.rint(((self.ramp_end_hz * self.ColorNumSamples) / self.ColorEstimatedFPS))
         self.rampDesignLength = self.ignore_freq_index_above - self.ignore_freq_index_below
         self.ramp_design = [None] * int(self.rampDesignLength)
         self.ramplooprange = int(self.ramp_end - self.ramp_start)
@@ -312,13 +314,13 @@ class ComputerHeartRate:
         # define index for the low and high pass frequency filter in frequency space that has just been created
         # (depends on number of samples).
         self.ignore_freq_index_below = np.rint(
-            ((self.ignore_freq_below * self.NumSamples) / self.IREstimatedFPS))  # high pass
+            ((self.ignore_freq_below * self.IRNumSamples) / self.IREstimatedFPS))  # high pass
         self.ignore_freq_index_above = np.rint(
-            ((self.ignore_freq_above * self.NumSamples) / self.IREstimatedFPS))  # low pass
+            ((self.ignore_freq_above * self.IRNumSamples) / self.IREstimatedFPS))  # low pass
 
         # compute the ramp filter start and end indices double
         self.ramp_start = self.ignore_freq_index_below
-        self.ramp_end = np.rint(((self.ramp_end_hz * self.NumSamples) / self.IREstimatedFPS))
+        self.ramp_end = np.rint(((self.ramp_end_hz * self.IRNumSamples) / self.IREstimatedFPS))
         self.rampDesignLength = self.ignore_freq_index_above - self.ignore_freq_index_below
         self.ramp_design = [None] * int(self.rampDesignLength)
         self.ramplooprange = int(self.ramp_end - self.ramp_start)
@@ -365,8 +367,11 @@ class ComputerHeartRate:
         ### GET SNR ###
         SNR= self.getSNR(ir_fft_maxVal, ir_fft_realabs, grey_fft_maxVal, grey_fft_realabs, red_fft_maxVal,
                     red_fft_realabs, green_fft_maxVal, green_fft_realabs, blue_fft_maxVal, blue_fft_realabs)
+        # BpmSummary = 'IrBpm: ' + str(self.IrBpm) + ', GreyBpm: ' + str(self.GreyBpm) + ', RedBpm: ' + str(self.RedBpm) \
+        #       + ', GreenBpm: ' + str(self.GreenBpm) + ', BlueBpm: ' + str(self.BlueBpm) + '\n'
 
         # self.WriteDetails(SNR)
+        return  SNR
     '''
     getBPM:
     '''

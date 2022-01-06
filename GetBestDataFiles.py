@@ -480,8 +480,8 @@ class GeneratedDataFiltering:
         df1 = pd.DataFrame({
             'CaseNames': CaseList
         })
-        self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949","PIS-3186","PIS-7381","PIS-5937"]
-        self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
+        # self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949","PIS-3186","PIS-7381","PIS-5937"]
+        # self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
 
         for participant_number in self.objConfig.ParticipantNumbers:
             df1[participant_number] = None
@@ -515,9 +515,9 @@ class GeneratedDataFiltering:
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
 objFilterData.AcceptableDifference = 10
 # objFilterData.Run(AcceptableDifference)
-# objFilterData.RunCasewise()
 # objFilterData.RunAllCaseParticipantwise() ## RUN THIS TO GENERATE CSV FOR CASES
-objFilterData.getBestCasesFromCSV('Resting1')
+objFilterData.RunAllCaseParticipantwise()
+# objFilterData.getBestCasesFromCSV('Resting1')
 # objFilterData.RunParticipantWiseAll()
 
 # Only run after best files are generated

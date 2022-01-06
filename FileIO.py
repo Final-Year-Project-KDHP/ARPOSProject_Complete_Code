@@ -1,4 +1,6 @@
 import os
+import pickle
+
 
 class FileIO:
 
@@ -71,3 +73,15 @@ class FileIO:
         self.CreatePath(ROIPath)
 
         return ROIPath, ROI_dataPath + '\\'
+
+    def DumpObjecttoDisk(self,location, filename, data):
+        self.CreatePath(location)
+        ##STORE Data
+        with open(location + filename, 'wb') as filehandle:
+            pickle.dump(data, filehandle)
+
+    def ReadfromDisk(self,location, filename):
+        ##Read data
+        with open(location + filename, 'rb') as filehandle:
+            data = pickle.load(filehandle)
+        return data
