@@ -40,7 +40,7 @@ class LoadFaceData:
     StartTime = datetime.datetime.now()
     EndTime = datetime.datetime.now()
 
-    # Ohter constatns# TODO fix for variable fps
+    # Ohter constatns#
     ColorEstimatedFPS = 0
     IREstimatedFPS = 0
     ColorfpswithTime = {}

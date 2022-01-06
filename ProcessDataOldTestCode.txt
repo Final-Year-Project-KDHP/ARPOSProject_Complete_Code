@@ -57,7 +57,7 @@
 
         # generate PreProcessed plot
         if (self.GenerateGraphs):
-            self.GenerateGrapth("PreProcessed", S[:, 0],S[:, 1],S[:, 2],S[:, self.grayIndex],S[:, self.IRIndex]) #TODO: FIX IF GRAY IS TO BE IGNORED
+            self.GenerateGrapth("PreProcessed", S[:, 0],S[:, 1],S[:, 2],S[:, self.grayIndex],S[:, self.IRIndex])
 
         return S
 ############################################################################
@@ -215,7 +215,7 @@ other time calculations
 
         ##### old process entire signal method which process signal as a single matrix
 
-    def Process_EntireSignalData(self, IsEntireSignal=True):  # TODO : Implement without Gray
+    def Process_EntireSignalData(self, IsEntireSignal=True):
         #window data object
         windowList = Window_Data()
         windowList.LogTime(LogItems.Start_Total)
@@ -228,7 +228,7 @@ other time calculations
         Irchannel = self.regionWindowSignalData[:, 4]
 
         # Calculate samples
-        self.NumSamples = len(grey)  # shd be channel ? TODO: FIX
+        self.NumSamples = len(grey)  # shd be channel ?
 
         # Combine r,g,b,gy,ir in one array
         S = self.getSignalDataCombined(blue, green, red, grey, Irchannel)
@@ -482,7 +482,7 @@ PREPROCESSING
             processedChannel = signal.detrend(
                 processedChannel)  # detrend the signal to avoid interference of light change
         even_times = np.linspace(self.timecolorCount[0], self.timecolorCount[-1],
-                                 Larray)  # TODO: Fix time color count? instead of maual use other automatic method?
+                                 Larray)  #
         interpolated = np.interp(even_times, self.timecolorCount, processedChannel)  # interpolation by 1
         interpolated = np.hamming(
             Larray) * interpolated  # make the signal become more periodic (advoid spectral leakage)
@@ -537,7 +537,6 @@ PREPROCESSING
         #                 # for hrType in self.objConfig.hrTypeList:
         #                 for filtertype in self.objConfig.filtertypeList:
         #                     for isSmooth in self.objConfig.Smoothen:
-        #                         #TODO: CHECK IF COMPRESSED are neccessary
         #                         # for isCompressed in self.objConfig.Compressed:
         #                         # for snrType in self.objConfig.SNRTypeList:
         #                         # Sort to list for writing to disk later

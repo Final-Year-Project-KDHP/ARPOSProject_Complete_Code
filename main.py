@@ -121,7 +121,7 @@ class Main:
 
                         # GET FPS and distance and other data
                         # if(region == 'lips'):
-                        # objFaceImage.GetDistance(LoadDistancePath)  # TODO: DOUBLE CHECK ARRAY SIZE
+                        # objFaceImage.GetDistance(LoadDistancePath)
 
                         # Create global data object and use dictionary (ROI Store) to uniquely store a regions data
                         self.ROIStore[region] = GlobalData(objFaceImage.time_list_color, objFaceImage.timecolorCount,

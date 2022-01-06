@@ -100,7 +100,7 @@ class CheckReliability:
         condition1=(oxygenSaturationValueError > self.OxygenSaturationErrorAcceptanceThreshold)
         condition2 =(np.abs(oxygenSaturationValue - self.previousComputedOxygenSaturation) > self.OxygenSaturationErrorAcceptanceThreshold * self.previousComputedOxygenSaturation)
         # accept or reject region based on signal to noise or deviation from last computed value
-        if ( condition1 or condition2):  # TODO: IS THIS CORRECT!
+        if ( condition1 or condition2):
             # the value has been rejected
             # set the oxygen saturation value the last
             oxygenSaturationValue = self.previousAcceptedOxygenSaturation[0]

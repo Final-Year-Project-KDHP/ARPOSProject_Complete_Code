@@ -272,11 +272,11 @@ class ProcessFaceData:
         self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
         self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
         # Set in algorithm class
-        self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS  # TODO FIX FOR VAIOIURS FPS
-        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS  # TODO FIX FOR VAIOIURS FPS
+        self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS
         # Set in plot class
-        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS  # TODO FIX FOR VAIOIURS FPS
-        self.objPlots.IREstimatedFPS = self.IREstimatedFPS  # TODO FIX FOR VAIOIURS FPS
+        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objPlots.IREstimatedFPS = self.IREstimatedFPS
 
         # Split ROI Store region data
         self.setSignalSourceData(ROIStore, region)
@@ -310,7 +310,7 @@ class ProcessFaceData:
         return key[0]
 
     def reCalculateFPS(self, dataDictionary, currentWindow, WindowLength):
-        initialindex = currentWindow + 1 #TODO: DOUBLE CHECK IF THIS IS CORRECT
+        initialindex = currentWindow + 1
         fpsList = {}
         endIndex = WindowLength + currentWindow#-1#initialindex + WindowLength
         count = 1
@@ -1070,7 +1070,7 @@ class ProcessFaceData:
                 Gy_fft = Gy_fft.real
         else:
             Gy_fft = []
-        # TODO: Make sepearte method to return real values from complex array
+
         if (np.iscomplex(IR_fft.any())):
             IR_fft = IR_fft.real
 
