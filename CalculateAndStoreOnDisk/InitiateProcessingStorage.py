@@ -265,16 +265,6 @@ class InitiateProcessingStorage:
         return CaseList
 
     def ProduceFinalResult(self):
-        self.objConfig.ParticipantNumbers.remove('PIS-8073')
-        self.objConfig.ParticipantNumbers.remove('PIS-2047')
-        self.objConfig.ParticipantNumbers.remove('PIS-4014')
-        self.objConfig.ParticipantNumbers.remove('PIS-1949')
-        self.objConfig.ParticipantNumbers.remove('PIS-3186')
-        self.objConfig.ParticipantNumbers.remove('PIS-7381')
-        self.objConfig.ParticipantNumbers.remove('PIS-6729')
-        self.objConfig.ParticipantNumbers.remove('PIS-6327')
-        self.objConfig.ParticipantNumbers.remove('PIS-6888')
-        self.objConfig.ParticipantNumbers.remove('PIS-4709')
         # each particpant
         for participant_number in self.objConfig.ParticipantNumbers:
             # each position

@@ -3,11 +3,14 @@ import os
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+import seaborn as sns
 
 import CommonMethods
 from Configurations import Configurations
 from FileIO import FileIO
 from boxPlotMethodComparision import BoxPlot
+import plotly.express as px
 
 
 class GeneratedDataFiltering:
@@ -415,26 +418,65 @@ class GeneratedDataFiltering:
             df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
         t=0
 
+    def getDuplicateValue(self, ini_dict):
+        # finding duplicate values
+        flipped = {}
+        for key, value in ini_dict.items():
+            if value not in flipped:
+                flipped[value] = 1
+            else:
+                val = flipped.get(value)
+                flipped[value] = val + 1
+        # print(str(max(flipped.values())))
+        # printing result
+        # print("final_dictionary", str(flipped))
+        key = [fps for fps, count in flipped.items() if count == max(flipped.values())]
+        return key[0]
+
     def getBestCasesFromCSV(self,position):
         df1 = pd.read_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
 
-        BestCaseList = []
+        ListCaseCount = {}
         for index, row in df1.iterrows():
             currentCase = row[1]
             addCase= True
+            mincount = 0
+
             for column in df1:
                 if(column.__contains__('Unnamed') or column.__contains__('Case')):
                     continue
                 colIndex = df1.columns.get_loc(column) #df1[column] just column in df1 get entire columns values
                 colValueInRow =  df1.iloc[index, colIndex]
-                if(np.isnan(colValueInRow)):
-                    addCase = False
+                if(not np.isnan(colValueInRow)):
+                    mincount = mincount+1
 
-            if(addCase):
-                BestCaseList.append(currentCase)
+            ListCaseCount[currentCase] =mincount
 
-        for item in BestCaseList:
-            print(item)
+        MaxCount =self.getDuplicateValue(ListCaseCount)
+
+        ListCasesForSelection =[]
+        for key, value in ListCaseCount.items():
+            if MaxCount == value:
+                ListCasesForSelection.append(key)
+
+        t=0
+        # BestCaseList = []
+        # for index, row in df1.iterrows():
+        #     currentCase = row[1]
+        #     addCase= True
+        #     for column in df1:
+        #         if(column.__contains__('Unnamed') or column.__contains__('Case')):
+        #             continue
+        #         colIndex = df1.columns.get_loc(column) #df1[column] just column in df1 get entire columns values
+        #         colValueInRow =  df1.iloc[index, colIndex]
+        #         if(np.isnan(colValueInRow)):
+        #             addCase = False
+        #
+        #     if(addCase):
+        #         BestCaseList.append(currentCase)
+        #
+        # for item in BestCaseList:
+        #     print(item)
     """
        LoadFiles:
        Load file from path
@@ -474,7 +516,7 @@ class GeneratedDataFiltering:
                     # file.close()
 
 
-    def RunAllCaseParticipantwise(self):
+    def RunAllCaseParticipantwiseCaseasRow(self):
         CaseList = self.GenerateCases() # or generate
 
         df1 = pd.DataFrame({
@@ -510,15 +552,114 @@ class GeneratedDataFiltering:
             df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
         t=0
 
+    def RunAllCaseParticipantwiseCaseasCol(self):
+        CaseList = self.GenerateCases() # or generate
+
+        df1 = pd.DataFrame({
+            'ParticipantNumbers': self.objConfig.ParticipantNumbers
+        })
+        # self.objConfig.ParticipantNumbers =["PIS-8073","PIS-2047","PIS-4014","PIS-1949","PIS-3186","PIS-7381","PIS-5937"]
+        # self.objConfig.Participantnumbers_SkinGroupTypes =["Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group","Europe_WhiteSkin_Group"]
+
+        for case in CaseList:
+            df1[case] = None
+
+        for position in self.objConfig.hearratestatus:
+            RowIndex = 0 #
+            for participant_number in self.objConfig.ParticipantNumbers:
+                ColumnIndex = 1  # so doesntt replace case names
+                for case in CaseList:
+                    #for position in self.objConfig.hearratestatus:
+                    CaseData = self.getCaseNew(case, participant_number, position)
+                    if(CaseData != None):
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        isAcceptable = self.IsAcceptableDifference(differenceVal)
+                        if(isAcceptable):
+                            df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                    else:
+                        df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
+                    # else:
+                    #     df1.iloc[RowIndex, ColumnIndex] = None
+                    ColumnIndex = ColumnIndex +1
+                    # print(df1)
+                RowIndex = RowIndex +1
+
+            # write dataFrame to SalesRecords CSV file
+            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
+        t=0
+
+    def TestBoxPlot(self):
+        df = pd.read_csv("E:\\TestResult.csv")# read file
+        df.head()
+
+        ####SNS
+        sns.set_style('whitegrid')
+        ax = sns.boxplot(x='Techniques', y='Differences', data=df)
+        ax = sns.stripplot(x="Techniques", y="Differences", data=df)
+        plt.show()
+
+    def LinePlot(self):
+        # df = pd.read_csv("E:\\TestResultLine.csv")  # read file
+        # df.head()
+        # sns.lineplot(x="Techniques", y="TimeLog", hue='Participants', data=df)
+        # plt.show()
+        ###FOr window use same but do average?
+        Technique1 = ['T1', 'T2', 'T3'] #Over All pariticpants
+        TimeLog = [(0.006982,0.006982,0.004986,0.004986),(0.043882,0.043882,0.043882,0.043882),(0.8,0.4,0.6,0.8)]#(P1,P2,P3,P4)
+        plt.plot(Technique1, TimeLog, marker='o')
+        plt.legend(['T1', 'T2', 'T3'])
+        plt.title('Unemployment Rate Vs Year')
+        plt.xlabel('Year')
+        plt.ylabel('Unemployment Rate')
+        plt.show()
+
+    def TestBoxPlotWindow(self):
+        df = pd.read_csv("E:\\TestResultWindow.csv")# read file
+        # Draw a vertical boxplot grouped
+        # by a categorical variable:
+        df.head()
+        ###MEthod2#####
+        # fig, ax = plt.subplots(1, sharex=False, sharey=False, gridspec_kw={'hspace': 0}, figsize=(10, 5))
+        # sns.boxplot(x="Window", y="Differences", hue="Techniques", data=df, palette="PRGn")
+        # [ax.axvline(x, color='black', linestyle='--') for x in [0.5,1.5,2.5]]
+        # plt.show()
+        ###MEthod1#####
+        sns.set_style('whitegrid')
+        ax = sns.boxplot(x='Window', y='Differences',hue="Techniques", data=df)
+        ax = sns.stripplot(x="Window", y="Differences",hue="Techniques", data=df,palette="Set2")#, size=6, marker="D",edgecolor="gray", alpha=.25
+        handles, labels = ax.get_legend_handles_labels()
+        plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        [ax.axvline(x, color='black', linestyle='--') for x in [0.5,1.5,2.5]]
+        plt.show()
+
+        #########method3
+        # sns.stripplot(x="Window", y="Differences", hue="Techniques",
+        #               data=df, jitter=True,
+        #               palette="Set2", split=True, linewidth=1, edgecolor='gray')
+        #
+        # # Get the ax object to use later.
+        # ax = sns.boxplot(x="Window", y="Differences", hue="Techniques",
+        #                  data=df, palette="Set2", fliersize=0)
+        #
+        # # Get the handles and labels. For this example it'll be 2 tuples
+        # # of length 4 each.
+        # handles, labels = ax.get_legend_handles_labels()
+        #
+        # # When creating the legend, only use the first two elements
+        # # to effectively remove the last two.
+        # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        # plt.show()
+
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
 objFilterData.AcceptableDifference = 10
 # objFilterData.Run(AcceptableDifference)
-# objFilterData.RunAllCaseParticipantwise() ## RUN THIS TO GENERATE CSV FOR CASES
-objFilterData.RunAllCaseParticipantwise()
-# objFilterData.getBestCasesFromCSV('Resting1')
+# objFilterData.RunAllCaseParticipantwise() S
+# objFilterData.RunAllCaseParticipantwiseCaseasCol()## RUN THIS TO GENERATE CSV FOR CASE
+# objFilterData.getBestCasesFromCSV('AfterExcersize')
 # objFilterData.RunParticipantWiseAll()
-
+objFilterData.LinePlot()
 # Only run after best files are generated
 # objFilterData.processBestResults("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\","BestDataFiles") #"E:\\StudyData\\Result\\BestDataFiles_Resting1.txt"
+

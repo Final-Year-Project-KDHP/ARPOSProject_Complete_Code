@@ -47,7 +47,7 @@ class Main:
 
     def CheckIfGenerated(self, fileName):
         # SavePath = self.objConfig.SavePath + fileName + '\\'
-        pathExsists = objFile.FileExits(self.objConfig.SavePath + 'Result\\' + 'HeartRate_' + fileName + ".txt")
+        pathExsists = objFile.FileExits(self.objConfig.SavePath + 'Result\\' + 'HRSPOwithLog_' + fileName + ".txt")
         # already generated
         if (pathExsists):
             return True
@@ -57,19 +57,24 @@ class Main:
      GenerateResultsfromParticipants:
      """
 
-    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA):
+    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing):
         self.GenerateCases()
+        TotalCasesCount = len(self.CaseList)
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
+                print(participant_number + ', ' + position)
                 # ParticipantsOriginalDATA[participant_number + '_' + position] = objWindowProcessedData
                 objWindowProcessedData = ParticipantsOriginalDATA.get(participant_number + '_' + position)
-                self.objConfig.setSavePath(participant_number, position,'ProcessedDataWindows')
+                self.objConfig.setSavePath(participant_number, position,typeProcessing)
+                currentCasesDone = 0
                 for case in self.CaseList:
                     IsGenerated = self.CheckIfGenerated(case)
+                    currentCasesDone = currentCasesDone + 1
+                    currentPercentage = ((currentCasesDone/TotalCasesCount)*100)
                     if (IsGenerated):
                         continue
                     else:
-                        print(case)
+                        print(case + '  -> ' + str(currentPercentage) + ' out of 100%')
                         splitCase = case.split('_')
                         fileName = case
                         algoType = splitCase[0]
@@ -91,6 +96,7 @@ class Main:
                             filtertype, resulttype, preprocesstype, isSmooth,
                             objWindowProcessedData.HrGroundTruthList, objWindowProcessedData.SPOGroundTruthList,
                             fileName, self.objConfig.DumpToDisk)
+                ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
     def LoadandGenerateFaceDatatoBianryFiles(self):
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
@@ -189,12 +195,17 @@ class Main:
         else:
             # Load Data from path
             # ParticipantsOriginalDATA = self.LoadBinaryData()
+            #Process for entire signal or in windows
+            FolderNameforSave = 'ProcessedDataWindows'
+            if(self.objConfig.RunAnalysisForEntireSignalData):
+                FolderNameforSave= 'ProcessedData'
 
             #  Load Data from path and Process Data
-            self.GenerateResultsfromParticipants(self.LoadBinaryData())
+            self.GenerateResultsfromParticipants(self.LoadBinaryData(),FolderNameforSave)#FOR Window processing
 
 
-objMain = Main(
-    'Europe_WhiteSkin_Group')  # Add none here to process all skin types [Europe_WhiteSkin_Group,SouthAsian_BrownSkin_Group,OtherAsian_OtherSkin_Group]
+skintype = 'Europe_WhiteSkin_Group'
+print('Program started for ' +skintype)
+objMain = Main(skintype)  # Add none here to process all skin types [Europe_WhiteSkin_Group,SouthAsian_BrownSkin_Group,OtherAsian_OtherSkin_Group]
 objMain.mainMethod(False)  # Send true to generate binary object data holding images in arrays meaned
 print('Program Ended')

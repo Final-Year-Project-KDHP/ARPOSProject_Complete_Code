@@ -24,11 +24,10 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
                                           HrGr, SpoGr,
                                           Filter_type, Result_type, Preprocess_type, isSmoothen,fileName,DumpToDisk)
     else:
-        ListHrdata, ListSPOdata, IsSuccess = Process_Participants_Data_EntireSignal(ROIStore, SavePath,
-                                               Algorithm_type, FFT_type,
-                                               HrGr, SpoGr,
-                                               Filter_type, Result_type, Preprocess_type, isSmoothen,fileName,DumpToDisk)
-    # return  ListHrdata, ListSPOdata, IsSuccess
+        Process_Participants_Data_EntireSignal(ROIStore, SavePath,
+                                          Algorithm_type, FFT_type,
+                                          HrGr, SpoGr,
+                                          Filter_type, Result_type, Preprocess_type, isSmoothen,fileName,DumpToDisk)
 
 
 
@@ -41,8 +40,8 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
 
     objReliability = CheckReliability()
     # Lists to hold heart rate and blood oxygen data
-    ListHrdata = []
-    ListSPOdata = []
+    Listdata = []
+    # ListSPOdata = []
     bestHeartRateSnr = 0.0
     bestBpm = 0.0
     channeltype = ''
@@ -52,7 +51,7 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
     smallestOxygenError = sys.float_info.max
     timeinSeconds = 10
     finaloxy = 0.0
-
+    FullTimeLog = None
 
     # ROI Window Result list
     WindowRegionList = {}
@@ -77,27 +76,27 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
     objProcessDataLips = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
                                          SavePath ,
                                          objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
-                                         DumpToDisk)
+                                         DumpToDisk,fileName)
     # Initialise object to process face regions signal data
     objProcessDataForehead = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
                                          SavePath ,
                                          objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
-                                         DumpToDisk)
+                                         DumpToDisk,fileName)
 
     # Initialise object to process face regions signal data
     objProcessDataRcheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
                                          SavePath ,
                                          objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
-                                         DumpToDisk)
+                                         DumpToDisk,fileName)
 
     # Initialise object to process face regions signal data
     objProcessDataLcheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
                                          SavePath ,
                                          objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
-                                         DumpToDisk)
+                                         DumpToDisk,fileName)
     # Loop through signal data
     for WindowCount in range(0, int(TotalWindows)):#RUNNING FOR WINDOW TIMES # TimeinSeconds
-        print('Window: '+ str(WindowCount))
+        # print('Window: '+ str(WindowCount))
         # Lips
         objProcessDataLips.getSingalDataWindow(ROIStore, objConfig.roiregions[0], WindowCount, TotalWindows,timeinSeconds)
         lipsResult = objProcessDataLips.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
@@ -140,48 +139,47 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
                 regiontype = k
                 freqencySamplingError = v.IrFreqencySamplingError
                 diffNow = v.diffTime
-                diffTimeTotal = v.diffTimeLog
+                diffTimeLog = v.diffTimeLog
+                FullTimeLog = v.gettimeDifferencesToString()
 
             if (v.oxygenSaturationValueError < smallestOxygenError):
                 smallestOxygenError = v.oxygenSaturationValueError
                 finaloxy = v.oxygenSaturationValueValue
 
-        # Check reliability and record best readings
-        heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
-                                                                         freqencySamplingError)
-        oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError,
-                                                                                             finaloxy)
+        if(bestBpm>0):
+            # Check reliability and record best readings
+            heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
+                                                                             freqencySamplingError)
+            oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError,
+                                                                                                 finaloxy)
 
-        # Get difference and append data (heart rate)
-        difference = round(float(HrAvgList[WindowCount]) - float(heartRateValue))
-        ListHrdata.append(str(WindowCount) + " ,\t" + str(round(HrAvgList[WindowCount])) + " ,\t" +
-                          str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(
-                diffNow) + " ,\t" + str(regiontype))
+            # Get difference and append data (heart rate)
+            differenceHR = round(float(HrAvgList[WindowCount]) - float(heartRateValue))
 
-        # Get difference and append data (blood oxygen)
-        difference = round(float(SPOAvgList[WindowCount]) - float(oxygenSaturationValue))
-        ListSPOdata.append(str(WindowCount) + " ,\t" + str(round(SPOAvgList[WindowCount])) + " ,\t" +
-                           str(round(oxygenSaturationValue)) + " ,\t" + str(difference)+ " ,\t" + str(
-                diffNow) + " ,\t" + str(regiontype))
+            # Get difference and append data (blood oxygen)
+            differenceSPO = round(float(SPOAvgList[WindowCount]) - float(oxygenSaturationValue))
 
-        # Next window
-        # WindowCount = WindowCount + 1
+            Listdata.append('WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' +  str(round(HrAvgList[WindowCount])) + " ,\t" +
+                              'ComputedHeartRate: ' + str(round(heartRateValue)) + " ,\t" + 'HRDifference: ' +str(differenceHR)+ " ,\t" +
+                              'GroundTruthSPO: ' + str(round(SPOAvgList[WindowCount])) + " ,\t" +
+                              'ComputedSPO: '  + str(round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(differenceSPO) + " ,\t" +
+                              'Regiontype: ' + " ,\t" + str(regiontype) + " ,\t"  + FullTimeLog)
 
     # filename
-    fileNameHr = "HeartRate_" + fileName
+    fileNameResult = "HRSPOwithLog_" + fileName
         #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
         # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
         # isSmoothen)
     # Write data to file
-    objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameHr, ListHrdata)
+    objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameResult, Listdata)
 
     # filename
-    fileNameSpo = "SPO_" + fileName
-    # Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
-    #     Filter_type) + "_RS-" + str(Result_type)  + "_PR-" + str(Preprocess_type) + "_SM-" + str(
-    #     isSmoothen)
-    # Write data to file
-    objFile.WriteListDatatoFile(SavePath+ 'Result\\', fileNameSpo, ListSPOdata)
+    # fileNameSpo = "SPO_" + fileName
+    # # Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
+    # #     Filter_type) + "_RS-" + str(Result_type)  + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+    # #     isSmoothen)
+    # # Write data to file
+    # objFile.WriteListDatatoFile(SavePath+ 'Result\\', fileNameSpo, ListSPOdata)
 
     del objReliability
     del objProcessDataLips
@@ -194,153 +192,293 @@ def Process_Participants_Data_Windows(ROIStore, SavePath,
 Process participants data over the entire signal data
 '''
 def Process_Participants_Data_EntireSignal(ROIStore, SavePath,
-                                           Algorithm_type, FFT_type, HrGr, SpoGr,
-                                           Filter_type, Result_type, Preprocess_type, isSmoothen):
-
-    # Lists to hold heart rate and blood oxygen data
-    ListHrdata = []
-    ListSPOdata = []
+                                      Algorithm_type, FFT_type, HrGr, SpoGr,
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen,fileName,DumpToDisk,ProcessingStep):
 
     objReliability = CheckReliability()
-
-    diffNow = 0.0
+    # Lists to hold heart rate and blood oxygen data
+    Listdata = []
+    # ListSPOdata = []
     bestHeartRateSnr = 0.0
     bestBpm = 0.0
     channeltype = ''
     regiontype = ''
-    IsSuccess = ''
-    finaloxy = 0.0
     freqencySamplingError = 0.0
+    previousComputedHeartRate = 0.0
     smallestOxygenError = sys.float_info.max
-    timeinSeconds = ROIStore.get("lips").totalTimeinSeconds  # this is same for all regions as no of frames are same recorded for that time peroid so we can use any region to get time
-    # leng = len(ROIStore.get("lips").Irchannel)
-
-    # Initialise object to process face regions signal data
-    objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
-                                     objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds
-                                     )
+    finaloxy = 0.0
+    FullTimeLog = None
 
     # ROI Window Result list
     WindowRegionList = {}
 
-    # Average ground truth data
-    HrAvegrage = (np.average(CommonMethods.AvegrageGroundTruth(HrGr)))
-    SPOAvegrage = (np.average(CommonMethods.AvegrageGroundTruth(SpoGr)))
+    # Windows for regions (should be same for all)
+    LengthofAllFramesColor = ROIStore.get(objConfig.roiregions[0]).getLengthColor() #len()  # all have same lenghts
+    LengthofAllFramesIR = ROIStore.get(objConfig.roiregions[0]).getLengthIR()
+    TimeinSeconds = ROIStore.get("lips").totalTimeinSeconds # LengthofAllFrames / objProcessData.ColorEstimatedFPS  # take color as color and ir would run for same window
+    timeinSeconds = TimeinSeconds
+    TotalWindows = 1
+    # Split ground truth data
+    HrAvgList = CommonMethods.AvegrageGroundTruth(HrGr)
+    SPOAvgList = CommonMethods.AvegrageGroundTruth(SpoGr)
 
-    # Lips
-    objProcessData.getSingalData(ROIStore, objConfig.roiregions[0])
-    lipsResult = objProcessData.Process_EntireSignalData()
+    # Loop through signal data
+    WindowCount = 0
+    # Initialise object to process face regions signal data
+    objProcessDataLips = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath ,
+                                         objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
+                                         DumpToDisk,fileName)
+    objProcessDataLips.getSingalDataWindow(ROIStore, objConfig.roiregions[0], WindowCount, TotalWindows,timeinSeconds)
+
+    # Initialise object to process face regions signal data
+    objProcessDataForehead = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath ,
+                                         objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
+                                         DumpToDisk,fileName)
+    objProcessDataForehead.getSingalDataWindow(ROIStore, objConfig.roiregions[1],WindowCount, TotalWindows,timeinSeconds)  # Lips
+
+    # Initialise object to process face regions signal data
+    objProcessDataRcheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath ,
+                                         objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
+                                         DumpToDisk,fileName)
+    objProcessDataRcheek.getSingalDataWindow(ROIStore, objConfig.roiregions[3],  WindowCount, TotalWindows, timeinSeconds)
+
+    # Initialise object to process face regions signal data
+    objProcessDataLcheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath ,
+                                         objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
+                                         DumpToDisk,fileName)
+    objProcessDataLcheek.getSingalDataWindow(ROIStore, objConfig.roiregions[2], WindowCount, TotalWindows,timeinSeconds)
+    #TODO: FIX FOR SINGLE WINDOW
+    if(ProcessingStep == 'PreProcessing'):
+        # Lips
+        # startlogTime =
+        # PreProcess Signal
+        processedBlue, processedGreen, processedRed, processedGrey, processedIR = objProcessDataLips.preprocessSignalData(objProcessDataLips.regionBlueData, objProcessDataLips.regionGreenData,
+                                                                                                            objProcessDataLips.regionRedData, objProcessDataLips.regionGreyData,
+                                                                                                            objProcessDataLips.regionIRData)
+        # endlogTime =
+    elif(ProcessingStep == 'PreProcessing'):
+        type=0
+    lipsResult = objProcessDataLips.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
 
     # Forehead
-    objProcessData.getSingalData(ROIStore, objConfig.roiregions[1])
-    foreheadResult = objProcessData.Process_EntireSignalData()
+    foreheadResult = objProcessDataForehead.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
 
     # LeftCheek
-    objProcessData.getSingalData(ROIStore, objConfig.roiregions[2])
-    leftcheekResult = objProcessData.Process_EntireSignalData()
+    leftcheekResult = objProcessDataLcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
 
     # RightCheek
-    objProcessData.getSingalData(ROIStore, objConfig.roiregions[3])
-    rightcheekResult = objProcessData.Process_EntireSignalData()
+    rightcheekResult = objProcessDataRcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
+
+    if (DumpToDisk):
+        objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
+                                 'lipsResult_Window_' + str(WindowCount), lipsResult)
+        objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
+                                 'foreheadResult_Window_' + str(WindowCount), foreheadResult)
+        objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
+                                 'leftcheekResult_Window_' + str(WindowCount), leftcheekResult)
+        objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
+                                 'rightcheekResult_Window_' + str(WindowCount), rightcheekResult)
 
     # Store Data in Window List
     WindowRegionList['lips'] = lipsResult
     WindowRegionList['forehead'] = foreheadResult
     WindowRegionList['rightcheek'] = rightcheekResult
     WindowRegionList['leftcheek'] = leftcheekResult
-    diffTimeTotal = {}
 
     # Get best region data
     for k, v in WindowRegionList.items():
-        if(v.BestSnR > bestHeartRateSnr):
+        if (v.BestSnR > bestHeartRateSnr):
             bestHeartRateSnr = v.BestSnR
             bestBpm = v.BestBPM
-            # channeltype = v.
+            channeltype = v.channeltype
             regiontype = k
-            # freqencySamplingError = v.IrFreqencySamplingError
+            freqencySamplingError = v.IrFreqencySamplingError
             diffNow = v.diffTime
-            diffTimeTotal = v.diffTimeLog
-        # if (v.IrSnr > bestHeartRateSnr):
-        #     bestHeartRateSnr = v.IrSnr
-        #     bestBpm = v.IrBpm
-        #     channeltype = 'IR'
-        #     regiontype = k
-        #     freqencySamplingError = v.IrFreqencySamplingError
-        #     diffNow = v.diffTime
-        #     diffTimeTotal = v.diffTimeLog
-        #
-        # if (v.GreySnr > bestHeartRateSnr):
-        #     bestHeartRateSnr = v.GreySnr
-        #     bestBpm = v.GreyBpm
-        #     channeltype = 'Grey'
-        #     regiontype = k
-        #     freqencySamplingError = v.GreyFreqencySamplingError
-        #     diffNow = v.diffTime
-        #     diffTimeTotal = v.diffTimeLog
-        #
-        # if (v.RedSnr > bestHeartRateSnr):
-        #     bestHeartRateSnr = v.RedSnr
-        #     bestBpm = v.RedBpm
-        #     channeltype = 'Red'
-        #     regiontype = k
-        #     freqencySamplingError = v.RedFreqencySamplingError
-        #     diffNow = v.diffTime
-        #     diffTimeTotal = v.diffTimeLog
-        #
-        # if (v.GreenSnr > bestHeartRateSnr):
-        #     bestHeartRateSnr = v.GreenSnr
-        #     bestBpm = v.GreenBpm
-        #     channeltype = 'Green'
-        #     regiontype = k
-        #     freqencySamplingError = v.GreenFreqencySamplingError
-        #     diffNow = v.diffTime
-        #     diffTimeTotal = v.diffTimeLog
-        #
-        # if (v.BlueSnr > bestHeartRateSnr):
-        #     bestHeartRateSnr = v.BlueSnr
-        #     bestBpm = v.BlueBpm
-        #     channeltype = 'Blue'
-        #     regiontype = k
-        #     freqencySamplingError = v.BlueFreqencySamplingError
-        #     diffNow = v.diffTime
-        #     diffTimeTotal = v.diffTimeLog
+            diffTimeLog = v.diffTimeLog
+            FullTimeLog = v.gettimeDifferencesToString()
 
         if (v.oxygenSaturationValueError < smallestOxygenError):
             smallestOxygenError = v.oxygenSaturationValueError
             finaloxy = v.oxygenSaturationValueValue
 
-    if (regiontype != ''):
-        IsSuccess = True
+    if(bestBpm>0):
         # Check reliability and record best readings
-        heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
-        oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
+        heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
+                                                                         freqencySamplingError)
+        oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError,
+                                                                                             finaloxy)
 
         # Get difference and append data (heart rate)
-        difference = round(float(HrAvegrage) - float(round(heartRateValue)))
-        ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
+        differenceHR = round(float(HrAvgList[WindowCount]) - float(heartRateValue))
 
         # Get difference and append data (blood oxygen)
-        difference = round(float(SPOAvegrage) - float(oxygenSaturationValue))
-        ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow)+ " ,\t" + str(regiontype))
+        differenceSPO = round(float(SPOAvgList[WindowCount]) - float(oxygenSaturationValue))
 
-        printTime = ''
-        for k, v in diffTimeTotal.items():
-            printTime = printTime + str(k) + ': ' + str(v) + '\n'
+        Listdata.append('WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' +  str(round(HrAvgList[WindowCount])) + " ,\t" +
+                          'ComputedHeartRate: ' + str(round(heartRateValue)) + " ,\t" + 'HRDifference: ' +str(differenceHR)+ " ,\t" +
+                          'GroundTruthSPO: ' + str(round(SPOAvgList[WindowCount])) + " ,\t" +
+                          'ComputedSPO: '  + str(round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(differenceSPO) + " ,\t" +
+                          'Regiontype: ' + " ,\t" + str(regiontype) + " ,\t"  + FullTimeLog)
 
-        objFile = FileIO()
-        objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
-        del objFile
-
-    # # Write data to file
-    # objFile.WriteListDatatoFile(SavePath, fileNameHr, ListHrdata)
-    # objFile.WriteListDatatoFile(SavePath, fileNameSpo, ListSPOdata)
-    else:
-        IsSuccess = False
+    # filename
+    fileNameResult = "HRSPOwithLog_" + fileName
+    # Write data to file
+    objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameResult, Listdata)
 
     del objReliability
-    del objProcessData
+    del objProcessDataLips
+    del objProcessDataRcheek
+    del objProcessDataForehead
+    del objProcessDataLcheek
 
-    return ListHrdata, ListSPOdata, IsSuccess
+    # # Lists to hold heart rate and blood oxygen data
+    # ListHrdata = []
+    # ListSPOdata = []
+    #
+    # objReliability = CheckReliability()
+    #
+    # diffNow = 0.0
+    # bestHeartRateSnr = 0.0
+    # bestBpm = 0.0
+    # channeltype = ''
+    # regiontype = ''
+    # IsSuccess = ''
+    # finaloxy = 0.0
+    # freqencySamplingError = 0.0
+    # smallestOxygenError = sys.float_info.max
+    # timeinSeconds = ROIStore.get("lips").totalTimeinSeconds  # this is same for all regions as no of frames are same recorded for that time peroid so we can use any region to get time
+    # # leng = len(ROIStore.get("lips").Irchannel)
+    #
+    # # Initialise object to process face regions signal data
+    # objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath,
+    #                                  objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds
+    #                                  )
+    #
+    # # ROI Window Result list
+    # WindowRegionList = {}
+    #
+    # # Average ground truth data
+    # HrAvegrage = (np.average(CommonMethods.AvegrageGroundTruth(HrGr)))
+    # SPOAvegrage = (np.average(CommonMethods.AvegrageGroundTruth(SpoGr)))
+    #
+    # # Lips
+    # objProcessData.getSingalData(ROIStore, objConfig.roiregions[0])
+    # lipsResult = objProcessData.Process_EntireSignalData()
+    #
+    # # Forehead
+    # objProcessData.getSingalData(ROIStore, objConfig.roiregions[1])
+    # foreheadResult = objProcessData.Process_EntireSignalData()
+    #
+    # # LeftCheek
+    # objProcessData.getSingalData(ROIStore, objConfig.roiregions[2])
+    # leftcheekResult = objProcessData.Process_EntireSignalData()
+    #
+    # # RightCheek
+    # objProcessData.getSingalData(ROIStore, objConfig.roiregions[3])
+    # rightcheekResult = objProcessData.Process_EntireSignalData()
+    #
+    # # Store Data in Window List
+    # WindowRegionList['lips'] = lipsResult
+    # WindowRegionList['forehead'] = foreheadResult
+    # WindowRegionList['rightcheek'] = rightcheekResult
+    # WindowRegionList['leftcheek'] = leftcheekResult
+    # diffTimeTotal = {}
+    #
+    # # Get best region data
+    # for k, v in WindowRegionList.items():
+    #     if(v.BestSnR > bestHeartRateSnr):
+    #         bestHeartRateSnr = v.BestSnR
+    #         bestBpm = v.BestBPM
+    #         # channeltype = v.
+    #         regiontype = k
+    #         # freqencySamplingError = v.IrFreqencySamplingError
+    #         diffNow = v.diffTime
+    #         diffTimeTotal = v.diffTimeLog
+    #     # if (v.IrSnr > bestHeartRateSnr):
+    #     #     bestHeartRateSnr = v.IrSnr
+    #     #     bestBpm = v.IrBpm
+    #     #     channeltype = 'IR'
+    #     #     regiontype = k
+    #     #     freqencySamplingError = v.IrFreqencySamplingError
+    #     #     diffNow = v.diffTime
+    #     #     diffTimeTotal = v.diffTimeLog
+    #     #
+    #     # if (v.GreySnr > bestHeartRateSnr):
+    #     #     bestHeartRateSnr = v.GreySnr
+    #     #     bestBpm = v.GreyBpm
+    #     #     channeltype = 'Grey'
+    #     #     regiontype = k
+    #     #     freqencySamplingError = v.GreyFreqencySamplingError
+    #     #     diffNow = v.diffTime
+    #     #     diffTimeTotal = v.diffTimeLog
+    #     #
+    #     # if (v.RedSnr > bestHeartRateSnr):
+    #     #     bestHeartRateSnr = v.RedSnr
+    #     #     bestBpm = v.RedBpm
+    #     #     channeltype = 'Red'
+    #     #     regiontype = k
+    #     #     freqencySamplingError = v.RedFreqencySamplingError
+    #     #     diffNow = v.diffTime
+    #     #     diffTimeTotal = v.diffTimeLog
+    #     #
+    #     # if (v.GreenSnr > bestHeartRateSnr):
+    #     #     bestHeartRateSnr = v.GreenSnr
+    #     #     bestBpm = v.GreenBpm
+    #     #     channeltype = 'Green'
+    #     #     regiontype = k
+    #     #     freqencySamplingError = v.GreenFreqencySamplingError
+    #     #     diffNow = v.diffTime
+    #     #     diffTimeTotal = v.diffTimeLog
+    #     #
+    #     # if (v.BlueSnr > bestHeartRateSnr):
+    #     #     bestHeartRateSnr = v.BlueSnr
+    #     #     bestBpm = v.BlueBpm
+    #     #     channeltype = 'Blue'
+    #     #     regiontype = k
+    #     #     freqencySamplingError = v.BlueFreqencySamplingError
+    #     #     diffNow = v.diffTime
+    #     #     diffTimeTotal = v.diffTimeLog
+    #
+    #     if (v.oxygenSaturationValueError < smallestOxygenError):
+    #         smallestOxygenError = v.oxygenSaturationValueError
+    #         finaloxy = v.oxygenSaturationValueValue
+    #
+    # if (regiontype != ''):
+    #     IsSuccess = True
+    #     # Check reliability and record best readings
+    #     heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm, freqencySamplingError)
+    #     oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError, finaloxy)
+    #
+    #     # Get difference and append data (heart rate)
+    #     difference = round(float(HrAvegrage) - float(round(heartRateValue)))
+    #     ListHrdata.append(str(round(HrAvegrage)) + " ,\t" + str(round(heartRateValue)) + " ,\t" + str(difference)+ " ,\t" + str(diffNow)+ " ,\t" + str(regiontype))
+    #
+    #     # Get difference and append data (blood oxygen)
+    #     difference = round(float(SPOAvegrage) - float(oxygenSaturationValue))
+    #     ListSPOdata.append(str(round(SPOAvegrage)) + " ,\t" + str(round(oxygenSaturationValue)) + " ,\t" + str(difference) + str(diffNow)+ " ,\t" + str(regiontype))
+    #
+    #     printTime = ''
+    #     for k, v in diffTimeTotal.items():
+    #         printTime = printTime + str(k) + ': ' + str(v) + '\n'
+    #
+    #     objFile = FileIO()
+    #     objFile.WritedatatoFile(SavePath,'timeLogFile',printTime)
+    #     del objFile
+    #
+    # # # Write data to file
+    # # objFile.WriteListDatatoFile(SavePath, fileNameHr, ListHrdata)
+    # # objFile.WriteListDatatoFile(SavePath, fileNameSpo, ListSPOdata)
+    # else:
+    #     IsSuccess = False
+    #
+    # del objReliability
+    # del objProcessData
+    #
+    # return ListHrdata, ListSPOdata, IsSuccess
 
 
 

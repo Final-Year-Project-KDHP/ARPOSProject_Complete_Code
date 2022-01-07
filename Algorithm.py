@@ -206,8 +206,6 @@ class AlgorithmCollection:
         # self.freq = float(self.EstimatedFPS) / L * np.arange(L / 2 + 1)
 
         # self.freq = np.fft.rfftfreq(len(yf),1/self.EstimatedFPS)
-        self.Colorfreq = np.fft.rfftfreq(len(Grey),1/self.ColorEstimatedFPS)
-        self.IRfreq = np.fft.rfftfreq(len(IR),1/self.IREstimatedFPS)
         # self.fftblue =S_[:, 0]
         raw_fft = np.fft.rfft(Blue * self.ColorEstimatedFPS)
         self.fftblue = np.abs(raw_fft) ** 2
@@ -229,6 +227,8 @@ class AlgorithmCollection:
         raw_fft = np.fft.rfft(IR * self.IREstimatedFPS)
         self.fftIR = np.abs(raw_fft) ** 2
 
+        self.Colorfreq = np.fft.rfftfreq(len(self.fftGrey),1/self.ColorEstimatedFPS)
+        self.IRfreq = np.fft.rfftfreq(len(self.fftIR),1/self.IREstimatedFPS)
         return self.fftblue, self.fftGreen, self.fftRed, self.fftGrey, self.fftIR, self.Colorfreq, self.IRfreq
 
     #########------FFT------#############

@@ -18,6 +18,7 @@ class Window_Data:
   regiontype = ''
   isSmooth = False
   channeltype= ''
+  fileName = ''
 
   BestSnR2 =0.0
   IrSnr2 = 0.0
@@ -114,6 +115,22 @@ class Window_Data:
     endTime = self.TimeLog[LogItems.End_SPO]
     difference = endTime - startTime
     self.diffTimeLog[LogItems.End_SPO] = difference
+
+  def gettimeDifferencesToString(self):
+    SmoothDifference = 'NotApplied'
+    if(self.isSmooth):
+      SmoothDifference = str(self.diffTimeLog.get(LogItems.End_Smooth))
+
+    FullLog = 'TotalWindowCalculationTime: ' + str(self.diffTime) + ' ,\t' \
+              + 'PreProcess: ' + str(self.diffTimeLog.get(LogItems.End_PreProcess)) + ' ,\t' \
+              + 'Algorithm: ' + str(self.diffTimeLog.get(LogItems.End_Algorithm)) + ' ,\t' \
+              + 'FFT: ' + str(self.diffTimeLog.get(LogItems.End_FFT)) + ' ,\t' \
+              + 'Smooth: ' + SmoothDifference + ' ,\t' \
+              + 'Filter: ' + str(self.diffTimeLog.get(LogItems.End_Filter)) + ' ,\t' \
+              + 'ComputerHRSNR: ' + str(self.diffTimeLog.get(LogItems.End_ComputerHRSNR)) + ' ,\t' \
+              + 'ComputerSPO: ' + str(self.diffTimeLog.get(LogItems.End_SPO))
+    return FullLog
+
 
 class LogItems(enum.Enum):
   Start_Total = 1

@@ -449,7 +449,9 @@ class ComputerHeartRate:
             blue_fft_index = blue_fft_index -1
             print('blue_fft_index reduced by 1 : ' + str(blue_fft_index))
 
-        self.IrFreqencySamplingError = self.freq_bpmIr[ir_fft_index + 1] - self.freq_bpmIr[ir_fft_index - 1]
+        self.IrFreqencySamplingError=5
+        if(len(self.freq_bpmIr)>0):
+            self.freq_bpmIr[ir_fft_index + 1] - self.freq_bpmIr[ir_fft_index - 1]
         if (not self.ignoreGray):
             self.GreyFreqencySamplingError = self.freq_bpmColor[grey_fft_index + 1] - self.freq_bpmColor[grey_fft_index - 1]
         else:
