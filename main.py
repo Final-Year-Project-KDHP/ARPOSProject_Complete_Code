@@ -56,7 +56,6 @@ class Main:
     """
      GenerateResultsfromParticipants:
      """
-
     def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing):
         self.GenerateCases()
         TotalCasesCount = len(self.CaseList)
@@ -169,7 +168,6 @@ class Main:
     '''
     LoadBinaryData: load data from disk ParticipantsOriginalDATA[ParticipantNumber + Position] -> ROISTORE data
     '''
-
     def LoadBinaryData(self):
         ParticipantsOriginalDATA = {}
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
@@ -200,6 +198,7 @@ class Main:
             if(self.objConfig.RunAnalysisForEntireSignalData):
                 FolderNameforSave= 'ProcessedData'
 
+            print(FolderNameforSave)
             #  Load Data from path and Process Data
             self.GenerateResultsfromParticipants(self.LoadBinaryData(),FolderNameforSave)#FOR Window processing
 

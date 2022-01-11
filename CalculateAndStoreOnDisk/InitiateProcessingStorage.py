@@ -1,12 +1,16 @@
 import os
+import sys
+from datetime import datetime
 
 import CommonMethods
 from CalculateAndStoreOnDisk.ProcessDataPartial import ProcessDataPartial
 from Configurations import Configurations
+from FileIO import FileIO
 from LoadFaceData import LoadFaceData
 from GlobalDataFile import GlobalData
 import pickle
 
+from ProcessData import ProcessFaceData
 from ProcessParticipantsData import Process_Participants_Data_GetBestHR
 
 '''
@@ -16,10 +20,12 @@ class InitiateProcessingStorage:
     # Global Objects
     objConfig = None
     ProcessedDataPath = None
+    objFile = None
 
     #Constructor
     def __init__(self, skinGroup):
         self.objConfig = Configurations(False,skinGroup)
+        self.objFile = FileIO()
 
     def WritetoDisk(self,location, filename, data):
         ##STORE Data
@@ -300,187 +306,287 @@ class InitiateProcessingStorage:
                     rightcheekContent = rightcheek_DataFileNameWithContent.get(rightcheekFileName)
                     Process_Participants_Data_GetBestHR(lipsContent,foreheadContent,rightcheekContent,leftcheekContent,self.ProcessedDataPath,HrGr,saveFilename)
 
-    def main(self,type):
+    def LogTime(self):
+        logTime = datetime(datetime.now().year, datetime.now().month, datetime.now().day,
+                           datetime.now().time().hour, datetime.now().time().minute,
+                           datetime.now().time().second, datetime.now().time().microsecond)
+        return logTime
 
-        # setup highpass filter
-        ignore_freq_below_bpm = 40
-        ignore_freq_below = ignore_freq_below_bpm / 60
-        # setup low pass filter
-        ignore_freq_above_bpm = 200
-        ignore_freq_above = ignore_freq_above_bpm / 60
+    def Process_Participants_Data_EntireSignalINChunks(self,objWindowProcessedData, SavePath, DumpToDisk,
+                                                       ProcessingStep,
+                                                       ProcessingType,regions):
+        # ROI Window Result list
+        WindowRegionList = {}
 
-        # each particpant
-        for participant_number in self.objConfig.ParticipantNumbers:
-            # each position
-            for position in self.objConfig.hearratestatus:
-                # print
+        # Loop through signal data
+        WindowCount = 0
+        Preprocess_type = 0
+        Algorithm_type = 0
+        FFT_type = 0
+        Filter_type = 0
+        isSmoothen = 0
+        fileName = 'ResultSignal_Type-'+ str(Preprocess_type)
+
+        ##Process by type
+        if (ProcessingStep == 'PreProcess'):
+            Preprocess_type = ProcessingType
+        elif (ProcessingStep == 'Algorithm'):
+            Algorithm_type = ProcessingType
+        elif (ProcessingStep == 'Smoothen'):
+            isSmoothen = ProcessingType
+        elif (ProcessingStep == 'FFT'):
+            FFT_type = ProcessingType
+        elif (ProcessingStep == 'Filter'):
+            Filter_type = ProcessingType
+
+        TotalWindows = 1
+
+
+        for region in regions:
+
+            if (ProcessingStep == 'PreProcess'):
+                # Windows for regions (should be same for all)
+                ROIStore=objWindowProcessedData.ROIStore
+                TimeinSeconds = ROIStore.get("lips").totalTimeinSeconds
+                timeinSeconds = TimeinSeconds
+                objProcessData = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, 0, Preprocess_type,
+                                                 SavePath,
+                                                 self.objConfig.ignoregray, isSmoothen, self.objConfig.GenerateGraphs,
+                                                 timeinSeconds,
+                                                 DumpToDisk, fileName)
+                objProcessData.getSingalDataWindow(ROIStore, self.objConfig.roiregions[0], WindowCount, TotalWindows,
+                                                   timeinSeconds)
+                # Log Start Time  signal data
+                startLogTime = self.LogTime()  # foreach region
+                # PreProcess Signal
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR = objProcessData.preprocessSignalData(
+                    objProcessData.regionBlueData, objProcessData.regionGreenData,
+                    objProcessData.regionRedData, objProcessData.regionGreyData,
+                    objProcessData.regionIRData)
+
+                endlogTime = self.LogTime()
+                diffTime = endlogTime - startLogTime
+                #Record
+                objProcessData.regionWindowBlueData = processedBlue
+                objProcessData.regionWindowGreenData = processedGreen
+                objProcessData.regionWindowRedData = processedRed
+                objProcessData.regionWindowGreyData = processedGrey
+                objProcessData.regionWindowIRData = processedIR
+                objProcessData.WindowProcessStartTime = startLogTime
+                objProcessData.WindowProcessEndTime = endlogTime
+                objProcessData.WindowProcessDifferenceTime = diffTime
+
+                WindowRegionList[region] = objProcessData
+
+            elif (ProcessingStep == 'Algorithm'):
+                objProcessData = objWindowProcessedData
+                startLogTime = self.LogTime()  # foreach region
+                # Apply Algorithm
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR = objProcessData.ApplyAlgorithm(
+                    objProcessData.regionBlueData, objProcessData.regionGreenData,
+                    objProcessData.regionRedData, objProcessData.regionGreyData,
+                    objProcessData.regionIRData)
+                endlogTime = self.LogTime()
+                diffTime = endlogTime - startLogTime
+
+                objProcessData.regionWindowBlueData = processedBlue
+                objProcessData.regionWindowGreenData = processedGreen
+                objProcessData.regionWindowRedData = processedRed
+                objProcessData.regionWindowGreyData = processedGrey
+                objProcessData.regionWindowIRData = processedIR
+                objProcessData.WindowProcessStartTime = startLogTime
+                objProcessData.WindowProcessEndTime = endlogTime
+                objProcessData.WindowProcessDifferenceTime = diffTime
+
+                WindowRegionList[region] = objProcessData
+
+            elif (ProcessingStep == 'Smoothen'):
+                objProcessData = objWindowProcessedData
+                startLogTime = self.LogTime()  # foreach region
+                # Smooth Signal
+                processedBlue = objProcessData.SmoothenData(objProcessData.regionBlueData)
+                processedGreen = objProcessData.SmoothenData(objProcessData.regionGreenData)
+                processedRed = objProcessData.SmoothenData(objProcessData.regionRedData)
+                processedGrey = objProcessData.SmoothenData(objProcessData.regionGreyData)
+                processedIR = objProcessData.SmoothenData(objProcessData.regionIRData)
+                endlogTime = self.LogTime()
+                diffTime = endlogTime - startLogTime
+
+                objProcessData.regionWindowBlueData = processedBlue
+                objProcessData.regionWindowGreenData = processedGreen
+                objProcessData.regionWindowRedData = processedRed
+                objProcessData.regionWindowGreyData = processedGrey
+                objProcessData.regionWindowIRData = processedIR
+                objProcessData.WindowProcessStartTime = startLogTime
+                objProcessData.WindowProcessEndTime = endlogTime
+                objProcessData.WindowProcessDifferenceTime = diffTime
+
+                WindowRegionList[region] = objProcessData
+
+            elif (ProcessingStep == 'FFT'):
+                objProcessData = objWindowProcessedData
+                startLogTime = self.LogTime()  # foreach region
+                # Apply FFT
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR = objProcessData.ApplyFFT(
+                    objProcessData.regionBlueData, objProcessData.regionGreenData,
+                    objProcessData.regionRedData, objProcessData.regionGreyData,
+                    objProcessData.regionIRData)
+                endlogTime = self.LogTime()
+                diffTime = endlogTime - startLogTime
+
+                objProcessData.regionWindowBlueData = processedBlue
+                objProcessData.regionWindowGreenData = processedGreen
+                objProcessData.regionWindowRedData = processedRed
+                objProcessData.regionWindowGreyData = processedGrey
+                objProcessData.regionWindowIRData = processedIR
+                objProcessData.WindowProcessStartTime = startLogTime
+                objProcessData.WindowProcessEndTime = endlogTime
+                objProcessData.WindowProcessDifferenceTime = diffTime
+
+                WindowRegionList[region] = objProcessData
+
+            elif (ProcessingStep == 'Filter'):
+                objProcessData = objWindowProcessedData
+                startLogTime = self.LogTime()  # foreach region
+                # Apply FFT
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR = objProcessData.FilterTechniques(
+                    objProcessData.regionBlueData, objProcessData.regionGreenData,
+                    objProcessData.regionRedData, objProcessData.regionGreyData,
+                    objProcessData.regionIRData)
+                endlogTime = self.LogTime()
+                diffTime = endlogTime - startLogTime
+
+                objProcessData.regionWindowBlueData = processedBlue
+                objProcessData.regionWindowGreenData = processedGreen
+                objProcessData.regionWindowRedData = processedRed
+                objProcessData.regionWindowGreyData = processedGrey
+                objProcessData.regionWindowIRData = processedIR
+                objProcessData.WindowProcessStartTime = startLogTime
+                objProcessData.WindowProcessEndTime = endlogTime
+                objProcessData.WindowProcessDifferenceTime = diffTime
+
+                WindowRegionList[region] = objProcessData
+
+        #Dumpt binary Store to disk
+        self.objFile.DumpObjecttoDisk(SavePath + ProcessingStep + '_WindowsBinaryFiles' + '\\', fileName, WindowRegionList)#+ str(WindowCount)
+
+        del objProcessData
+
+    """
+     GenerateResultsfromParticipants:
+     """
+    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing,ProcessingStep,ProcessCase):
+        TotalCasesCount = len(ProcessCase)
+        for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
+            for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 print(participant_number + ', ' + position)
-                # set path
-                self.objConfig.setSavePath(participant_number, position)
+                # ParticipantsOriginalDATA[participant_number + '_' + position] = objWindowProcessedData
+                objWindowProcessedData= None
+                if (ProcessingStep is 'PreProcess'):
+                    objWindowProcessedData = ParticipantsOriginalDATA.get(participant_number + '_' + position)
 
-                # for each region of interest
-                for region in self.objConfig.roiregions:
-                    # Init for each region
+                self.objConfig.setSavePath(participant_number, position,typeProcessing)
+                currentCasesDone = 0
+                for case in ProcessCase:
+                    if (ProcessingStep is not 'PreProcess'):
+                        objWindowProcessedData = ParticipantsOriginalDATA.get(participant_number + '_' + position+ '_' + str(case))
+                    # IsGenerated = self.CheckIfGenerated(case) #TODO: Ccheck
+                    currentCasesDone = currentCasesDone + 1
+                    currentPercentage = ((currentCasesDone/TotalCasesCount)*100)
+                    print(case + '  -> ' + str(currentPercentage) + ' out of 100%')
 
-                    # Run as per type
-                    if (type == 1):  # get and write orignial data
-                        objFaceImage = LoadFaceData()
-                        objFaceImage.Clear()
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'RawOriginal\\'
-                        objInitiateProcessing.GenerateOriginalRawData(participant_number, position,objFaceImage,region)
-                        # Clear
-                        del objFaceImage
-                    elif (type == 2): #PreProcess
-                        objFaceImage = LoadFaceData()
-                        objFaceImage.Clear()
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'RawOriginal\\'
-                        objFaceImage = objInitiateProcessing.ReadOriginalRawData(region)
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'PreProcessed\\'
-                        self.PreProcessData(objFaceImage.blue,objFaceImage.green,objFaceImage.red,objFaceImage.grey,objFaceImage.Irchannel,
-                                            objFaceImage.ColorEstimatedFPS,objFaceImage.IREstimatedFPS,region,
-                                            objFaceImage.timecolorCount,objFaceImage.timeirCount)
-                        # Clear
-                        del objFaceImage
-                    elif (type == 3): #ApplyAlgorithm
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'RawOriginal\\'
-                        preProcessedDataFileNames = self.getFileName(self.objConfig.preprocesses,region,"PreProcessedData")
-                        for filename in preProcessedDataFileNames:
-                            splitFilename = filename.split('-')
-                            preProcessType = splitFilename[1]
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'PreProcessed\\'
-                            dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'AlgorithmProcessed\\'
-                            self.ApplyAlgorithm(dataContent.ProcessedSignalData,dataContent.ColorEstimatedFPS,dataContent.IREstimatedFPS,region,preProcessType)
+                    # Generate Data for all Techniques
+                    self.Process_Participants_Data_EntireSignalINChunks(
+                        objWindowProcessedData, self.objConfig.SavePath,
+                        # objWindowProcessedData.HrGroundTruthList, objWindowProcessedData.SPOGroundTruthList, TODO:FIX
+                        self.objConfig.DumpToDisk,
+                        ProcessingStep, case)
+                ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
-                    elif (type == 4): #IsSmooth
-                        # Apply smoothen only before fft
-                        # if (self.isSmoothen):
-                        DataFileNames = self.getPreProcessedAlgorithms(region)
-                        for filename in DataFileNames:
-                            splitFilename = filename.split('-')
-                            algoType = (splitFilename[1]).replace('_PreProcessType','')
-                            preProcessType = splitFilename[2]
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'AlgorithmProcessed\\'
-                            dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'SmoothenProcessed\\'
-                            self.ApplySmooth(dataContent.ProcessedSignalData,dataContent.ColorEstimatedFPS,dataContent.IREstimatedFPS,region,preProcessType,algoType)
+    '''
+    LoadBinaryData: load data from disk ParticipantsOriginalDATA[ParticipantNumber + Position] -> ROISTORE data
+    '''
+    def LoadBinaryData(self):
+        ParticipantsOriginalDATA = {}
+        for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
+            for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
+                self.objConfig.setSavePath(participant_number, position, 'RawOriginal')  # set path
+                print('Loading and generating FaceData for ' + participant_number + ', ' + position)
+                print('Loading from path ' + self.objConfig.SavePath)
 
-                    elif (type == 5): #Apply FFT WITH smoothed and without smooth (apply both types here)
-                        ##First Without Smoothen
-                        IsSmoothProcessed =False
-                        DataFileNames = self.getPreProcessedAlgorithms(region)
-                        for filename in DataFileNames:
-                            splitFilename = filename.split('-')
-                            algoType = (splitFilename[1]).replace('_PreProcessType','')
-                            preProcessType = splitFilename[2]
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'AlgorithmProcessed\\'
-                            dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FFTProcessedWithoutSmooth\\'
-                            self.ApplyFFT(dataContent.ProcessedSignalData,dataContent.ColorEstimatedFPS,dataContent.IREstimatedFPS,region,preProcessType,algoType,IsSmoothProcessed)
+                ##Original Data in binary read from disk
+                objWindowProcessedData = self.objFileIO.ReadfromDisk(self.objConfig.SavePath,
+                                                                     'UnCompressedBinaryLoadedData')
 
-                        ###For Smoothen True
-                        IsSmoothProcessed =True
-                        DataFileNames = self.getPreProcessedAlgorithmSmoothedFiles(region)
-                        for filename in DataFileNames:
-                            splitFilename = filename.split('-')
-                            algoType = (splitFilename[1]).replace('_PreProcessType','') #'SmoothedData_'+ region + "_Algotype-"+ str(algo_type) + '_PreProcessType-'+str(preprocess_type)
-                            preProcessType = filename.split('-')[2]
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'SmoothenProcessed\\'
-                            dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FFTProcessedSmoothed\\'
-                            self.ApplyFFT(dataContent.ProcessedSignalData,dataContent.ColorEstimatedFPS,dataContent.IREstimatedFPS,region,preProcessType,algoType,IsSmoothProcessed)
+                # Store for procesing locally
+                ParticipantsOriginalDATA[participant_number + '_' + position] = objWindowProcessedData
 
-                    elif (type == 6): #Apply filter WITH smoothed and without smooth (apply both types here)
-                        ##First Without Smoothen
-                        IsSmoothProcessed =False
-                        # DataFileNames = self.getPreProcessedAlgorithmsFFT(region,IsSmoothProcessed)
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FFTProcessedWithoutSmooth\\'
-                        DataFileNameWithContent = self.getPreProcessedAlgorithmsFFT(region,IsSmoothProcessed)
-                        for filename, dataContent in DataFileNameWithContent.items():
-                        # for filename in DataFileNames:
-                            splitFilename = filename.split('_') #fileName = "FFT-" + fft_type + "_" + region + "_Smoothed-" + str(isSmoothed) + "_Algotype-" + str(algo_type) + '_PreProcessType-' + str(preprocess_type)
-                            fft_type = (splitFilename[0]).replace('FFT-','')
-                            algotype = splitFilename[3].replace('Algotype-','')
-                            preprocesstype = splitFilename[4].replace('PreProcessType-','')
-                        #     self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FFTProcessedWithoutSmooth\\'
-                        #     dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FilteredWithoutSmooth\\'
-                            self.ApplyFilter(dataContent.ProcessedSignalData,
-                                             dataContent.ColorEstimatedFPS,dataContent.IREstimatedFPS,region,preprocesstype,algotype,IsSmoothProcessed,fft_type,
-                                             dataContent.Colorfrequency, dataContent.IRfrequency, ignore_freq_below, ignore_freq_above)
-                        ###For Smoothen True
-                        IsSmoothProcessed =True
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FFTProcessedSmoothed\\'
-                        DataFileNameWithContent = self.getPreProcessedAlgorithmsFFT(region,IsSmoothProcessed)
-                        for filename, dataContent in DataFileNameWithContent.items():
-                            splitFilename = filename.split('_')
-                            fft_type = (splitFilename[0]).replace('FFT-', '')
-                            algotype = splitFilename[3].replace('Algotype-', '')
-                            preprocesstype = splitFilename[4].replace('PreProcessType-', '')
-                            # dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FilteredWithSmoothen\\'
-                            self.ApplyFilter(dataContent.ProcessedSignalData,
-                                             dataContent.ColorEstimatedFPS, dataContent.IREstimatedFPS, region, preprocesstype,
-                                             algotype, IsSmoothProcessed, fft_type,
-                                             dataContent.Colorfrequency, dataContent.IRfrequency, ignore_freq_below,
-                                             ignore_freq_above)
-                    elif (type == 7):  # Computer results
-                        ##First Without Smoothen
-                        IsSmoothProcessed = False
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FilteredWithoutSmooth\\'
-                        DataFileNameWithContent = self.getPreProcessedFiltered(region, IsSmoothProcessed)
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'ResultDataWithoutSmooth\\'
-                        for filename, dataContent in DataFileNameWithContent.items():
-                            splitFilename = filename.split('_')  # "Filtered_FL-"+ str(filterType)+ "_"+ region+ "_FFTtype-" + str(fft_type)  + "_algotype-" + str(algo_type) +'_PreProcessType-'+str(preprocess_type)+ "_Smoothed-" + str(isSmoothed)
-                            filterType = (splitFilename[1]).replace('FL-', '')
-                            fft_type = (splitFilename[3]).replace('FFTtype-', '')
-                            algotype = splitFilename[4].replace('algotype-', '')
-                            preprocesstype = splitFilename[5].replace('PreProcessType-', '')
+        return ParticipantsOriginalDATA
 
-                            # dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ComputerResultData(dataContent.B_signal, dataContent.G_signal, dataContent.R_signal, dataContent.Gy_signal, dataContent.IR_signal,
-                                                    dataContent.ColorEstimatedFPS, dataContent.IREstimatedFPS,
-                                                    region, preprocesstype, algotype, IsSmoothProcessed,fft_type,filterType,
-                                                    dataContent.Colorfrequency, dataContent.IRfrequency, ignore_freq_below_bpm, ignore_freq_above_bpm)
-                        ###For Smoothen True
-                        IsSmoothProcessed = True
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'FilteredWithSmoothen\\'
-                        DataFileNameWithContent = self.getPreProcessedFiltered(region, IsSmoothProcessed)
-                        self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'ResultDataSmoothed\\'
-                        for filename, dataContent in DataFileNameWithContent.items():
-                            splitFilename = filename.split('_')
-                            filterType = (splitFilename[1]).replace('FL-', '')
-                            fft_type = (splitFilename[3]).replace('FFTtype-', '')
-                            algotype = splitFilename[4].replace('algotype-', '')
-                            preprocesstype = splitFilename[5].replace('PreProcessType-', '')
-                            # dataContent = objInitiateProcessing.ReadData(filename)
-                            self.ComputerResultData(dataContent.B_signal, dataContent.G_signal, dataContent.R_signal,
-                                                    dataContent.Gy_signal, dataContent.IR_signal,
-                                                    dataContent.ColorEstimatedFPS, dataContent.IREstimatedFPS,
-                                                    region, preprocesstype, algotype, IsSmoothProcessed, fft_type,
-                                                    filterType,
-                                                    dataContent.Colorfrequency, dataContent.IRfrequency,
-                                                    ignore_freq_below_bpm, ignore_freq_above_bpm)
+    '''
+     LoadPartiallyProcessedBinaryData: load data from disk ParticipantsPartiallyProcessedBinaryData[ParticipantNumber + Position] -> ROISTORE data
+     '''
+    def LoadPartiallyProcessedBinaryData(self,LoadFolder):
+        ParticipantsPartiallyProcessedBinaryData = {}
+        for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
+            for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
+                self.objConfig.setSavePath(participant_number, position, LoadFolder)  # set path
+                print('Loading and generating FaceData for ' + participant_number + ', ' + position)
+                print('Loading from path ' + self.objConfig.SavePath)
+                AllFileNames = os.listdir(self.objConfig.SavePath) #'ResultSignal_Type-' + str(Preprocess_type)
+                for fileName in AllFileNames:
+                    fileNameSplit = fileName.split('-')
+                    processType = fileNameSplit[1]
+                    ##Data in binary read from disk
+                    objWindowProcessedData = self.objFileIO.ReadfromDisk(self.objConfig.SavePath,
+                                                                         fileName)
+                    # Store for procesing locally
+                    ParticipantsPartiallyProcessedBinaryData[participant_number + '_' + position + '_' + processType ] = objWindowProcessedData
 
-                    # Add to store
-                    # objFaceStore[region]= objFaceImage
+        return ParticipantsPartiallyProcessedBinaryData
 
-
-
-
+    def mainMethod(self,ProcessingStep):
+        #Process for entire signal
+        FolderNameforSave= 'ProcessedDatabyProcessType'
+        print(FolderNameforSave)
+        #  Load Data from path and Process Data
+        LoadedData = None
+        ProcessCase = None
+        LoadFolderName = ProcessingStep + '_WindowsBinaryFiles'
+        ##Process by type
+        if (ProcessingStep == 'PreProcess'):
+            ProcessCase = self.objConfig.preprocesses
+            LoadedData = self.LoadBinaryData()
+        elif (ProcessingStep == 'Algorithm'):
+            LoadedData = self.LoadPartiallyProcessedBinaryData(LoadFolderName)
+            ProcessCase = self.objConfig.AlgoList
+        elif (ProcessingStep == 'Smoothen'):
+            ProcessCase = self.objConfig.Smoothen
+            LoadedData = self.LoadPartiallyProcessedBinaryData(LoadFolderName)
+        elif (ProcessingStep == 'FFT'):
+            ProcessCase = self.objConfig.fftTypeList
+            LoadedData = self.LoadPartiallyProcessedBinaryData(LoadFolderName)
+        elif (ProcessingStep == 'Filter'):
+            ProcessCase = self.objConfig.filtertypeList
+            LoadedData = self.LoadPartiallyProcessedBinaryData(LoadFolderName)
+        elif (ProcessingStep == 'Result'):        # Result_type = 0 #TODO:RESULT
+            ProcessCase = self.objConfig.resulttypeList
+            LoadedData = self.LoadPartiallyProcessedBinaryData(LoadFolderName)
+        self.GenerateResultsfromParticipants(LoadedData,FolderNameforSave,ProcessingStep,ProcessCase)#FOR Window processing
 
 ###RUN this file CODE###
 skintype = 'Europe_WhiteSkin_Group'
 print('Program started for ' +skintype)
 objInitiateProcessing = InitiateProcessingStorage(skintype)
 # objInitiateProcessing.GenerateOriginalRawData()# Only do once
-# objInitiateProcessing.main(1) #type
+ProcessingStep='PreProcess'
+objInitiateProcessing.mainMethod(1,ProcessingStep) #type
 # objInitiateProcessing.main(2) #type
 # objInitiateProcessing.main(3) #type
 # objInitiateProcessing.main(4) #type
 # objInitiateProcessing.main(5) #type
 # objInitiateProcessing.main(6) #type
 # objInitiateProcessing.main(7) #type
-print('Calculating final result')
-objInitiateProcessing.ProduceFinalResult()
+# print('Calculating final result')
+# objInitiateProcessing.ProduceFinalResult()
 print('Program completed')

@@ -650,16 +650,160 @@ class GeneratedDataFiltering:
         # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         # plt.show()
 
+    def GenerateCases2(self):
+        CaseList = []
+        for preprocesstype in self.objConfig.preprocesses:
+            for algoType in self.objConfig.AlgoList:
+                for fftype in self.objConfig.fftTypeList:
+                    for resulttype in self.objConfig.resulttypeList:
+                        for filtertype in self.objConfig.filtertypeList:
+                            for isSmooth in self.objConfig.Smoothen:
+                                fileName = algoType + "_PR-" + str(preprocesstype) + "_FFT-" + str(
+                                    fftype) + "_FL-" + str(filtertype) \
+                                           + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
+                                if (fileName not in CaseList):
+                                    CaseList.append(fileName)
+
+        return  CaseList
+
+    def CheckIfGenerated(self, filePath,fileName):
+        # objFile= FileIO()
+        # SavePath = self.objConfig.SavePath + fileName + '\\'
+        # pathExsists = objFile.FileExits(filePath + fileName + ".txt")
+        # data= None
+        # # already generated
+        # if (pathExsists):
+        file = open(filePath + fileName + ".txt", "r")  #objFile.ReaddatafromFile(filePath,fileName)[0]
+        data = file.read()
+        file.close()
+        return data
+
+    def CheckIfGeneratedAllLines(self, filePath,fileName):
+        # objFile= FileIO()
+        # SavePath = self.objConfig.SavePath + fileName + '\\'
+        # pathExsists = objFile.FileExits(filePath + fileName + ".txt")
+        # data= None
+        # # already generated
+        # if (pathExsists):
+        file = open(filePath + fileName + ".txt", "r")  #objFile.ReaddatafromFile(filePath,fileName)[0]
+        data = file.readlines()
+        file.close()
+        return data
+
+    def getDataforpiandpositionWindow(self,ParticipantNumber,position,AcceptanceDiff,CasesAll):
+        FileNames = []
+        for item in CasesAll:
+            fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedDataWindows\\' + ParticipantNumber + '\\' + position + '\\Result\\'
+            fileName = 'HRSPOwithLog_' + item
+            FileContent = self.CheckIfGeneratedAllLines(fullpath, fileName)
+            if (len(FileContent) > 0):
+                for itemFile in FileContent:
+                    FileContentSplit = itemFile.split(' ,\t')
+                    # WindowCount: 0 ,	GroundTruthHeartRate: 67 ,	ComputedHeartRate: 100 ,	HRDifference: -33 ,
+                    diff = FileContentSplit[3].replace('HRDifference: ', '')
+                    diff = np.abs(float(diff))
+                    if (diff <= AcceptanceDiff):
+                        FileNames.append(item)
+                        break
+        return FileNames
+
+    def getDataforpiandposition(self,ParticipantNumber,position,AcceptanceDiff,CasesAll):
+        FileNames = []
+        for item in CasesAll:
+            fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedData\\' + ParticipantNumber + '\\' + position + '\\Result\\'
+            fileName = 'HRSPOwithLog_' + item
+            FileContent = self.CheckIfGenerated(fullpath, fileName)
+            if (len(FileContent) > 0):
+                FileContentSplit = FileContent.split(' ,\t')
+                # WindowCount: 0 ,	GroundTruthHeartRate: 67 ,	ComputedHeartRate: 100 ,	HRDifference: -33 ,
+                diff = FileContentSplit[3].replace('HRDifference: ', '')
+                diff = np.abs(float(diff))
+                if (diff <= AcceptanceDiff):
+                    FileNames.append(item)
+        return FileNames
+
+    def ShowEmptyResults(self, ParticipantNumber, position, CasesAll):
+        FileNames =[]
+        for item in CasesAll:
+            fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedData\\' + ParticipantNumber + '\\' + position + '\\Result\\'
+            fileName = 'HRSPOwithLog_' + item
+            FileContent = self.CheckIfGenerated(fullpath, fileName)
+            if (len(FileContent) > 0):
+                skip = 0
+            else:
+                FileNames.append(fileName)
+        return  FileNames
+        # for x in FileNames:
+        #     print(x)
+    def GetBestFilesForParticipantEntireSingal(self,AcceptanceDiff):
+        position = 'Resting1'
+        CasesAll = self.GenerateCases2()
+        ParticipantNumber = 'PIS-8073'
+        FileName1 = self.getDataforpiandposition(ParticipantNumber,position,AcceptanceDiff,CasesAll)
+        position='Resting2'
+        FileName2 = self.getDataforpiandposition(ParticipantNumber,position,AcceptanceDiff,CasesAll)
+
+        CommonFiles = []
+        for item in CasesAll:
+            if(FileName1.__contains__(item) and FileName2.__contains__(item)):
+                CommonFiles.append(item)
+
+
+        for item in CommonFiles:
+            print(item)
+
+    def GetBestFilesForParticipantWindowAllSingal(self, AcceptanceDiff):
+        position = 'Resting1'
+        CasesAll = self.GenerateCases2()
+        ParticipantNumber = 'PIS-8073'
+        FileName1 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+        # for item in FileName1:
+        #     print(item)
+        position = 'Resting2'
+        FileName2 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+
+        # for item in FileName2:
+        #     print(item)
+        CommonFiles = list(set(FileName1) & set(FileName2))
+
+        for item in CommonFiles:
+            print(item)
+
+    def getEmptyResults(self):
+        position = 'Resting1'
+        CasesAll = self.GenerateCases2()
+        ParticipantNumber = 'PIS-8073'
+        FileNames1 =  self.ShowEmptyResults(ParticipantNumber,position,CasesAll)
+        # print('FileNames1')
+        # for item in FileNames1:
+        #     print(item)
+        position = 'Resting2'
+        FileNames2 =  self.ShowEmptyResults(ParticipantNumber,position,CasesAll)
+        # print('FileNames2')
+        # for item in FileNames2:
+        #     print(item)
+        CommonFiles = list(set(FileNames1) & set(FileNames2))
+        # CommonFiles = []
+        # for item in CasesAll:
+        #     if (FileNames1.__contains__(item) and FileNames2.__contains__(item)):
+        #         CommonFiles.append(item)
+        #
+        for item in CommonFiles:
+            print(item)
+
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
-objFilterData.AcceptableDifference = 10
+objFilterData.AcceptableDifference = 7
 # objFilterData.Run(AcceptableDifference)
 # objFilterData.RunAllCaseParticipantwise() S
 # objFilterData.RunAllCaseParticipantwiseCaseasCol()## RUN THIS TO GENERATE CSV FOR CASE
 # objFilterData.getBestCasesFromCSV('AfterExcersize')
 # objFilterData.RunParticipantWiseAll()
-objFilterData.LinePlot()
+# objFilterData.LinePlot()
+# objFilterData.GetBestFilesForParticipantEntireSingal(objFilterData.AcceptableDifference)
+objFilterData.GetBestFilesForParticipantWindowAllSingal(objFilterData.AcceptableDifference)
+# objFilterData.getEmptyResults()
 # Only run after best files are generated
 # objFilterData.processBestResults("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\","BestDataFiles") #"E:\\StudyData\\Result\\BestDataFiles_Resting1.txt"
 

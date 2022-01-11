@@ -123,6 +123,11 @@ class ProcessFaceData:
     SNRSummary = ''
     fileName = ''
 
+    #USE ondly for entiere signal
+    WindowProcessStartTime = None
+    WindowProcessEndTime = None
+    WindowProcessDifferenceTime = None
+
     # Objects
     objPlots = Plots()
     objAlgorithm = AlgorithmCollection()
@@ -204,7 +209,6 @@ class ProcessFaceData:
         self.WindowColorfpswithTime, WindowSliderColor, stepColor = self.reCalculateFPS(self.ColorfpswithTime,
                                                                                         WindowCount,
                                                                                         self.timeinSecondsWindow)
-
         # Split ROI Store region data
         if (WindowCount == 0):
             self.setSignalSourceData(ROIStore, region)
@@ -268,23 +272,33 @@ class ProcessFaceData:
     This method records original data without spliting it into widow size (so entire signal data)
     '''
 
-    def getSingalData(self, ROIStore, region):
-        # set estimated fps
-        self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
-        self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
-        # Set in algorithm class
-        self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS
-        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS
-        # Set in plot class
-        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
-        self.objPlots.IREstimatedFPS = self.IREstimatedFPS
-
-        # Split ROI Store region data
+    def getSingalData(self, ROIStore, region,WindowCount,TotalWindows,timeinSeconds):
+        self.IRfpswithTime = ROIStore.get(region).IRfpswithTime
+        self.ColorfpswithTime = ROIStore.get(region).ColorfpswithTime
+        self.region = region
+        self.TotalWindows = TotalWindows
+        self.timeinSecondsWindow = timeinSeconds
+        ###CALCULATE NEW FPS
+        # calculate window slider as per fps?
+        # stepinSecond = 1
+        # WindowtimeinSeconds = 10
+        # WindowSliderinFrame = self.getWindowSliderinFrame()
+        self.WindowIRfpswithTime, WindowSliderIR, stepIR = self.reCalculateFPS(self.IRfpswithTime, WindowCount,
+                                                                               self.timeinSecondsWindow)  ##CHECK on how to do this for each window size
+        self.WindowColorfpswithTime, WindowSliderColor, stepColor = self.reCalculateFPS(self.ColorfpswithTime,
+                                                                                        WindowCount,
+                                                                                        self.timeinSecondsWindow)
+        #  ROI Store region data
         self.setSignalSourceData(ROIStore, region)
 
-        # split to window size
-        self.Window_count = 0
+        # all to window size
+        self.Window_count = WindowCount
         # self.regionWindowSignalData = self.regionSignalData
+        self.regionWindowBlueData = self.regionBlueData
+        self.regionWindowGreenData = self.regionGreenData
+        self.regionWindowRedData = self.regionRedData
+        self.regionWindowGreyData = self.regionGreyData
+        self.regionWindowIRData = self.regionIRData
         self.WindowdistanceM = self.distanceM
         # self.Windowtime_list_color = self.time_list_color
         self.WindowtimecolorCount = self.timecolorCount
@@ -292,6 +306,21 @@ class ProcessFaceData:
         self.WindowtimeirCount = self.timeirCount
         self.WindowFrametime_list_ir = self.Frametime_list_ir
         self.WindowFrametime_list_color = self.Frametime_list_color
+        # self.ColorfpswithTime=self.ColorfpswithTime
+        # self.IRfpswithTime=self.IRfpswithTime
+
+        self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+        self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+        # set estimated fps
+        # self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
+        # self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
+        # Set in algorithm class
+        self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS
+        # Set in plot class
+        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objPlots.IREstimatedFPS = self.IREstimatedFPS
+
 
     # endregion
 
@@ -1272,7 +1301,30 @@ class ProcessFaceData:
 
         # calculate SPO
         windowList.LogTime(LogItems.Start_SPO)
-        std, err, oxylevl = self.getSpo(grey, Gy_filtered, self.regionIRData, red,
+
+        Gy_filteredCopy = Gy_filtered
+        greyCopy = grey
+        # redCopy = red
+        if(IsEntireSignal):
+            if(len(grey)> len(self.regionIRData)):
+                greyCopy = grey.copy()
+                lengthDiff = len(greyCopy) -len(self.regionIRData)
+                for i in range(lengthDiff):
+                    greyCopy.pop()
+            if (len(Gy_filtered) > len(self.regionIRData)):
+                Gy_filteredCopy = Gy_filtered.copy()
+                Gy_filteredCopy= Gy_filteredCopy[0:len(self.regionIRData)]  # all but the first and last element
+            # if (len(red) > len(self.regionIRData)):
+            #     redCopy = red.copy()
+            #     lengthDiff = len(redCopy) - len(self.regionIRData)
+            #     for i in range(lengthDiff):
+            #         redCopy.pop()
+        else:
+            Gy_filteredCopy = Gy_filtered
+            greyCopy =grey
+            # redCopy = red
+
+        std, err, oxylevl = self.getSpo(greyCopy, Gy_filteredCopy, self.regionIRData, red,
                                         self.distanceM)  # Irchannel and distanceM as IR channel lengh can be smaller so passing full array
         windowList.LogTime(LogItems.End_SPO)
 
