@@ -123,10 +123,18 @@ class ProcessFaceData:
     SNRSummary = ''
     fileName = ''
 
-    #USE ondly for entiere signal
+    # USE ondly for entiere signal
     WindowProcessStartTime = None
     WindowProcessEndTime = None
     WindowProcessDifferenceTime = None
+    #SPO
+    SPOWindowProcessStartTime = None
+    SPOWindowProcessEndTime = None
+    FullLog = ''
+    SPOWindowProcessDifferenceTime = None
+    SPOstd= None
+    SPOerr= None
+    SPOoxylevl= None
 
     # Objects
     objPlots = Plots()
@@ -134,7 +142,7 @@ class ProcessFaceData:
 
     # constructor
     def __init__(self, Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, SavePath, ignoreGray,
-                 isSmoothen, GenerateGraphs, timeinSeconds, DumpToDisk,fileName):
+                 isSmoothen, GenerateGraphs, timeinSeconds, DumpToDisk, fileName):
         self.fileName = fileName
         self.Algorithm_type = Algorithm_type
         self.FFT_type = FFT_type
@@ -160,6 +168,59 @@ class ProcessFaceData:
         if (self.ignoreGray):
             self.components = 4
             self.IRIndex = self.components - 2
+
+    def SetFromDataParameters(self, region, IRfpswithTime, ColorfpswithTime, TotalWindows, timeinSeconds,
+                              WindowIRfpswithTime, WindowColorfpswithTime, WindowCount, ColorEstimatedFPS,
+                              IREstimatedFPS, regionStore, blue, green, red, grey, Irchannel, distanceM, regionBlueData,
+                              regionGreenData,
+                              regionRedData, regionGreyData, regionIRData,timecolorCount,timeirCount,Frametime_list_ir,Frametime_list_color,Colorfrequency,IRfrequency):
+        self.Colorfrequency = Colorfrequency
+        self.IRfrequency = IRfrequency
+        self.region = region
+        self.IRfpswithTime = IRfpswithTime
+        self.ColorfpswithTime = ColorfpswithTime
+        self.TotalWindows = TotalWindows
+        self.timeinSecondsWindow = timeinSeconds
+        self.WindowIRfpswithTime = WindowIRfpswithTime
+        self.WindowColorfpswithTime = WindowColorfpswithTime
+        # self.regionStore = regionStore
+        self.regionBlueData = blue
+        self.regionGreenData = green
+        self.regionRedData = red
+        self.regionGreyData = grey
+        self.regionIRData = Irchannel
+        self.distanceM = distanceM
+        # self.time_list_color = self.regionStore.time_list_color
+        self.timecolorCount = timecolorCount
+        # self.time_list_ir = self.regionStore.time_list_ir
+        self.timeirCount = timeirCount
+        self.Frametime_list_ir = Frametime_list_ir
+        self.Frametime_list_color = Frametime_list_color
+
+        # all to window size
+        self.Window_count = WindowCount
+        # self.regionWindowSignalData = self.regionSignalData
+        self.regionWindowBlueData = regionBlueData
+        self.regionWindowGreenData = regionGreenData
+        self.regionWindowRedData = regionRedData
+        self.regionWindowGreyData = regionGreyData
+        self.regionWindowIRData = regionIRData
+        self.WindowdistanceM = self.distanceM
+        # self.Windowtime_list_color = self.time_list_color
+        self.WindowtimecolorCount = self.timecolorCount
+        # self.Windowtime_list_ir = self.time_list_ir
+        self.WindowtimeirCount = self.timeirCount
+        self.WindowFrametime_list_ir = self.Frametime_list_ir
+        self.WindowFrametime_list_color = self.Frametime_list_color
+        # self.ColorfpswithTime=self.ColorfpswithTime
+        # self.IRfpswithTime=self.IRfpswithTime
+
+        self.ColorEstimatedFPS = ColorEstimatedFPS
+        self.IREstimatedFPS = IREstimatedFPS
+        self.objAlgorithm.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objAlgorithm.IREstimatedFPS = self.IREstimatedFPS
+        self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
+        self.objPlots.IREstimatedFPS = self.IREstimatedFPS
 
     # region Signal Source Data to respective data arrays methods
     '''
@@ -272,7 +333,7 @@ class ProcessFaceData:
     This method records original data without spliting it into widow size (so entire signal data)
     '''
 
-    def getSingalData(self, ROIStore, region,WindowCount,TotalWindows,timeinSeconds):
+    def getSingalData(self, ROIStore, region, WindowCount, TotalWindows, timeinSeconds):
         self.IRfpswithTime = ROIStore.get(region).IRfpswithTime
         self.ColorfpswithTime = ROIStore.get(region).ColorfpswithTime
         self.region = region
@@ -320,7 +381,6 @@ class ProcessFaceData:
         # Set in plot class
         self.objPlots.ColorEstimatedFPS = self.ColorEstimatedFPS
         self.objPlots.IREstimatedFPS = self.IREstimatedFPS
-
 
     # endregion
 
@@ -668,6 +728,60 @@ class ProcessFaceData:
 
         return S
 
+    def ReshapeArray(self, AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR):
+        # Change Shape
+        # if (len(AlgoprocessedGrey) > 0):
+        AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
+        AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
+        AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
+        AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
+        # if (len(AlgoprocessedIR) > 0):
+        AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        return AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR
+
+    def ApplyFastICAonIndividualChannels(self, processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+                                         components):
+        # if (len(processedGrey) > 0):
+        AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, components)
+        AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, components)
+        AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, components)
+        AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, components)
+        # if (len(processedIR) > 0):
+        AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, components)
+
+        # Reshpae
+        AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ReshapeArray(
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
+
+        return AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR
+
+    def ApplyFastICAonIndividualChannelsWithoutReshape(self, processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+                                         components):
+        # if (len(processedGrey) > 0):
+        AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, components)
+        AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, components)
+        AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, components)
+        AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, components)
+        # if (len(processedIR) > 0):
+        AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, components)
+
+        return AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR
+
+    def ApplyPCAonIndividualChannels(self, processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+                                     components):
+        AlgoprocessedBlue = self.objAlgorithm.ApplyPCA(processedBlue, components)
+        AlgoprocessedGreen = self.objAlgorithm.ApplyPCA(processedGreen, components)
+        AlgoprocessedRed = self.objAlgorithm.ApplyPCA(processedRed, components)
+        AlgoprocessedGrey = self.objAlgorithm.ApplyPCA(processedGrey, components)
+        AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, components)
+
+        # Reshpae
+        AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ReshapeArray(
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
+
+        return AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR
+
     '''
     ApplyAlgorithm: Applies algorithms on signal data
     '''
@@ -680,8 +794,8 @@ class ProcessFaceData:
             self.components = 5
         # colorShape = np.array(processedGrey).shape
         # IRShape = np.array(processedIR).shape
-        if(self.Algorithm_type == 'None'):
-            skip=0
+        if (self.Algorithm_type == 'None'):
+            skip = 0
         else:
             if (len(processedGrey) > 0):
                 processedBlue = np.array(processedBlue).reshape((len(processedBlue), 1))
@@ -692,24 +806,37 @@ class ProcessFaceData:
                 processedIR = np.array(processedIR).reshape((len(processedIR), 1))
         # Apply by Algorithm_type
         # self.components = 1  # makes no difference with 1 to 15 components
-        if (self.Algorithm_type == "FastICA"):
-            if (len(processedGrey) > 0):
-                self.components = 1  # TODO: TEST FOr differnt components
-                AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
-                AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
-                AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
-                AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
+        if (self.Algorithm_type == "FastICA"):  # ApplyICA for each channel with 1 compoenent
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey,
+                processedIR, 1)  # self.components
+        elif (self.Algorithm_type == "FastICAComponents3"):
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey,
+                processedIR, 3)  # self.components
+        elif (self.Algorithm_type == "FastICAComponents5"):
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey,
+                processedIR, 5)
+        elif (self.Algorithm_type == "FastICAComponents10"):
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey,
+                processedIR, 10)  # self.components
+        elif (self.Algorithm_type == "FastICAComponents3Times"):
+            # FirstTime
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannelsWithoutReshape(
+                processedBlue, processedGreen, processedRed, processedGrey,
+                processedIR, 1)  # self.components
+            # SecondTime
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannelsWithoutReshape(
+                AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR , 1)  # self.components
+            # ThirdTime
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannelsWithoutReshape(
+                AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR , 1)
 
-            # Change Shape
-            if (len(processedGrey) > 0):
-                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
-                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
-                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
-                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+            # Reshpae
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ReshapeArray(
+                AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
 
         elif (self.Algorithm_type == "FastICACombined"):
             S_ = self.objAlgorithm.ApplyICA(S, self.components)
@@ -722,86 +849,48 @@ class ProcessFaceData:
                 AlgoprocessedIR = S_[:, 4]
 
         elif (self.Algorithm_type == "PCA"):
-            self.components = 1
-            if (len(processedGrey) > 0):
-                AlgoprocessedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
-                AlgoprocessedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
-                AlgoprocessedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
-                AlgoprocessedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
-
-            # Change Shape
-            if (len(processedGrey) > 0):
-                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
-                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
-                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
-                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
-
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyPCAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+                1)
         elif (self.Algorithm_type == "PCACombined"):
             S_ = self.objAlgorithm.ApplyPCA(S, self.components)
             # plt.plot(AlgoprocessedGrey, 'grey')
             # plt.plot(S_[:, 3], 'black')
             # plt.show()
-
-            if (len(processedGrey) > 0):
+            if (len(S_[:, 3]) > 0):
                 AlgoprocessedBlue = S_[:, 0]
                 AlgoprocessedGreen = S_[:, 1]
                 AlgoprocessedRed = S_[:, 2]
                 AlgoprocessedGrey = S_[:, 3]
-            if (len(processedIR) > 0):
+            if (len(S_[:, 4]) > 0):
                 AlgoprocessedIR = S_[:, 4]
 
         elif (self.Algorithm_type == "PCAICA"):
-            self.components = 1
-            if (len(processedGrey) > 0):
-                processedBlue = self.objAlgorithm.ApplyPCA(processedBlue, self.components)
-                processedGreen = self.objAlgorithm.ApplyPCA(processedGreen, self.components)
-                processedRed = self.objAlgorithm.ApplyPCA(processedRed, self.components)
-                processedGrey = self.objAlgorithm.ApplyPCA(processedGrey, self.components)
-            if (len(processedIR) > 0):
-                processedIR = self.objAlgorithm.ApplyPCA(processedIR, self.components)
-
-            if (len(processedGrey) > 0):
-                AlgoprocessedBlue = self.objAlgorithm.ApplyICA(processedBlue, self.components)
-                AlgoprocessedGreen = self.objAlgorithm.ApplyICA(processedGreen, self.components)
-                AlgoprocessedRed = self.objAlgorithm.ApplyICA(processedRed, self.components)
-                AlgoprocessedGrey = self.objAlgorithm.ApplyICA(processedGrey, self.components)
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, self.components)
-
-            # Change Shape
-
-            if (len(processedGrey) > 0):
-                AlgoprocessedBlue = np.array(AlgoprocessedBlue).reshape(1, (len(AlgoprocessedBlue)))[0]
-                AlgoprocessedGreen = np.array(AlgoprocessedGreen).reshape(1, (len(AlgoprocessedGreen)))[0]
-                AlgoprocessedRed = np.array(AlgoprocessedRed).reshape(1, (len(AlgoprocessedRed)))[0]
-                AlgoprocessedGrey = np.array(AlgoprocessedGrey).reshape(1, (len(AlgoprocessedGrey)))[0]
-            if (len(processedIR) > 0):
-                AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+            component = 1
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyPCAonIndividualChannels(
+                processedBlue, processedGreen, processedRed, processedGrey, processedIR,
+                component)
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
+                AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR, component)
 
         elif (self.Algorithm_type == "PCAICACombined"):
             S = self.objAlgorithm.ApplyPCA(S, self.components)
             S_ = self.objAlgorithm.ApplyICA(S, self.components)
 
-            if (len(processedGrey) > 0):
+            if (len(S_[:, 3]) > 0):
                 AlgoprocessedBlue = S_[:, 0]
                 AlgoprocessedGreen = S_[:, 1]
                 AlgoprocessedRed = S_[:, 2]
                 AlgoprocessedGrey = S_[:, 3]
-            if (len(processedIR) > 0):
+            if (len(S_[:, 4]) > 0):
                 AlgoprocessedIR = S_[:, 4]
 
         elif (self.Algorithm_type == "Jade"):
             # https://github.com/kellman/heartrate_matlab/blob/master/jadeR.m
             # r4 is slwoer and f5 is faster
             # S = np.c_[processedBlue,processedGreen,processedRed,processedGrey]
-
             S_ = self.objAlgorithm.jadeOptimised(S,
                                                  self.components)  # Only allows same or less components as array size
-
             # AlgoprocessedGreen = self.objAlgorithm.jadeOptimised(processedGreen, self.components)
             # Split data
             # newBlue = S_[0].real
@@ -810,7 +899,7 @@ class ProcessFaceData:
             # if (not self.ignoreGray):
             #     newGrey = np.array(S_[self.grayIndex])[0].real
             # newIr = np.array(S_[self.IRIndex])[0].real
-            if (len(processedGrey) > 0):
+            if (len(S_[3]) > 0):
                 AlgoprocessedBlue = np.array(S_[0])[0].real  # S_[:, 0]
                 AlgoprocessedGreen = np.array(S_[1])[0].real
                 AlgoprocessedRed = np.array(S_[2])[0].real
@@ -823,7 +912,7 @@ class ProcessFaceData:
                         0]  # Only allows same or less components as array size
                     # AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))#[0]
             else:
-                if (len(processedIR) > 0):
+                if (len(S_[4]) > 0):
                     AlgoprocessedIR = np.array(S_[4])[0].real
         else:
             AlgoprocessedBlue = processedBlue
@@ -1292,12 +1381,12 @@ class ProcessFaceData:
 
         startlogTime = windowList.LogTime(LogItems.Start_ComputerHRSNR)
         self.generateHeartRateandSNR(B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, self.Result_type)
-        endlogTime = windowList.LogTime(LogItems.End_ComputerHRSNR)
 
         # get best bpm and heart rate period in one region
         self.bestHeartRateSnr = 0.0
         self.bestBpm = 0.0
         self.GetBestBpm()
+        endlogTime = windowList.LogTime(LogItems.End_ComputerHRSNR) #TODO:RERUN -> THIS WAS BEFORE BEST BPM
 
         # calculate SPO
         windowList.LogTime(LogItems.Start_SPO)
@@ -1305,15 +1394,15 @@ class ProcessFaceData:
         Gy_filteredCopy = Gy_filtered
         greyCopy = grey
         # redCopy = red
-        if(IsEntireSignal):
-            if(len(grey)> len(self.regionIRData)):
+        if (IsEntireSignal):
+            if (len(grey) > len(self.regionIRData)):
                 greyCopy = grey.copy()
-                lengthDiff = len(greyCopy) -len(self.regionIRData)
+                lengthDiff = len(greyCopy) - len(self.regionIRData)
                 for i in range(lengthDiff):
                     greyCopy.pop()
             if (len(Gy_filtered) > len(self.regionIRData)):
                 Gy_filteredCopy = Gy_filtered.copy()
-                Gy_filteredCopy= Gy_filteredCopy[0:len(self.regionIRData)]  # all but the first and last element
+                Gy_filteredCopy = Gy_filteredCopy[0:len(self.regionIRData)]  # all but the first and last element
             # if (len(red) > len(self.regionIRData)):
             #     redCopy = red.copy()
             #     lengthDiff = len(redCopy) - len(self.regionIRData)
@@ -1321,7 +1410,7 @@ class ProcessFaceData:
             #         redCopy.pop()
         else:
             Gy_filteredCopy = Gy_filtered
-            greyCopy =grey
+            greyCopy = grey
             # redCopy = red
 
         std, err, oxylevl = self.getSpo(greyCopy, Gy_filteredCopy, self.regionIRData, red,
@@ -1962,7 +2051,6 @@ class ProcessFaceData:
                                                  self.IRfrequency, self.SavePath, self.region, IRNumSamples)
 
         SNR = ''
-        type = 3
         if (type == 1):
             SNR = objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
                                                            grey_fft_realabs, ir_fft_realabs)

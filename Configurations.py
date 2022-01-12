@@ -27,7 +27,8 @@ class Configurations:
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA", "PCA","PCAICA", "Jade","None"]
+    AlgoList = ["FastICA","FastICAComponents3Times","FastICAComponents3", "PCA","PCAICA", "Jade","None"]
+    # AlgoList = ["FastICAComponents3"]#For any component higher than 1-> UserWarning: n_components is too large: it will be set to 1 #"FastICAComponents3", "FastICAComponents5","FastICAComponents10", ->Does not work
     AlgoCombinedList = ["FastICACombined", "PCACombined", "PCAICACombined"]
     #FFT method types
     fftTypeList = ["M1","M2", "M3","M4", "M5","M6"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
