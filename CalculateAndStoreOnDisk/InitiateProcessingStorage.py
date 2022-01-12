@@ -1043,10 +1043,13 @@ objInitiateProcessing = InitiateProcessingStorage(skintype)
 # objInitiateProcessing.mainMethod('PreProcess') #Completed
 # objInitiateProcessing.mainMethod('Algorithm')  # Completed
 # objInitiateProcessing.mainMethod('Smoothen')  # Completed
-# objInitiateProcessing.mainMethod('FFT')  # to process
-# objInitiateProcessing.mainMethod('Filter')  # to process
-# objInitiateProcessing.mainMethod('Result')  # to process
-print('Calculating final result')
+objInitiateProcessing.mainMethod('FFT')  # to process
+print('FFT Complteted')
+objInitiateProcessing.mainMethod('Filter')  # to process
+print('Filter Complteted')
+objInitiateProcessing.mainMethod('Result')  # to process
+print('Result Complteted')
 objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
+print('ComputeFinalResults Complteted')
 print('Program completed')
 # objInitiateProcessing.ProduceFinalResult() #OLD METHOD
