@@ -924,35 +924,35 @@ class InitiateProcessingStorage:
                 ProcessingStep, case, self.objConfig.roiregions)
         else:
             objdata = data.copy()
-            for k, v in objdata.items():
+            # for k, v in objdata.items():
                 # IsGenerated = self.CheckIfGenerated(case)
                 # Generate Data for all Techniques
-                self.Process_Participants_Data_EntireSignalINChunks(
-                    v, self.objConfig.SavePath,
-                    self.objConfig.DumpToDisk,
-                    ProcessingStep, case, self.objConfig.roiregions)
+            self.Process_Participants_Data_EntireSignalINChunks(
+                objdata, self.objConfig.SavePath,
+                self.objConfig.DumpToDisk,
+                ProcessingStep, case, self.objConfig.roiregions)
 
     """
      GenerateResultsfromParticipants:
      """
 
-    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA, typeProcessing, ProcessingStep, ProcessCase):
+    def GenerateResultsfromParticipants(self, objProcessedDataOrginal, typeProcessing, ProcessingStep, ProcessCase,participant_number,position):#ParticipantsOriginalDATA
         TotalCasesCount = len(ProcessCase)
-        for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
-            for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
-                print(participant_number + ', ' + position)
-                objProcessedDataOrginal = ParticipantsOriginalDATA.get(participant_number + '_' + position)
-                self.objConfig.setSavePath(participant_number, position, typeProcessing)
-                currentCasesDone = 0
-                for case in ProcessCase:
-                    currentCasesDone = currentCasesDone + 1
-                    currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
-                    currentPercentage = str(currentPercentage)
-                    print(str(case) + "  -> " + str(currentPercentage) + " out of 100%")
-                    # Run
-                    self.RunDatabyProcessingType(objProcessedDataOrginal, case, ProcessingStep)
+        # for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
+        #     for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
+        # print(participant_number + ', ' + position)
+        #objProcessedDataOrginal = ParticipantsOriginalDATA.get(participant_number + '_' + position)
+        self.objConfig.setSavePath(participant_number, position, typeProcessing)
+        currentCasesDone = 0
+        for case in ProcessCase:
+            currentCasesDone = currentCasesDone + 1
+            currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
+            currentPercentage = str(currentPercentage)
+            print(str(case) + "  -> " + str(currentPercentage) + " out of 100%")
+            # Run
+            self.RunDatabyProcessingType(objProcessedDataOrginal, case, ProcessingStep)
 
-                ParticipantsOriginalDATA.pop(participant_number + '_' + position)
+                # ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
     '''
     LoadBinaryData: load data from disk ParticipantsOriginalDATA[ParticipantNumber + Position] -> ROISTORE data
@@ -979,8 +979,9 @@ class InitiateProcessingStorage:
      LoadPartiallyProcessedBinaryData: load data from disk ParticipantsPartiallyProcessedBinaryData[ParticipantNumber + Position] -> ROISTORE data
      '''
 
-    def LoadPartiallyProcessedBinaryData(self, LoadFolder):
-        ParticipantsPartiallyProcessedBinaryData = {}
+    def LoadPartiallyProcessedBinaryData(self, LoadFolder,FolderNameforSave, ProcessingStep,
+                                                         ProcessCase):
+        # ParticipantsPartiallyProcessedBinaryData = {}
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 self.objConfig.setSavePath(participant_number, position, 'ProcessedDatabyProcessType')  # set path
@@ -989,16 +990,22 @@ class InitiateProcessingStorage:
                 print('Loading from path ' + LoadPath)
                 AllFileNames = os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
                 ListProcessedData = {}
+                fileCount=0
                 for fileName in AllFileNames:
                     # fileNameSplit = fileName.split('-')
                     ProcessedDataType = fileName.replace('ResultSignal_', '')
                     ##Data in binary read from disk
                     objWindowProcessedData = self.objFile.ReadfromDisk(LoadPath, fileName)
-                    ListProcessedData[ProcessedDataType] = objWindowProcessedData
+                    ####
+                    print(str(fileCount) + ') Applying on data that has been ' + fileName)
+                    fileCount = fileCount+1
+                    self.GenerateResultsfromParticipants(objWindowProcessedData, FolderNameforSave, ProcessingStep,
+                                                         ProcessCase,participant_number,position)  # FOR Window processing
+                    # ListProcessedData[ProcessedDataType] = objWindowProcessedData
                     # Store for procesing locally
-                ParticipantsPartiallyProcessedBinaryData[participant_number + '_' + position] = ListProcessedData
+                # ParticipantsPartiallyProcessedBinaryData[participant_number + '_' + position] = ListProcessedData
 
-        return ParticipantsPartiallyProcessedBinaryData
+        # return ParticipantsPartiallyProcessedBinaryData
 
     def mainMethod(self, ProcessingStep):
         # Process for entire signal
@@ -1013,26 +1020,29 @@ class InitiateProcessingStorage:
             ProcessCase = self.objConfig.preprocesses
             LoadedData = self.LoadBinaryData()
         elif (ProcessingStep == 'Algorithm'):  # TODO: Run 3times, 5 times ica and so on PLOT diference
-            LoadedData = self.LoadPartiallyProcessedBinaryData('PreProcess_WindowsBinaryFiles')
             ProcessCase = self.objConfig.AlgoList
+            LoadedData = self.LoadPartiallyProcessedBinaryData('PreProcess_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
+                                                         ProcessCase)
         elif (ProcessingStep == 'Smoothen'):
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Algorithm_WindowsBinaryFiles')
             ProcessCase = self.objConfig.Smoothen
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Algorithm_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
+                                                         ProcessCase)
         elif (ProcessingStep == 'FFT'):
             ProcessCase = self.objConfig.fftTypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Smoothen_WindowsBinaryFiles')
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Smoothen_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
+                                                         ProcessCase)
         elif (ProcessingStep == 'Filter'):
             ProcessCase = self.objConfig.filtertypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('FFT_WindowsBinaryFiles')
+            LoadedData = self.LoadPartiallyProcessedBinaryData('FFT_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
+                                                         ProcessCase)
         elif (ProcessingStep == 'Result'):
             ProcessCase = self.objConfig.resulttypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Filter_WindowsBinaryFiles')
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Filter_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
+                                                         ProcessCase)
 
         if (ProcessingStep == "ComputeFinalResults"):
             self.Process_Participants_Result_forEntireSignal('Result_WindowsBinaryFiles')
-        else:
-            self.GenerateResultsfromParticipants(LoadedData, FolderNameforSave, ProcessingStep,
-                                                 ProcessCase)  # FOR Window processing
+
 
 
 ###RUN this file CODE###
@@ -1043,10 +1053,10 @@ objInitiateProcessing = InitiateProcessingStorage(skintype)
 # objInitiateProcessing.mainMethod('PreProcess') #Completed
 # objInitiateProcessing.mainMethod('Algorithm')  # Completed
 # objInitiateProcessing.mainMethod('Smoothen')  # Completed
-objInitiateProcessing.mainMethod('FFT')  # to process
-print('FFT Complteted')
-objInitiateProcessing.mainMethod('Filter')  # to process
-print('Filter Complteted')
+# objInitiateProcessing.mainMethod('FFT')  # to process
+# print('FFT Complteted')
+# objInitiateProcessing.mainMethod('Filter')  # to process
+# print('Filter Complteted')
 objInitiateProcessing.mainMethod('Result')  # to process
 print('Result Complteted')
 objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
