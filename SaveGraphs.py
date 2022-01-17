@@ -154,7 +154,7 @@ class Plots:
 
         Colortx, IRtx = self.getTimeStep(red, ir)
 
-        fig, (ax1, ax2, ax4, ax5) = plt.subplots(4, sharex=True, figsize=(20, 11))
+        fig, (ax1, ax2, ax3,ax4, ax5) = plt.subplots(5, sharex=True, figsize=(20, 11))
 
         # plt.xlabel(xlabel, fontsize = 16)
         plt.tick_params(axis='both', which='major', labelsize=16)
@@ -165,8 +165,8 @@ class Plots:
         ax1.legend(loc="upper right")
         ax2.plot(Colortx, green, 'green', label='Green channel')
         ax2.legend(loc="upper right")
-        # ax3.plot( blue, 'blue',label = 'Blue channel')
-        # ax3.legend(loc="upper right")
+        ax3.plot( Colortx,blue, 'blue',label = 'Blue channel')
+        ax3.legend(loc="upper right")
         ax4.plot(Colortx, grey, 'gray', label='Grey channel')
         ax4.legend(loc="upper right")
         ax5.plot(IRtx, ir, 'black', label='IR channel')

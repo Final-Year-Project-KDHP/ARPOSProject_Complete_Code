@@ -1,5 +1,7 @@
 import glob
+import math
 import os
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -9,54 +11,56 @@ import seaborn as sns
 import CommonMethods
 from Configurations import Configurations
 from FileIO import FileIO
+from SaveGraphs import Plots
 from boxPlotMethodComparision import BoxPlot
 import plotly.express as px
 
 
 class GeneratedDataFiltering:
-
     objConfig = None
     objFile = None
-    AcceptableDifference =3
-    #Constructor
+    AcceptableDifference = 3
+
+    # Constructor
     def __init__(self, skinGroup='None'):
         self.objConfig = Configurations(True, skinGroup)
         self.objFile = FileIO()
 
-    def Getdata(self,fileName,AcceptableDifference,participant_number,position): #"None", loadpath,methodtype
-        filepath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\' + 'HeartRate_' + fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
-                   # + algotype + '\\' + filename + "-"+ methodtype+ "_Fl_"+ str(filtertype) + "_Rs_" + str(resulttype)  + "_Pr_" + str(processtype)+ "_Sm_" + str(isSmooth)+ ".txt" #HRdata-M1_1_1
+    def Getdata(self, fileName, AcceptableDifference, participant_number, position):  # "None", loadpath,methodtype
+        filepath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\' + 'HeartRate_' + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
+        # + algotype + '\\' + filename + "-"+ methodtype+ "_Fl_"+ str(filtertype) + "_Rs_" + str(resulttype)  + "_Pr_" + str(processtype)+ "_Sm_" + str(isSmooth)+ ".txt" #HRdata-M1_1_1
         # HRdata-M1_Fl_1_Rs_1_Pr_1_Sm_False
 
         Filedata = open(filepath, "r")
-        data =Filedata.read().split("\n")
+        data = Filedata.read().split("\n")
         generatedresult = []
-        isAcceptableData =False
+        isAcceptableData = False
         diffValueList = []
         AcceptabledifferenceValue = -20
         for row in data:
             dataRow = row.split(",\t")
             # 0 index for windowCount, 1 index for GroundTruth, 2 index for generatedresult by arpos, 3 index for diference
-            differenceValue = int(dataRow[2]) #change index here
+            differenceValue = int(dataRow[2])  # change index here
             #  if 5 <= 7 and 5 >= -7:
             negativeAcceptableDifference = -1 * (AcceptableDifference)
-            if( differenceValue <= AcceptableDifference and differenceValue >= negativeAcceptableDifference):#((differenceValue >= AcceptableDifference) ): #or (differenceValue <= negativeAcceptableDifference )
-                isAcceptableData =True
-                AcceptabledifferenceValue= differenceValue
+            if (
+                    differenceValue <= AcceptableDifference and differenceValue >= negativeAcceptableDifference):  # ((differenceValue >= AcceptableDifference) ): #or (differenceValue <= negativeAcceptableDifference )
+                isAcceptableData = True
+                AcceptabledifferenceValue = differenceValue
             else:
                 isAcceptableData = False
                 break
 
             # isAcceptableData =True
 
-        if(isAcceptableData):
+        if (isAcceptableData):
             # filename = Filedata.name.split("HRdata-")
             generatedresult.append(fileName)
             diffValueList.append(AcceptabledifferenceValue)
 
-        return generatedresult,isAcceptableData,diffValueList
+        return generatedresult, isAcceptableData, diffValueList
 
-    def CompareFiles(self,ListFilesP1,ListFilesP2):#participantnumber1, participantnumber2,
+    def CompareFiles(self, ListFilesP1, ListFilesP2):  # participantnumber1, participantnumber2,
         # full_path_Save_P1 = "E:\\StudyData\\Result\\" + participantnumber1 + "\\Resting1\\BestDataFiles\\"
         # full_path_Save_P2 = "E:\\StudyData\\Result\\" + participantnumber2 + "\\Resting1\\BestDataFiles\\"
 
@@ -65,7 +69,7 @@ class GeneratedDataFiltering:
         for row in ListFilesP1:
             Row1_P1_Value = row
             for row2 in ListFilesP2:
-                if(Row1_P1_Value == row2):
+                if (Row1_P1_Value == row2):
                     generatedresult.append(row)
 
         # using list comprehension
@@ -77,10 +81,10 @@ class GeneratedDataFiltering:
         for value in result:
             print(value)
 
-    def processBestResults(self,filepath,filename):
+    def processBestResults(self, filepath, filename):
         for position in self.objConfig.hearratestatus:
             # dataFile = filepath + filename
-            dataFile = filepath+filename +"_"+ position+".txt"
+            dataFile = filepath + filename + "_" + position + ".txt"
             # SPOFile = filepath + "SPO.txt"
 
             # read data from files
@@ -91,30 +95,30 @@ class GeneratedDataFiltering:
             # SpoGr = SPOFiledata.read().split("\n")
             HrFiledata.close()
 
-            _FastICA =[]
+            _FastICA = []
             _None = []
-            _PCA =[]
-            _ICAPCA =[]
-            _Jade =[]
+            _PCA = []
+            _ICAPCA = []
+            _Jade = []
 
             for item in HrFileNames:
-                if(item.__contains__("FastICA_")):
-                    Filename = item.replace("FastICA_","")
-                    _FastICA.append(Filename)            # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
-                elif(item.__contains__("None")):
-                    Filename = item.replace("None_","")
-                    _None.append(Filename)            # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
-                elif(item.__contains__("ICAPCA_")):
-                    Filename = item.replace("ICAPCA_","")
-                    _ICAPCA.append(Filename)            # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
-                elif(item.__contains__("PCA_")): #MATCHES WITH ICA PCA So check in end
-                    Filename = item.replace("PCA_","")
-                    _PCA.append(Filename)            # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
-                elif(item.__contains__("Jade_")):
-                    Filename = item.replace("Jade_","")
+                if (item.__contains__("FastICA_")):
+                    Filename = item.replace("FastICA_", "")
+                    _FastICA.append(Filename)  # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
+                elif (item.__contains__("None")):
+                    Filename = item.replace("None_", "")
+                    _None.append(Filename)  # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
+                elif (item.__contains__("ICAPCA_")):
+                    Filename = item.replace("ICAPCA_", "")
+                    _ICAPCA.append(Filename)  # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
+                elif (item.__contains__("PCA_")):  # MATCHES WITH ICA PCA So check in end
+                    Filename = item.replace("PCA_", "")
+                    _PCA.append(Filename)  # FastICA_ # M1_Fl_1_Rs_1_Pr_3_Sm_True.txt
+                elif (item.__contains__("Jade_")):
+                    Filename = item.replace("Jade_", "")
                     _Jade.append(Filename)
 
-            #Getcommon filenames only
+            # Getcommon filenames only
             result = []
             [result.append(x) for x in _None if x not in result]
             [result.append(x) for x in _FastICA if x not in result]
@@ -124,18 +128,17 @@ class GeneratedDataFiltering:
             result.sort()
             full_path_Save = self.objConfig.DiskPath + 'Result\\'
             # Wirte data
-            RHr = open(full_path_Save + "BestCommonFiles" +  "_"+ position+".txt", "w+")
+            RHr = open(full_path_Save + "BestCommonFiles" + "_" + position + ".txt", "w+")
 
             for item in result:
                 RHr.write(item + "\n")
 
             RHr.close()
 
-
-    def Run(self,AcceptableDifference):
-        fullistResting1=[]
-        fullistResting2=[]
-        fullistAfterExcersize=[]
+    def Run(self, AcceptableDifference):
+        fullistResting1 = []
+        fullistResting2 = []
+        fullistAfterExcersize = []
         fullistResting1Values = []
         fullistResting2Values = []
         fullistAfterExcersizeValues = []
@@ -154,8 +157,8 @@ class GeneratedDataFiltering:
             AfterExcListValues = []
 
             for position in self.objConfig.hearratestatus:
-                loadpath = self.objConfig.DiskPath + 'Result\\'+ participant_number + '\\' + position + '\\'
-                datalist=[]
+                loadpath = self.objConfig.DiskPath + 'Result\\' + participant_number + '\\' + position + '\\'
+                datalist = []
                 datalistValues = []
 
                 for preprocesstype in self.objConfig.preprocesses:
@@ -168,32 +171,34 @@ class GeneratedDataFiltering:
                                             filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
                                             preprocesstype) + "_SM-" + str(isSmooth)
                                         print(fileName)
-                                        generatedresult,isAcceptableData,diffValueList =self.Getdata(fileName,AcceptableDifference,participant_number,position)
+                                        generatedresult, isAcceptableData, diffValueList = self.Getdata(fileName,
+                                                                                                        AcceptableDifference,
+                                                                                                        participant_number,
+                                                                                                        position)
                                         # generatedresult,isAcceptableData =self.Getdata(algoType, loadpath,fftype,"HRdata",filtertype,resulttype,AcceptableDifference,preprocesstype,isSmooth )
                                         # filepath = loadpath  + algotype + '\\' + filename + "-"+ methodtype+ "_"+ filtertype + "_" + resulttype+ ".txt" #HRdata-M1_1_1
-                                        if(isAcceptableData):
+                                        if (isAcceptableData):
                                             datalist.append(generatedresult)
                                             datalistValues.append(diffValueList)
 
-
                 # datalist = np.array(datalist)
-                if(position == "Resting1"):
-                    Resting1List =datalist
+                if (position == "Resting1"):
+                    Resting1List = datalist
                     Resting1ListValues = datalistValues
-                elif(position == "Resting2"):
-                    Resting2List =datalist
+                elif (position == "Resting2"):
+                    Resting2List = datalist
                     Resting2ListValues = datalistValues
                 else:
-                    AfterExcList =datalist
+                    AfterExcList = datalist
                     AfterExcListValues = datalistValues
 
-            fullistResting1 =fullistResting1 + Resting1List
-            fullistResting2 =fullistResting2 + Resting2List
-            fullistAfterExcersize =fullistAfterExcersize + AfterExcList
+            fullistResting1 = fullistResting1 + Resting1List
+            fullistResting2 = fullistResting2 + Resting2List
+            fullistAfterExcersize = fullistAfterExcersize + AfterExcList
 
-            fullistResting1Values =fullistResting1Values + Resting1ListValues
-            fullistResting2Values =fullistResting2Values + Resting2ListValues
-            fullistAfterExcersizeValues =fullistAfterExcersizeValues + AfterExcListValues
+            fullistResting1Values = fullistResting1Values + Resting1ListValues
+            fullistResting2Values = fullistResting2Values + Resting2ListValues
+            fullistAfterExcersizeValues = fullistAfterExcersizeValues + AfterExcListValues
             # Resting1Store[participant_number] =Resting1List
             # Resting2Store[participant_number] =Resting2List
             # AfterExcersizeStore[participant_number] =AfterExcList
@@ -256,17 +261,16 @@ class GeneratedDataFiltering:
         # [result.append(x) for x in fullistAfterExcersize if x not in result]
 
         full_path_Save = self.objConfig.DiskPath
-        #Wirte data
-        RHr = open(full_path_Save +'Result\\' + "BestDataFiles_Resting1.txt", "w+")
-        RHr2 = open(full_path_Save+'Result\\' + "BestDataFiles_Resting2.txt", "w+")
-        RHr3 = open(full_path_Save +'Result\\'+ "BestDataFiles_AfterExcersize.txt", "w+")
+        # Wirte data
+        RHr = open(full_path_Save + 'Result\\' + "BestDataFiles_Resting1.txt", "w+")
+        RHr2 = open(full_path_Save + 'Result\\' + "BestDataFiles_Resting2.txt", "w+")
+        RHr3 = open(full_path_Save + 'Result\\' + "BestDataFiles_AfterExcersize.txt", "w+")
 
         for item in Resting1result:
             RHr.write(item[0] + "\n")
 
         for item in Resting2result:
             RHr2.write(item[0] + "\n")
-
 
         for item in AfterExcersizeresult:
             RHr3.write(item[0] + "\n")
@@ -292,12 +296,12 @@ class GeneratedDataFiltering:
         # fullist = set(P1List).intersection(P2List)
         # fullist = np.intersect1d(P1List, P2List)
 
-        #set(a).intersection(b, c)
+        # set(a).intersection(b, c)
 
     """
     Gemerate cases:
     """
-    def GenerateCases(self):
+    def GenerateCases2(self):
         CaseList = []
         for preprocesstype in self.objConfig.preprocesses:
             for algoType in self.objConfig.AlgoList:
@@ -305,22 +309,16 @@ class GeneratedDataFiltering:
                     for resulttype in self.objConfig.resulttypeList:
                         for filtertype in self.objConfig.filtertypeList:
                             for isSmooth in self.objConfig.Smoothen:
-                                # fileName = algoType + "_FFT-" + str(fftype) + "_FL-" + str(
-                                #     filtertype) + "_RS-" + str(resulttype) + "_PR-" + str(
-                                #     preprocesstype) + "_SM-" + str(isSmooth)
-                                fileName = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-" + str(filtertype) +  "FFTtype-" + str(fftype)+\
-                                           "_algotype-" + str(algoType) + '_PreProcessType-' + str(preprocesstype) + \
-                                          "_Smoothed-" + str(isSmooth)
-                                #ResultType_RS-1_Filtered_FL-1FFTtype-M1_algotype-FastICA_PreProcessType-1_Smoothed-True
-                                # print(fileName)
+                                fileName = "HRSPOwithLog_HRSPOwithLog_" + str(algoType) + "_PR-" + str(preprocesstype) + \
+                                           "_FFT-" + str(fftype) + "_FL-" + str(filtertype) + "_RS-" + str(resulttype) \
+                                           + "_SM-" + str(isSmooth)
                                 CaseList.append(fileName)
-        return  CaseList
+        return CaseList
 
     """
        Gemerate cases:
        """
-
-    def GenerateCasesNewMethod(self,region):
+    def GenerateCasesNewMethod(self, region):
         CaseList = []
         for preprocesstype in self.objConfig.preprocesses:
             for algoType in self.objConfig.AlgoList:
@@ -328,19 +326,21 @@ class GeneratedDataFiltering:
                     for resulttype in self.objConfig.resulttypeList:
                         for filtertype in self.objConfig.filtertypeList:
                             for isSmooth in self.objConfig.Smoothen:
-                                fileName = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-"+ str(filtertype)+ "_"+ region+ "_FFTtype-" + str(fftype)  + "_algotype-" + str(algoType) +\
-                                           '_PreProcessType-'+str(preprocesstype)+ "_Smoothed-" + str(isSmooth)
+                                fileName = "ResultType_RS-" + str(resulttype) + "_Filtered_FL-" + str(
+                                    filtertype) + "_" + region + "_FFTtype-" + str(fftype) + "_algotype-" + str(
+                                    algoType) + \
+                                           '_PreProcessType-' + str(preprocesstype) + "_Smoothed-" + str(isSmooth)
                                 print(fileName)
                                 CaseList.append(fileName)
 
         return CaseList
 
-    def getCase(self,fileName,participant_number,position):
-        SavePath = self.objConfig.DiskPath + '\\Result\\' + participant_number + '\\' + position + '\\' + fileName + '\\'
-        filepath = SavePath + 'HeartRate_' + fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
+    def getCase(self, fileName):
+        SavePath = self.objConfig.SavePath +'ComputedFinalResult\\'
+        filepath = SavePath + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
 
-        pathExsists = self.objFile.FileExits(SavePath + 'HeartRate_' + fileName + ".txt")
-        data =None
+        pathExsists = self.objFile.FileExits(filepath)
+        data = None
         # already generated
         if (pathExsists):
             Filedata = open(filepath, "r")
@@ -348,12 +348,12 @@ class GeneratedDataFiltering:
             Filedata.close()
         return data
 
-    def getCaseNew(self,fileName,participant_number,position):
-        SavePath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\FinalComputedResult\\' #+ fileName + '\\'
-        filepath = SavePath +  fileName + '.txt' #HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False 'HeartRate_' +
+    def getCaseNew(self, fileName, participant_number, position):
+        SavePath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\FinalComputedResult\\'  # + fileName + '\\'
+        filepath = SavePath + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False 'HeartRate_' +
 
-        pathExsists = self.objFile.FileExits(filepath)#+ ".txt"
-        data =None
+        pathExsists = self.objFile.FileExits(filepath)  # + ".txt"
+        data = None
         # already generated
         if (pathExsists):
             Filedata = open(filepath, "r")
@@ -361,30 +361,31 @@ class GeneratedDataFiltering:
             Filedata.close()
         return data
 
-    def IsAcceptableDifference(self,differenceValue): #"None", loadpath,methodtype
+    def IsAcceptableDifference(self, differenceValue):  # "None", loadpath,methodtype
         #  if 5 <= 7 and 5 >= -7:
         negativeAcceptableDifference = -1 * (self.AcceptableDifference)
-        if(differenceValue <= self.AcceptableDifference and differenceValue >= negativeAcceptableDifference):
+        if (differenceValue <= self.AcceptableDifference and differenceValue >= negativeAcceptableDifference):
             return True
         else:
             return False
 
-    def splitDataRow(self,DataRow,participant_number,position): #"None", loadpath,methodtype
+    def splitDataRow(self, DataRow, participant_number, position):  # "None", loadpath,methodtype
         dataRow = DataRow.split(",\t")
         # 0 index for GroundTruth, 1 index for generatedresult by arpos, 2 index for diference
-        generatedResult = int(dataRow[1]) #change index here
-        HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,self.objConfig.DiskPath, int(60))
+        generatedResult = int(dataRow[2].replace('ComputedHeartRate: ',''))  # change index here
+        HrGr = int(dataRow[1].replace('GroundTruthHeartRate: ','')) #CommonMethods.GetGroundTruth(participant_number, position, self.objConfig.DiskPath, int(60))
+        # SpoGr= int(dataRow[4].replace('ComputedHeartRate: ',''))
         # avgGroundTruthStored = int(dataRow[0])
-        avgGroundTruth = np.mean(HrGr)
+        avgGroundTruth = HrGr#np.mean(HrGr)
         # if(avgGroundTruthStored != round(avgGroundTruth)):
         #     differenceValue=int(dataRow[2])
         # else:
-        differenceValue = avgGroundTruth - generatedResult
-        errorrate = (differenceValue/avgGroundTruth)*100
+        differenceValue = int(dataRow[3].replace('HRDifference: ',''))# avgGroundTruth - generatedResult
+        errorrate = (differenceValue / avgGroundTruth) * 100
         return errorrate
 
-    def RunCasewise(self):
-        CaseList = self.GenerateCasesNewMethod() #GET Directories or generate below
+    def RunCasewise(self,position,useAcceptableDiff):
+        CaseList, LoadfNameList = self.GenerateCases()  # GET Directories or generate below
         # CaseList = self.GenerateCases() # or generate
 
         df1 = pd.DataFrame({
@@ -394,29 +395,79 @@ class GeneratedDataFiltering:
         for participant_number in self.objConfig.ParticipantNumbers:
             df1[participant_number] = None
         # print(df1)
-        for position in self.objConfig.hearratestatus:
-            RowIndex = 0 #
-            for case in CaseList:
-                ColumnIndex = 1  # so doesntt replace case names
-                for participant_number in self.objConfig.ParticipantNumbers:
-                    #for position in self.objConfig.hearratestatus:
-                    CaseData = self.getCase(case, participant_number, position)
-                    if(CaseData != None):
-                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
-                        isAcceptable = self.IsAcceptableDifference(differenceVal)
-                        if(isAcceptable):
-                            df1.iloc[RowIndex, ColumnIndex] = differenceVal
+        # for position in self.objConfig.hearratestatus:
+        RowIndex = 0  #
+        for case in CaseList:
+            ColumnIndex = 1  # so doesntt replace case names
+            for participant_number in self.objConfig.ParticipantNumbers:
+                # for position in self.objConfig.hearratestatus:
+                self.objConfig.setSavePath(participant_number,position,'ProcessedDatabyProcessType')
+                CaseData = self.getCase(case)
+                if (CaseData != None):
+                    if(CaseData == ''):
+                        df1.iloc[RowIndex, ColumnIndex] = 'NoHR' #nmeans does not work for this case for this person
+                        #needs to be checked if not same for all participants
                     else:
-                        df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
-                    # else:
-                    #     df1.iloc[RowIndex, ColumnIndex] = None
-                    ColumnIndex = ColumnIndex +1
-                    # print(df1)
-                RowIndex = RowIndex +1
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        if(useAcceptableDiff):
+                            isAcceptable = self.IsAcceptableDifference(differenceVal)
+                            if (isAcceptable):
+                                df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                        else:
+                            df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                else:
+                    df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
+                # else:
+                #     df1.iloc[RowIndex, ColumnIndex] = None
+                ColumnIndex = ColumnIndex + 1
+                # print(df1)
+            RowIndex = RowIndex + 1
 
-            # write dataFrame to SalesRecords CSV file
-            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
-        t=0
+        # write dataFrame to SalesRecords CSV file
+        df1.to_csv(self.objConfig.DiskPath + "CaseWiseParticipantsResults_" + position + "__DiffOf" + str(self.AcceptableDifference) + ".csv")
+        t = 0
+
+    def getBlankCases(self,position):
+        CaseList, LoadfNameList = self.GenerateCases()  # GET Directories or generate below
+        # CaseList = self.GenerateCases() # or generate
+
+        df1 = pd.DataFrame({
+            'CaseNames': CaseList
+        })
+        NoHrFiles = []
+        NotGenerated = []
+
+        for participant_number in self.objConfig.ParticipantNumbers:
+            df1[participant_number] = None
+        RowIndex = 0  #
+        for case in CaseList:
+            ColumnIndex = 1  # so doesntt replace case names
+            for participant_number in self.objConfig.ParticipantNumbers:
+                # for position in self.objConfig.hearratestatus:
+                self.objConfig.setSavePath(participant_number,position,'ProcessedDatabyProcessType')
+                CaseData = self.getCase(case)
+                if (CaseData != None):
+                    if(CaseData == ''):
+                        NoHrFiles.append(case)
+                        # df1.iloc[RowIndex, ColumnIndex] = 'NoHR' #nmeans does not work for this case for this person
+                else:
+                    NotGenerated.append(case)
+                ColumnIndex = ColumnIndex + 1
+            RowIndex = RowIndex + 1
+
+        print('')
+        print('NotGenerated')
+        # for item in NotGenerated:
+        #     print(item)
+
+        self.objFile.WriteListDatatoFile(self.objConfig.DiskPath,'NotGeneratedCases',NotGenerated)
+
+        print('')
+        print('NoHrFiles')
+        # for item in NoHrFiles:
+        #     print(item)
+
+        self.objFile.WriteListDatatoFile(self.objConfig.DiskPath,'NoHrFilesCases',NoHrFiles)
 
     def getDuplicateValue(self, ini_dict):
         # finding duplicate values
@@ -433,33 +484,95 @@ class GeneratedDataFiltering:
         key = [fps for fps, count in flipped.items() if count == max(flipped.values())]
         return key[0]
 
-    def getBestCasesFromCSV(self,position):
-        df1 = pd.read_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
-
+    def getBestCasesFromCSV(self, position):
+        df1 = pd.read_csv(self.objConfig.DiskPath + "CaseWiseParticipantsResults_" + position + "__DiffOf" + str(self.AcceptableDifference) + ".csv")
+        NoHRlist =[]
         ListCaseCount = {}
         for index, row in df1.iterrows():
             currentCase = row[1]
-            addCase= True
+            addCase = True
             mincount = 0
 
             for column in df1:
-                if(column.__contains__('Unnamed') or column.__contains__('Case')):
+                if (column.__contains__('Unnamed') or column.__contains__('Case')):
                     continue
-                colIndex = df1.columns.get_loc(column) #df1[column] just column in df1 get entire columns values
-                colValueInRow =  df1.iloc[index, colIndex]
-                if(not np.isnan(colValueInRow)):
-                    mincount = mincount+1
+                colIndex = df1.columns.get_loc(column)  # df1[column] just column in df1 get entire columns values
+                colValueInRow = df1.iloc[index, colIndex]
+                if(colValueInRow == 'NoHR'):
+                    NoHRlist.append(currentCase)
+                else:
+                    colValueInRow = float(colValueInRow)
+                    if (not math.isnan(colValueInRow)):
+                        mincount = mincount + 1
 
-            ListCaseCount[currentCase] =mincount
+            ListCaseCount[currentCase] = mincount
 
-        MaxCount =self.getDuplicateValue(ListCaseCount)
-
-        ListCasesForSelection =[]
+        MaxCount=0
+        ListCasesForSelection = []
         for key, value in ListCaseCount.items():
-            if MaxCount == value:
-                ListCasesForSelection.append(key)
+            if (value > MaxCount):
+                MaxCount = value
+                # ListCasesForSelection.append(key)
 
-        t=0
+
+        for key, value in ListCaseCount.items():
+            if(value >= MaxCount):
+                ListCasesForSelection.append(key)
+                # ListCasesForSelection.remove(key)
+
+        # MaxCount = self.getDuplicateValue(ListCaseCount)
+        NoHRlist = list(dict.fromkeys(NoHRlist))
+        print('')
+        #Rerun for cases:
+        for item in NoHRlist:
+            print(item)
+
+        print('')
+        print('Best Cases')
+        ListCasesForSelection = list(dict.fromkeys(ListCasesForSelection))
+        for item in ListCasesForSelection:
+            if(item.__contains__('FastICAComponents3')):
+                ListCasesForSelection.remove(item)
+
+        for item in ListCasesForSelection:
+            print(item)
+
+        ###ReGeneraete sheet as
+        # totalLengofCaes = len(ListCasesForSelection)
+        # totalCharts = 8 # int(round(totalLengofCaes/7))
+        # TotalListsOfCases = []
+        # initialindex=0
+        # list1 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list2 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list3 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list4 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list5 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list6 = ListCasesForSelection[initialindex:totalCharts]
+        # list7 = ListCasesForSelection
+        n=8
+        for x in range(0, len(ListCasesForSelection),n):
+            list1 = ListCasesForSelection[x:x+n]
+            self.CreateCSVdataFromList(list1,position,x,df1)
+            a=0
+        # self.CreateCSVdataFromList(list2,position,2,df1)
+        # self.CreateCSVdataFromList(list3,position,3,df1)
+        # self.CreateCSVdataFromList(list4,position,4,df1)
+        # self.CreateCSVdataFromList(list5,position,5,df1)
+        # self.CreateCSVdataFromList(list6,position,6,df1)
+        # self.CreateCSVdataFromList(list7,position,7,df1)
+
+
+        t = 0
         # BestCaseList = []
         # for index, row in df1.iterrows():
         #     currentCase = row[1]
@@ -477,22 +590,58 @@ class GeneratedDataFiltering:
         #
         # for item in BestCaseList:
         #     print(item)
+    def CreateCSVdataFromList(self,ListCasesForSelection,position,listno,df1):
+        dfFinal =[]
+
+        RowIndex = 0  #
+        for case in ListCasesForSelection:
+            ColumnIndex = 1  # so doesntt replace case names
+            for participant_number in self.objConfig.ParticipantNumbers:
+                # for position in self.objConfig.hearratestatus:
+                self.objConfig.setSavePath(participant_number, position, 'ProcessedDatabyProcessType')
+                CaseData = self.getCase(case)
+                if (CaseData != None):
+                    if (CaseData == ''):
+                        print('df1.iloc[' + RowIndex + ', ' + ColumnIndex +'] NoHR')  # nmeans does not work for this case for this person
+                        # needs to be checked if not same for all participants
+                    else:
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                        dfFinal.append(
+                            {
+                                'Techniques': case,
+                                'Participants': participant_number,
+                                'Differences': differenceVal
+                            })
+                else:
+                    print('df1.iloc['+RowIndex+', '+ColumnIndex+'] = ' + 'NotGenerated')
+                # else:
+                #     df1.iloc[RowIndex, ColumnIndex] = None
+                ColumnIndex = ColumnIndex + 1
+                # print(df1)
+            RowIndex = RowIndex + 1
+
+        dfFinal =pd.DataFrame(dfFinal)
+
+        # write dataFrame to SalesRecords CSV file
+        dfFinal.to_csv(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotdataBestCaseParticipantsResults_" + position + "_DiffOf" + str(self.AcceptableDifference) +  "_listno-"+str(listno) +".csv")
+
+
     """
        LoadFiles:
        Load file from path
        """
-
     def LoadFiles(self, filepath):
-        CaseList=[]
+        CaseList = []
         for path, subdirs, files in os.walk(filepath):
             for filename in subdirs:
-                if(filename not in CaseList):
+                if (filename not in CaseList):
                     CaseList.append(filename)
                 # a.write(str(f) + os.linesep)
         return CaseList
 
     def RunParticipantWiseAll(self):
-        CaseList= []
+        CaseList = []
         for participant_number in self.objConfig.ParticipantNumbers:
             for position in self.objConfig.hearratestatus:
                 CaseSublist = []
@@ -502,22 +651,18 @@ class GeneratedDataFiltering:
                 CaseSublist = self.LoadFiles(loadpath)
 
                 for name in CaseSublist:
-                    if(name not in CaseList):
+                    if (name not in CaseList):
                         CaseList.append(name)
 
-
         finallist = 0
-        return  CaseList
+        return CaseList
 
-
-
-                    # file = open(loadpath + filename + ".txt", "r")
-                    # Lines = file.readlines()
-                    # file.close()
-
+        # file = open(loadpath + filename + ".txt", "r")
+        # Lines = file.readlines()
+        # file.close()
 
     def RunAllCaseParticipantwiseCaseasRow(self):
-        CaseList = self.GenerateCases() # or generate
+        CaseList = self.GenerateCases()  # or generate
 
         df1 = pd.DataFrame({
             'CaseNames': CaseList
@@ -529,31 +674,32 @@ class GeneratedDataFiltering:
             df1[participant_number] = None
 
         for position in self.objConfig.hearratestatus:
-            RowIndex = 0 #
+            RowIndex = 0  #
             for case in CaseList:
                 ColumnIndex = 1  # so doesntt replace case names
                 for participant_number in self.objConfig.ParticipantNumbers:
-                    #for position in self.objConfig.hearratestatus:
+                    # for position in self.objConfig.hearratestatus:
                     CaseData = self.getCaseNew(case, participant_number, position)
-                    if(CaseData != None):
+                    if (CaseData != None):
                         differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
                         isAcceptable = self.IsAcceptableDifference(differenceVal)
-                        if(isAcceptable):
+                        if (isAcceptable):
                             df1.iloc[RowIndex, ColumnIndex] = differenceVal
                     else:
                         df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
                     # else:
                     #     df1.iloc[RowIndex, ColumnIndex] = None
-                    ColumnIndex = ColumnIndex +1
+                    ColumnIndex = ColumnIndex + 1
                     # print(df1)
-                RowIndex = RowIndex +1
+                RowIndex = RowIndex + 1
 
             # write dataFrame to SalesRecords CSV file
-            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
-        t=0
+            df1.to_csv(
+                "E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" + position + ".csv")
+        t = 0
 
     def RunAllCaseParticipantwiseCaseasCol(self):
-        CaseList = self.GenerateCases() # or generate
+        CaseList = self.GenerateCases()  # or generate
 
         df1 = pd.DataFrame({
             'ParticipantNumbers': self.objConfig.ParticipantNumbers
@@ -565,38 +711,88 @@ class GeneratedDataFiltering:
             df1[case] = None
 
         for position in self.objConfig.hearratestatus:
-            RowIndex = 0 #
+            RowIndex = 0  #
             for participant_number in self.objConfig.ParticipantNumbers:
                 ColumnIndex = 1  # so doesntt replace case names
                 for case in CaseList:
-                    #for position in self.objConfig.hearratestatus:
+                    # for position in self.objConfig.hearratestatus:
                     CaseData = self.getCaseNew(case, participant_number, position)
-                    if(CaseData != None):
+                    if (CaseData != None):
                         differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
                         isAcceptable = self.IsAcceptableDifference(differenceVal)
-                        if(isAcceptable):
+                        if (isAcceptable):
                             df1.iloc[RowIndex, ColumnIndex] = differenceVal
                     else:
                         df1.iloc[RowIndex, ColumnIndex] = 'NotGenerated'
                     # else:
                     #     df1.iloc[RowIndex, ColumnIndex] = None
-                    ColumnIndex = ColumnIndex +1
+                    ColumnIndex = ColumnIndex + 1
                     # print(df1)
-                RowIndex = RowIndex +1
+                RowIndex = RowIndex + 1
 
             # write dataFrame to SalesRecords CSV file
-            df1.to_csv("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" +position + ".csv")
-        t=0
+            df1.to_csv(
+                "E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\PIResults_" + position + ".csv")
+        t = 0
 
     def TestBoxPlot(self):
-        df = pd.read_csv("E:\\TestResult.csv")# read file
+        df = pd.read_csv(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotdataBestCaseParticipantsResults_Resting1_DiffOf10_listno-0.csv")  # read file
         df.head()
 
         ####SNS
         sns.set_style('whitegrid')
-        ax = sns.boxplot(x='Techniques', y='Differences', data=df)
+        ax = sns.boxplot(x='Techniques', y='Differences',  data=df)#rotation=45, horizontalalignment='right',
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
         ax = sns.stripplot(x="Techniques", y="Differences", data=df)
-        plt.show()
+        plt.show() #('E:\\boxplotAll.jpg')
+
+    def PlotSingalRegion(self, region, blue, green, red, grey, Irchannel, ColorEstimatedFPS, IREstimatedFPS):
+        objPlots = Plots()
+        objPlots.ColorEstimatedFPS = ColorEstimatedFPS
+        objPlots.IREstimatedFPS = IREstimatedFPS
+        objPlots.plotGraphAllwithParam('E:\\TestGraphs\\', 'signal_' + region, None, None,
+                                       blue, green, red,
+                                       grey, Irchannel,
+                                       "Time(s)",
+                                       "Amplitude")
+        del objPlots
+
+    def PlotSignal(self):
+        objProcess = \
+            self.objFile.ReadfromDisk(
+                'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedDatabyProcessType\\PIS-8073\\Resting1\\Algorithm_WindowsBinaryFiles\\',
+                'ResultSignal_Algorithm-FastICAComponents3_PreProcess-1')
+
+        self.PlotSingalRegion('lips', objProcess.get('lips').regionWindowBlueData,
+                              objProcess.get('lips').regionWindowGreenData, objProcess.get('lips').regionWindowRedData,
+                              objProcess.get('lips').regionWindowGreyData, objProcess.get('lips').regionWindowIRData,
+                              objProcess.get('lips').ColorEstimatedFPS, objProcess.get('lips').IREstimatedFPS)
+        self.PlotSingalRegion('forehead', objProcess.get('forehead').regionWindowBlueData,
+                              objProcess.get('forehead').regionWindowGreenData,
+                              objProcess.get('forehead').regionWindowRedData,
+                              objProcess.get('forehead').regionWindowGreyData,
+                              objProcess.get('forehead').regionWindowIRData,
+                              objProcess.get('lips').ColorEstimatedFPS, objProcess.get('lips').IREstimatedFPS)
+        self.PlotSingalRegion('leftcheek', objProcess.get('leftcheek').regionWindowBlueData,
+                              objProcess.get('leftcheek').regionWindowGreenData,
+                              objProcess.get('leftcheek').regionWindowRedData,
+                              objProcess.get('leftcheek').regionWindowGreyData,
+                              objProcess.get('leftcheek').regionWindowIRData,
+                              objProcess.get('lips').ColorEstimatedFPS, objProcess.get('lips').IREstimatedFPS)
+        self.PlotSingalRegion('rightcheek', objProcess.get('rightcheek').regionWindowBlueData,
+                              objProcess.get('rightcheek').regionWindowGreenData,
+                              objProcess.get('rightcheek').regionWindowRedData,
+                              objProcess.get('rightcheek').regionWindowGreyData,
+                              objProcess.get('rightcheek').regionWindowIRData,
+                              objProcess.get('lips').ColorEstimatedFPS, objProcess.get('lips').IREstimatedFPS)
+
+    def PlotbyInput(self,Technique1,TimeLog):
+        plt.scatter(Technique1,TimeLog)
+        # plt.legend(Technique1)
+        plt.title('title')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.savefig('E:\\TestGraphs\\linePlotTimeLog.jpg')#show()
 
     def LinePlot(self):
         # df = pd.read_csv("E:\\TestResultLine.csv")  # read file
@@ -604,8 +800,9 @@ class GeneratedDataFiltering:
         # sns.lineplot(x="Techniques", y="TimeLog", hue='Participants', data=df)
         # plt.show()
         ###FOr window use same but do average?
-        Technique1 = ['T1', 'T2', 'T3'] #Over All pariticpants
-        TimeLog = [(0.006982,0.006982,0.004986,0.004986),(0.043882,0.043882,0.043882,0.043882),(0.8,0.4,0.6,0.8)]#(P1,P2,P3,P4)
+        Technique1 = ['T1', 'T2', 'T3']  # Over All pariticpants
+        TimeLog = [(0.006982, 0.006982, 0.004986, 0.004986), (0.043882, 0.043882, 0.043882, 0.043882),
+                   (0.8, 0.4, 0.6, 0.8)]  # (P1,P2,P3,P4)
         plt.plot(Technique1, TimeLog, marker='o')
         plt.legend(['T1', 'T2', 'T3'])
         plt.title('Unemployment Rate Vs Year')
@@ -614,7 +811,7 @@ class GeneratedDataFiltering:
         plt.show()
 
     def TestBoxPlotWindow(self):
-        df = pd.read_csv("E:\\TestResultWindow.csv")# read file
+        df = pd.read_csv("E:\\TestResultWindow.csv")  # read file
         # Draw a vertical boxplot grouped
         # by a categorical variable:
         df.head()
@@ -625,11 +822,12 @@ class GeneratedDataFiltering:
         # plt.show()
         ###MEthod1#####
         sns.set_style('whitegrid')
-        ax = sns.boxplot(x='Window', y='Differences',hue="Techniques", data=df)
-        ax = sns.stripplot(x="Window", y="Differences",hue="Techniques", data=df,palette="Set2")#, size=6, marker="D",edgecolor="gray", alpha=.25
+        ax = sns.boxplot(x='Window', y='Differences', hue="Techniques", data=df)
+        ax = sns.stripplot(x="Window", y="Differences", hue="Techniques", data=df,
+                           palette="Set2")  # , size=6, marker="D",edgecolor="gray", alpha=.25
         handles, labels = ax.get_legend_handles_labels()
         plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        [ax.axvline(x, color='black', linestyle='--') for x in [0.5,1.5,2.5]]
+        [ax.axvline(x, color='black', linestyle='--') for x in [0.5, 1.5, 2.5]]
         plt.show()
 
         #########method3
@@ -650,51 +848,58 @@ class GeneratedDataFiltering:
         # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         # plt.show()
 
-    def GenerateCases2(self):
+    def GenerateCases(self):
         CaseList = []
+        LoadfNameList = []
         for preprocesstype in self.objConfig.preprocesses:
             for algoType in self.objConfig.AlgoList:
-                for fftype in self.objConfig.fftTypeList:
-                    for resulttype in self.objConfig.resulttypeList:
+                for isSmooth in self.objConfig.Smoothen:
+                    for fftype in self.objConfig.fftTypeList:
                         for filtertype in self.objConfig.filtertypeList:
-                            for isSmooth in self.objConfig.Smoothen:
-                                fileName = algoType + "_PR-" + str(preprocesstype) + "_FFT-" + str(
-                                    fftype) + "_FL-" + str(filtertype) \
-                                           + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
-                                if (fileName not in CaseList):
+                            for resulttype in self.objConfig.resulttypeList:
+                                fileName = "HRSPOwithLog_" + str(algoType) + "_PR-" + str(
+                                    preprocesstype) + "_FFT-" + str(fftype) \
+                                           + "_FL-" + str(filtertype) + "_RS-" + str(resulttype) + "_SM-" + str(
+                                    isSmooth)
+                                LoadName = 'ResultSignal_Result-' + str(resulttype) + '_PreProcess-' + str(
+                                    preprocesstype) \
+                                           + '_Algorithm-' + str(algoType) + '_Smoothen-' + str(isSmooth) \
+                                           + '_FFT-' + str(fftype) + '_Filter-' + str(filtertype)
+                                if (
+                                        fileName not in CaseList):  # not os.path.exists(self.ProcessedDataPath + fName):
                                     CaseList.append(fileName)
+                                    LoadfNameList.append(LoadName)
+        return CaseList, LoadfNameList
 
-        return  CaseList
-
-    def CheckIfGenerated(self, filePath,fileName):
+    def CheckIfGenerated(self, filePath, fileName):
         # objFile= FileIO()
         # SavePath = self.objConfig.SavePath + fileName + '\\'
         # pathExsists = objFile.FileExits(filePath + fileName + ".txt")
         # data= None
         # # already generated
         # if (pathExsists):
-        file = open(filePath + fileName + ".txt", "r")  #objFile.ReaddatafromFile(filePath,fileName)[0]
+        file = open(filePath + fileName + ".txt", "r")  # objFile.ReaddatafromFile(filePath,fileName)[0]
         data = file.read()
         file.close()
         return data
 
-    def CheckIfGeneratedAllLines(self, filePath,fileName):
+    def CheckIfGeneratedAllLines(self, filePath, fileName):
         # objFile= FileIO()
         # SavePath = self.objConfig.SavePath + fileName + '\\'
         # pathExsists = objFile.FileExits(filePath + fileName + ".txt")
         # data= None
         # # already generated
         # if (pathExsists):
-        file = open(filePath + fileName + ".txt", "r")  #objFile.ReaddatafromFile(filePath,fileName)[0]
+        file = open(filePath + fileName + ".txt", "r")  # objFile.ReaddatafromFile(filePath,fileName)[0]
         data = file.readlines()
         file.close()
         return data
 
-    def getDataforpiandpositionWindow(self,ParticipantNumber,position,AcceptanceDiff,CasesAll):
-        FileNames = []
+    def getDataforpiandpositionWindow(self, ParticipantNumber, position, AcceptanceDiff, CasesAll):
+        FileValues = {}
         for item in CasesAll:
-            fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedDataWindows\\' + ParticipantNumber + '\\' + position + '\\Result\\'
-            fileName = 'HRSPOwithLog_' + item
+            fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedDatabyProcessType\\' + ParticipantNumber + '\\' + position + '\\ComputedFinalResult\\'
+            fileName = item
             FileContent = self.CheckIfGeneratedAllLines(fullpath, fileName)
             if (len(FileContent) > 0):
                 for itemFile in FileContent:
@@ -703,11 +908,10 @@ class GeneratedDataFiltering:
                     diff = FileContentSplit[3].replace('HRDifference: ', '')
                     diff = np.abs(float(diff))
                     if (diff <= AcceptanceDiff):
-                        FileNames.append(item)
-                        break
-        return FileNames
+                        FileValues[fileName] = FileContentSplit
+        return FileValues
 
-    def getDataforpiandposition(self,ParticipantNumber,position,AcceptanceDiff,CasesAll):
+    def getDataforpiandposition(self, ParticipantNumber, position, AcceptanceDiff, CasesAll):
         FileNames = []
         for item in CasesAll:
             fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedData\\' + ParticipantNumber + '\\' + position + '\\Result\\'
@@ -723,7 +927,7 @@ class GeneratedDataFiltering:
         return FileNames
 
     def ShowEmptyResults(self, ParticipantNumber, position, CasesAll):
-        FileNames =[]
+        FileNames = []
         for item in CasesAll:
             fullpath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\ProcessedData\\' + ParticipantNumber + '\\' + position + '\\Result\\'
             fileName = 'HRSPOwithLog_' + item
@@ -732,53 +936,138 @@ class GeneratedDataFiltering:
                 skip = 0
             else:
                 FileNames.append(fileName)
-        return  FileNames
+        return FileNames
         # for x in FileNames:
         #     print(x)
-    def GetBestFilesForParticipantEntireSingal(self,AcceptanceDiff):
+
+    def GetBestFilesForParticipantEntireSingal(self, AcceptanceDiff):
         position = 'Resting1'
         CasesAll = self.GenerateCases2()
         ParticipantNumber = 'PIS-8073'
-        FileName1 = self.getDataforpiandposition(ParticipantNumber,position,AcceptanceDiff,CasesAll)
-        position='Resting2'
-        FileName2 = self.getDataforpiandposition(ParticipantNumber,position,AcceptanceDiff,CasesAll)
+        FileName1 = self.getDataforpiandposition(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+        position = 'Resting2'
+        FileName2 = self.getDataforpiandposition(ParticipantNumber, position, AcceptanceDiff, CasesAll)
 
         CommonFiles = []
         for item in CasesAll:
-            if(FileName1.__contains__(item) and FileName2.__contains__(item)):
+            if (FileName1.__contains__(item) and FileName2.__contains__(item)):
                 CommonFiles.append(item)
 
-
         for item in CommonFiles:
             print(item)
 
-    def GetBestFilesForParticipantWindowAllSingal(self, AcceptanceDiff):
+    def LogTime(self,hour,minute,second,microsecond):
+        logTime = datetime(datetime.now().year, datetime.now().month, datetime.now().day,
+                           hour, minute,
+                           second, microsecond)
+        return logTime
+
+    def GetBestFilesForAllParticipantWindowAllSingal(self, AcceptanceDiff,position):
+        CommonFiles=[]
+        AllFileNames=[]
+        for ParticipantNumber in self.objConfig.ParticipantNumbers:
+            CasesAll = self.GenerateCases2()
+            FileContent = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+            FileNames= list(FileContent.keys())
+            AllFileNames.append(FileNames)
+
+        ##Remove Duplicates
+
+    def GetBestFilesForParticipantWindowAllSingal(self, AcceptanceDiff, ParticipantNumber,RunforType):
         position = 'Resting1'
         CasesAll = self.GenerateCases2()
-        ParticipantNumber = 'PIS-8073'
-        FileName1 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
-        # for item in FileName1:
-        #     print(item)
+        FileContent1 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+
         position = 'Resting2'
-        FileName2 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
+        FileContent2 = self.getDataforpiandpositionWindow(ParticipantNumber, position, AcceptanceDiff, CasesAll)
 
-        # for item in FileName2:
-        #     print(item)
-        CommonFiles = list(set(FileName1) & set(FileName2))
+        if(RunforType =='TimePlot'):
+            Technique_All = []
+            TimeLog = []
+            for k, v in FileContent1.items():
+                Technique_All.append(k)
+                timeStamp= v[9].replace('TotalWindowCalculationTime: ','')
+                timeStampSplit = timeStamp.split(':')#0:00:00.032910
+                secondSplit = timeStampSplit[2].split('.')
+                LogTime = self.LogTime(int(timeStampSplit[0]),int(timeStampSplit[1]),int(secondSplit[0]),int(secondSplit[1]))
+                TimeLog.append(LogTime)
 
-        for item in CommonFiles:
-            print(item)
+            # create DataFrame
+            df = pd.DataFrame({'techq': Technique_All,
+                               'value': LogTime})
+
+            sns.lineplot( x='value',hue='techq', data=df)
+            plt.show()
+            # self.PlotbyInput(Technique_All,TimeLog)
+            a=0
+        elif(RunforType =='getCommonFiles'):
+            FileName1= list(FileContent1.keys())
+            FileName2=list(FileContent2.keys())
+            CommonFiles = list(set(FileName1) & set(FileName2))
+            PCAICAFiles = []
+            FastICAFiles = []
+            PCA_Files = []
+            None_Files = []
+            Jade_Files = []
+            Other = []
+            for item in CommonFiles:
+                fileName = item  # item.replace('HRSPOwithLog_HRSPOwithLog_','')
+                if (fileName.__contains__('PCAICA')):
+                    PCAICAFiles.append(fileName)
+                elif (fileName.__contains__('FastICA')):
+                    FastICAFiles.append(fileName)
+                elif (fileName.__contains__('PCA_')):
+                    PCA_Files.append(fileName)
+                elif (fileName.__contains__('None')):
+                    None_Files.append(fileName)
+                elif (fileName.__contains__('Jade')):
+                    Jade_Files.append(fileName)
+                else:
+                    Other.append(fileName)
+
+            print('Other')
+            for item in Other:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                print(fileName)
+
+            print('PCAICAFiles')
+            for item in PCAICAFiles:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                print(fileName)
+
+            print('FastICAFiles')
+            for item in FastICAFiles:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                if (fileName.__contains__('FastICAComponents3_')):
+                    skip = 0
+                else:
+                    print(fileName)
+
+            print('PCA_Files')
+            for item in PCA_Files:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                print(fileName)
+
+            print('None_Files')
+            for item in None_Files:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                print(fileName)
+
+            print('Jade_Files')
+            for item in Jade_Files:
+                fileName = item.replace('HRSPOwithLog_HRSPOwithLog_', '')
+                print(fileName)
 
     def getEmptyResults(self):
         position = 'Resting1'
         CasesAll = self.GenerateCases2()
         ParticipantNumber = 'PIS-8073'
-        FileNames1 =  self.ShowEmptyResults(ParticipantNumber,position,CasesAll)
+        FileNames1 = self.ShowEmptyResults(ParticipantNumber, position, CasesAll)
         # print('FileNames1')
         # for item in FileNames1:
         #     print(item)
         position = 'Resting2'
-        FileNames2 =  self.ShowEmptyResults(ParticipantNumber,position,CasesAll)
+        FileNames2 = self.ShowEmptyResults(ParticipantNumber, position, CasesAll)
         # print('FileNames2')
         # for item in FileNames2:
         #     print(item)
@@ -794,16 +1083,31 @@ class GeneratedDataFiltering:
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
 objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
-objFilterData.AcceptableDifference = 7
+objFilterData.AcceptableDifference = 10
+##OLD ROUGH
 # objFilterData.Run(AcceptableDifference)
 # objFilterData.RunAllCaseParticipantwise() S
 # objFilterData.RunAllCaseParticipantwiseCaseasCol()## RUN THIS TO GENERATE CSV FOR CASE
-# objFilterData.getBestCasesFromCSV('AfterExcersize')
 # objFilterData.RunParticipantWiseAll()
-# objFilterData.LinePlot()
 # objFilterData.GetBestFilesForParticipantEntireSingal(objFilterData.AcceptableDifference)
-objFilterData.GetBestFilesForParticipantWindowAllSingal(objFilterData.AcceptableDifference)
 # objFilterData.getEmptyResults()
 # Only run after best files are generated
 # objFilterData.processBestResults("E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\Result\\","BestDataFiles") #"E:\\StudyData\\Result\\BestDataFiles_Resting1.txt"
 
+###GETING BEST FILES AMONG RESTING 1 AND 2
+# objFilterData.GetBestFilesForParticipantWindowAllSingal(objFilterData.AcceptableDifference,'PIS-8073','TimePlot')
+
+###Generate csv with cases for positon for all particiipants
+# objFilterData.getBlankCases('AfterExcersize')
+# objFilterData.RunCasewise('Resting2',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
+# objFilterData.RunCasewise('Resting1',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
+# objFilterData.RunCasewise('AfterExcersize',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
+# objFilterData.getBestCasesFromCSV('Resting2')# to get bext cases
+# objFilterData.getBestCasesFromCSV('Resting1')# to get bext cases
+# objFilterData.getBestCasesFromCSV('AfterExcersize')# to get bext cases
+
+####PLOTSS
+# objFilterData.LinePlot() # FOR PERFORMANCE TIME LOG
+objFilterData.TestBoxPlot()# enitere signal
+# objFilterData.TestBoxPlotWindow()#WINDOWs
+# objFilterData.PlotSignal() # to plot graph

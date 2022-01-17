@@ -346,14 +346,49 @@ class InitiateProcessingStorage:
                            datetime.now().time().second, datetime.now().time().microsecond)
         return logTime
 
+
+    def CustomCaseList(self):
+        # CustomCases = self.objFile.ReaddatafromFile(self.objConfig.DiskPath,'NoHrFilesCases')
+        CustomCases = []
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
+        LoadFileName = []
+        Cases = []
+        for case in CustomCases:
+            case = case.replace('\n','')
+            Cases.append(case)
+            caseSplit = case.split('_')
+            algoType = caseSplit[1]
+            preprocesstype = caseSplit[2].replace('PR-','')
+            fftype = caseSplit[3].replace('FFT-','')
+            filtertype = caseSplit[4].replace('FL-','')
+            resulttype = caseSplit[5].replace('RS-','')
+            isSmooth = caseSplit[6].replace('SM-','')
+            LoadName = 'ResultSignal_Result-' + str(resulttype) + '_PreProcess-' + str(
+                preprocesstype) \
+                       + '_Algorithm-' + str(algoType) + '_Smoothen-' + str(isSmooth) \
+                       + '_FFT-' + str(fftype) + '_Filter-' + str(filtertype)
+            LoadFileName.append(LoadName)
+        return Cases, LoadFileName
+
+    def getCase(self, fileName):
+        SavePath = self.objConfig.SavePath +'ComputedFinalResult\\'
+        filepath = SavePath + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
+
+        pathExsists = self.objFile.FileExits(filepath)
+        data = None
+        # already generated
+        if (pathExsists):
+            Filedata = open(filepath, "r")
+            data = Filedata.read().split("\n")[0]
+            Filedata.close()
+        return data
+
     '''
        Process_Participants_Data_EntireSignalINChunks:
        '''
-
     def Process_Participants_Result_forEntireSignal(self, typeProcessing):
-        self.objConfig.ParticipantNumbers = ["PIS-8073"]
-        self.objConfig.hearratestatus = ["Resting1"]
         CaseList, LoadfNameList = self.GenerateCases()
+
         TotalCasesCount = len(CaseList)
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
@@ -362,22 +397,6 @@ class InitiateProcessingStorage:
                 SavePath = self.objConfig.SavePath
                 currentCasesDone = 0
 
-                objReliability = CheckReliability()
-                # Lists to hold heart rate and blood oxygen data
-                Listdata = []
-                # ListSPOdata = []
-                bestHeartRateSnr = 0.0
-                bestBpm = 0.0
-                channeltype = ''
-                regiontype = ''
-                freqencySamplingError = 0.0
-                previousComputedHeartRate = 0.0
-                smallestOxygenError = sys.float_info.max
-                timeinSeconds = 10
-                finaloxy = 0.0
-                SPOstd=0.0
-                FullTimeLog = None
-                WindowCount = 0
                 # Load groundtruth
                 CurrentSavePath = self.objConfig.SavePath
                 OriginalPath = CurrentSavePath.replace('ProcessedDatabyProcessType', 'RawOriginal')
@@ -389,13 +408,38 @@ class InitiateProcessingStorage:
                 SPOAvg = CommonMethods.AvegrageGroundTruth(SpoGr)
 
                 countFname = 0
-                WindowRegionList = {}
                 for fileName in CaseList:
+                    # CaseData = self.getCase(fileName)
+                    # if(CaseData !=''):
+                    #     continue
 
+                    # Case percentage
                     currentCasesDone = currentCasesDone + 1
                     currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
                     currentPercentage = str(currentPercentage)
                     print(str(fileName) + "  -> " + str(currentPercentage) + " out of 100%")
+                    # if(self.objFile.FileExits(SavePath + 'ComputedFinalResult\\'+ fileName + '.txt')):
+                    #     skip=0
+                    # else:
+                    WindowRegionList = {}
+
+                    objReliability = CheckReliability()
+                    # Lists to hold heart rate and blood oxygen data
+                    Listdata = []
+                    # ListSPOdata = []
+                    bestHeartRateSnr = 0.0
+                    bestBpm = 0.0
+                    channeltype = ''
+                    regiontype = ''
+                    freqencySamplingError = 0.0
+                    previousComputedHeartRate = 0.0
+                    smallestOxygenError = sys.float_info.max
+                    timeinSeconds = 10
+                    finaloxy = 0.0
+                    SPOstd = 0.0
+                    FullTimeLog = None
+                    WindowCount = 0
+
 
                     LoadFileName = LoadfNameList[countFname]
                     SaveName = fileName
@@ -424,9 +468,9 @@ class InitiateProcessingStorage:
                             # diffTimeLog = v.diffTimeLog
 
                         if (v.SPOerr < smallestOxygenError):
-                            smallestOxygenError = v.SPOerr#oxygenSaturationValueError
-                            finaloxy = v.SPOoxylevl#oxygenSaturationValueValue
-                            SPOstd = v.SPOstd#oxygenSaturationValueValue
+                            smallestOxygenError = v.SPOerr  # oxygenSaturationValueError
+                            finaloxy = v.SPOoxylevl  # oxygenSaturationValueValue
+                            SPOstd = v.SPOstd  # oxygenSaturationValueValue
 
                     if (bestBpm > 0):
                         # Check reliability and record best readings
@@ -445,20 +489,22 @@ class InitiateProcessingStorage:
                         Listdata.append(
                             'WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' + str(
                                 round(HrAvg)) + " ,\t" + 'ComputedHeartRate: ' + str(
-                                    round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
-                                    differenceHR) + " ,\t" + 'GroundTruthSPO: ' + str(
-                                    round(SPOAvg)) + " ,\t" + 'ComputedSPO: ' + str(
-                                    round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
-                                    differenceSPO) + " ,\t" + 'Regiontype: ' + " ,\t" + str(
-                                    regiontype) + " ,\t" + FullTimeLog)
+                                round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
+                                differenceHR) + " ,\t" + 'GroundTruthSPO: ' + str(
+                                round(SPOAvg)) + " ,\t" + 'ComputedSPO: ' + str(
+                                round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
+                                differenceSPO) + " ,\t" + 'Regiontype: ' + " ,\t" + str(
+                                regiontype) + " ,\t" + FullTimeLog)
 
                     # filename
-                    fileNameResult = "HRSPOwithLog_" + fileName
+                    fileNameResult =  fileName #"HRSPOwithLog_" +
                     #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
                     # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
                     # isSmoothen)
                     # Write data to file
                     self.objFile.WriteListDatatoFile(SavePath + 'ComputedFinalResult\\', fileNameResult, Listdata)
+
+                    del objReliability
 
     '''
     Process_Participants_Data_EntireSignalINChunks:
@@ -858,21 +904,26 @@ class InitiateProcessingStorage:
                 # PreProcess
                 path = self.objConfig.SavePath + 'PreProcess_WindowsBinaryFiles\\'
                 objLog = self.objFile.ReadfromDisk(path,
-                                                   'ResultSignal_PreProcess-' + str(objProcessDataPrevious.Preprocess_type)).get(
+                                                   'ResultSignal_PreProcess-' + str(
+                                                       objProcessDataPrevious.Preprocess_type)).get(
                     region)
                 PreProcessdifferenceTime = objLog.WindowProcessDifferenceTime
 
                 # Algorithm
                 path = self.objConfig.SavePath + 'Algorithm_WindowsBinaryFiles\\'
                 objLog = self.objFile.ReadfromDisk(path,
-                                                   'ResultSignal_Algorithm-' + str(objProcessDataPrevious.Algorithm_type) + '_PreProcess-' +str( objProcessDataPrevious.Preprocess_type)).get(
+                                                   'ResultSignal_Algorithm-' + str(
+                                                       objProcessDataPrevious.Algorithm_type) + '_PreProcess-' + str(
+                                                       objProcessDataPrevious.Preprocess_type)).get(
                     region)
                 AlgorithmdifferenceTime = objLog.WindowProcessDifferenceTime
 
                 # Smooth
                 path = self.objConfig.SavePath + 'Smoothen_WindowsBinaryFiles\\'
                 objLog = self.objFile.ReadfromDisk(path,
-                                                   'ResultSignal_Smoothen-' + str(objProcessDataPrevious.isSmoothen )+ '_PreProcess-' + str(objProcessDataPrevious.Preprocess_type )
+                                                   'ResultSignal_Smoothen-' + str(
+                                                       objProcessDataPrevious.isSmoothen) + '_PreProcess-' + str(
+                                                       objProcessDataPrevious.Preprocess_type)
                                                    + '_Algorithm-' + str(objProcessDataPrevious.Algorithm_type)).get(
                     region)
                 SmoothdifferenceTime = objLog.WindowProcessDifferenceTime
@@ -880,21 +931,29 @@ class InitiateProcessingStorage:
                 # FFT
                 path = self.objConfig.SavePath + 'FFT_WindowsBinaryFiles\\'
                 objLog = self.objFile.ReadfromDisk(path,
-                                                   'ResultSignal_FFT-' + str(objProcessDataPrevious.FFT_type) + '_PreProcess-' + str(objProcessDataPrevious.Preprocess_type)
-                                                   + '_Algorithm-' + str(objProcessDataPrevious.Algorithm_type) + '_Smoothen-' + str(objProcessDataPrevious.isSmoothen)).get(
+                                                   'ResultSignal_FFT-' + str(
+                                                       objProcessDataPrevious.FFT_type) + '_PreProcess-' + str(
+                                                       objProcessDataPrevious.Preprocess_type)
+                                                   + '_Algorithm-' + str(
+                                                       objProcessDataPrevious.Algorithm_type) + '_Smoothen-' + str(
+                                                       objProcessDataPrevious.isSmoothen)).get(
                     region)
                 FFTdifferenceTime = objLog.WindowProcessDifferenceTime
 
                 # Filter
                 path = self.objConfig.SavePath + 'Filter_WindowsBinaryFiles\\'
                 objLog = self.objFile.ReadfromDisk(path,
-                                                   'ResultSignal_Filter-' + str(objProcessDataPrevious.Filter_type) + '_PreProcess-' + str(objProcessDataPrevious.Preprocess_type) +
-                                                   '_Algorithm-' + str(objProcessDataPrevious.Algorithm_type) + '_Smoothen-' + str(objProcessDataPrevious.isSmoothen) +
+                                                   'ResultSignal_Filter-' + str(
+                                                       objProcessDataPrevious.Filter_type) + '_PreProcess-' + str(
+                                                       objProcessDataPrevious.Preprocess_type) +
+                                                   '_Algorithm-' + str(
+                                                       objProcessDataPrevious.Algorithm_type) + '_Smoothen-' + str(
+                                                       objProcessDataPrevious.isSmoothen) +
                                                    '_FFT-' + str(objProcessDataPrevious.FFT_type)).get(
                     region)
                 FilterdifferenceTime = objLog.WindowProcessDifferenceTime
 
-                TotalTime = PreProcessdifferenceTime + AlgorithmdifferenceTime + SmoothdifferenceTime + FFTdifferenceTime +FilterdifferenceTime +\
+                TotalTime = PreProcessdifferenceTime + AlgorithmdifferenceTime + SmoothdifferenceTime + FFTdifferenceTime + FilterdifferenceTime + \
                             objProcessData.WindowProcessDifferenceTime + objProcessData.SPOWindowProcessDifferenceTime
                 FullLog = 'TotalWindowCalculationTime: ' + str(TotalTime) + ' ,\t' \
                           + 'PreProcess: ' + str(PreProcessdifferenceTime) + ' ,\t' \
@@ -925,8 +984,8 @@ class InitiateProcessingStorage:
         else:
             objdata = data.copy()
             # for k, v in objdata.items():
-                # IsGenerated = self.CheckIfGenerated(case)
-                # Generate Data for all Techniques
+            # IsGenerated = self.CheckIfGenerated(case)
+            # Generate Data for all Techniques
             self.Process_Participants_Data_EntireSignalINChunks(
                 objdata, self.objConfig.SavePath,
                 self.objConfig.DumpToDisk,
@@ -936,23 +995,38 @@ class InitiateProcessingStorage:
      GenerateResultsfromParticipants:
      """
 
-    def GenerateResultsfromParticipants(self, objProcessedDataOrginal, typeProcessing, ProcessingStep, ProcessCase,participant_number,position):#ParticipantsOriginalDATA
+    def GenerateResultsfromParticipants(self, objProcessedDataOrginal, typeProcessing, ProcessingStep, ProcessCase,
+                                        participant_number, position, fileName):  # ParticipantsOriginalDATA
         TotalCasesCount = len(ProcessCase)
         # for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
         #     for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
         # print(participant_number + ', ' + position)
-        #objProcessedDataOrginal = ParticipantsOriginalDATA.get(participant_number + '_' + position)
+        # objProcessedDataOrginal = ParticipantsOriginalDATA.get(participant_number + '_' + position)
         self.objConfig.setSavePath(participant_number, position, typeProcessing)
         currentCasesDone = 0
         for case in ProcessCase:
-            currentCasesDone = currentCasesDone + 1
-            currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
-            currentPercentage = str(currentPercentage)
-            print(str(case) + "  -> " + str(currentPercentage) + " out of 100%")
-            # Run
-            self.RunDatabyProcessingType(objProcessedDataOrginal, case, ProcessingStep)
 
-                # ParticipantsOriginalDATA.pop(participant_number + '_' + position)
+            # Run
+            newFileName= fileName
+            pathexists = False
+            if(ProcessingStep == 'Result'):
+                splitedFileName = fileName.split('_')
+                newFileName = splitedFileName[0] + '_' + ProcessingStep + '-' + str(case) + '_' \
+                              + splitedFileName[2] + '_' + splitedFileName[3] + '_' + \
+                              splitedFileName[4] + '_' + splitedFileName[5] + '_' + splitedFileName[1]
+                pathexists = self.objFile.FileExits(self.objConfig.SavePath + ProcessingStep + '_WindowsBinaryFiles\\' + newFileName)
+
+            if (pathexists):
+                skip = 0
+            else:
+                currentCasesDone = currentCasesDone + 1
+                currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
+                currentPercentage = str(currentPercentage)
+                print(str(case) + "  -> " + str(currentPercentage) + " out of 100%")
+
+                self.RunDatabyProcessingType(objProcessedDataOrginal, case, ProcessingStep)
+
+            # ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
     '''
     LoadBinaryData: load data from disk ParticipantsOriginalDATA[ParticipantNumber + Position] -> ROISTORE data
@@ -979,28 +1053,38 @@ class InitiateProcessingStorage:
      LoadPartiallyProcessedBinaryData: load data from disk ParticipantsPartiallyProcessedBinaryData[ParticipantNumber + Position] -> ROISTORE data
      '''
 
-    def LoadPartiallyProcessedBinaryData(self, LoadFolder,FolderNameforSave, ProcessingStep,
-                                                         ProcessCase):
+    def LoadPartiallyProcessedBinaryData(self, LoadFolder, FolderNameforSave, ProcessingStep,
+                                         ProcessCase):
+
+        CaseList, LoadfNameList =  self.GenerateCases()
+
+        # CaseList, LoadfNameList = self.GenerateCases()
         # ParticipantsPartiallyProcessedBinaryData = {}
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 self.objConfig.setSavePath(participant_number, position, 'ProcessedDatabyProcessType')  # set path
                 print('Loading and generating FaceData for ' + participant_number + ', ' + position)
                 LoadPath = self.objConfig.SavePath + LoadFolder + '\\'
+                if(ProcessingStep == 'PreProcess'):
+                    LoadPath = self.objConfig.DiskPath + LoadFolder+ '\\' + participant_number + '\\' + position+'\\'
                 print('Loading from path ' + LoadPath)
-                AllFileNames = os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
+                AllFileNames = CaseList#os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
                 ListProcessedData = {}
-                fileCount=0
+                fileCount = 0
                 for fileName in AllFileNames:
                     # fileNameSplit = fileName.split('-')
-                    ProcessedDataType = fileName.replace('ResultSignal_', '')
+                    # if generated already skip
+                    # ProcessedDataType = fileName.replace('ResultSignal_', '')
                     ##Data in binary read from disk
+                    if(ProcessingStep =='PreProcess'):
+                        fileName = 'UnCompressedBinaryLoadedData'
                     objWindowProcessedData = self.objFile.ReadfromDisk(LoadPath, fileName)
                     ####
                     print(str(fileCount) + ') Applying on data that has been ' + fileName)
-                    fileCount = fileCount+1
+                    fileCount = fileCount + 1
                     self.GenerateResultsfromParticipants(objWindowProcessedData, FolderNameforSave, ProcessingStep,
-                                                         ProcessCase,participant_number,position)  # FOR Window processing
+                                                         ProcessCase, participant_number, position,
+                                                         fileName)  # FOR Window processing
                     # ListProcessedData[ProcessedDataType] = objWindowProcessedData
                     # Store for procesing locally
                 # ParticipantsPartiallyProcessedBinaryData[participant_number + '_' + position] = ListProcessedData
@@ -1008,6 +1092,7 @@ class InitiateProcessingStorage:
         # return ParticipantsPartiallyProcessedBinaryData
 
     def mainMethod(self, ProcessingStep):
+
         # Process for entire signal
         FolderNameforSave = 'ProcessedDatabyProcessType'
         print(FolderNameforSave)
@@ -1019,30 +1104,37 @@ class InitiateProcessingStorage:
         if (ProcessingStep == 'PreProcess'):
             ProcessCase = self.objConfig.preprocesses
             LoadedData = self.LoadBinaryData()
+            LoadedData = self.LoadPartiallyProcessedBinaryData('RawOriginal', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
         elif (ProcessingStep == 'Algorithm'):  # TODO: Run 3times, 5 times ica and so on PLOT diference
             ProcessCase = self.objConfig.AlgoList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('PreProcess_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
-                                                         ProcessCase)
+            LoadedData = self.LoadPartiallyProcessedBinaryData('PreProcess_WindowsBinaryFiles', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
         elif (ProcessingStep == 'Smoothen'):
             ProcessCase = self.objConfig.Smoothen
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Algorithm_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
-                                                         ProcessCase)
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Algorithm_WindowsBinaryFiles', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
         elif (ProcessingStep == 'FFT'):
             ProcessCase = self.objConfig.fftTypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Smoothen_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
-                                                         ProcessCase)
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Smoothen_WindowsBinaryFiles', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
         elif (ProcessingStep == 'Filter'):
             ProcessCase = self.objConfig.filtertypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('FFT_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
-                                                         ProcessCase)
+            LoadedData = self.LoadPartiallyProcessedBinaryData('FFT_WindowsBinaryFiles', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
         elif (ProcessingStep == 'Result'):
             ProcessCase = self.objConfig.resulttypeList
-            LoadedData = self.LoadPartiallyProcessedBinaryData('Filter_WindowsBinaryFiles',FolderNameforSave, ProcessingStep,
-                                                         ProcessCase)
+            LoadedData = self.LoadPartiallyProcessedBinaryData('Filter_WindowsBinaryFiles', FolderNameforSave,
+                                                               ProcessingStep,
+                                                               ProcessCase)
 
         if (ProcessingStep == "ComputeFinalResults"):
             self.Process_Participants_Result_forEntireSignal('Result_WindowsBinaryFiles')
-
 
 
 ###RUN this file CODE###
@@ -1050,16 +1142,16 @@ skintype = 'Europe_WhiteSkin_Group'
 print('Program started for ' + skintype)
 objInitiateProcessing = InitiateProcessingStorage(skintype)
 # objInitiateProcessing.GenerateOriginalRawData()# Only do once
-# objInitiateProcessing.mainMethod('PreProcess') #Completed
-# objInitiateProcessing.mainMethod('Algorithm')  # Completed
-# objInitiateProcessing.mainMethod('Smoothen')  # Completed
-# objInitiateProcessing.mainMethod('FFT')  # to process
-# print('FFT Complteted')
-# objInitiateProcessing.mainMethod('Filter')  # to process
-# print('Filter Complteted')
-objInitiateProcessing.mainMethod('Result')  # to process
-print('Result Complteted')
+objInitiateProcessing.mainMethod('PreProcess') #Completed
+objInitiateProcessing.mainMethod('Algorithm')  # Completed
+objInitiateProcessing.mainMethod('Smoothen')  # Completed
+objInitiateProcessing.mainMethod('FFT')  # Completed
+print('FFT Complteted')
+objInitiateProcessing.mainMethod('Filter')  # Completed
+print('Filter Complteted')
+objInitiateProcessing.mainMethod('Result') # restart from PIS-6327
+# print('Result Complteted')
 objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
-print('ComputeFinalResults Complteted')
+print('ComputeFinalResults Complteted')  # TODO:GENERATE GRAPHS and object and other diagrams , class from code
 print('Program completed')
 # objInitiateProcessing.ProduceFinalResult() #OLD METHOD

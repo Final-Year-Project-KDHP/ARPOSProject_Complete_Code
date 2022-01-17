@@ -370,7 +370,7 @@ class ProcessFaceData:
         # self.ColorfpswithTime=self.ColorfpswithTime
         # self.IRfpswithTime=self.IRfpswithTime
 
-        self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+        self.ColorEstimatedFPS =  self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
         self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
         # set estimated fps
         # self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
@@ -776,9 +776,6 @@ class ProcessFaceData:
         AlgoprocessedGrey = self.objAlgorithm.ApplyPCA(processedGrey, components)
         AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, components)
 
-        # Reshpae
-        AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ReshapeArray(
-            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
 
         return AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR
 
@@ -852,6 +849,11 @@ class ProcessFaceData:
             AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyPCAonIndividualChannels(
                 processedBlue, processedGreen, processedRed, processedGrey, processedIR,
                 1)
+
+            # Reshpae
+            AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ReshapeArray(
+                AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
+
         elif (self.Algorithm_type == "PCACombined"):
             S_ = self.objAlgorithm.ApplyPCA(S, self.components)
             # plt.plot(AlgoprocessedGrey, 'grey')

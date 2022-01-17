@@ -53,11 +53,35 @@ class Main:
             return True
         return False
 
+
+    def CustomCaseList(self):
+        # CustomCases = self.objFile.ReaddatafromFile(self.objConfig.DiskPath,'NoHrFilesCases')
+        CustomCases = []
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
+        LoadFileName = []
+        Cases = []
+        for case in CustomCases:
+            case = case.replace('\n','')
+            Cases.append(case)
+            caseSplit = case.split('_')
+            algoType = caseSplit[1]
+            preprocesstype = caseSplit[2].replace('PR-','')
+            fftype = caseSplit[3].replace('FFT-','')
+            filtertype = caseSplit[4].replace('FL-','')
+            resulttype = caseSplit[5].replace('RS-','')
+            isSmooth = caseSplit[6].replace('SM-','')
+            LoadName = 'ResultSignal_Result-' + str(resulttype) + '_PreProcess-' + str(
+                preprocesstype) \
+                       + '_Algorithm-' + str(algoType) + '_Smoothen-' + str(isSmooth) \
+                       + '_FFT-' + str(fftype) + '_Filter-' + str(filtertype)
+            LoadFileName.append(LoadName)
+        return Cases, LoadFileName
+
     """
      GenerateResultsfromParticipants:
      """
     def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing):
-        self.GenerateCases()
+        Cases, LoadFileName =self.CustomCaseList()#self.GenerateCases()
         TotalCasesCount = len(self.CaseList)
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
@@ -186,6 +210,8 @@ class Main:
         return ParticipantsOriginalDATA
 
     def mainMethod(self, generateBinaryData):
+        self.objConfig.ParticipantNumbers = ["PIS-4014"]
+        self.objConfig.hearratestatus = ["Resting1"]
         # For generating meaned channel arrays of image and other required data in form of a objectProcessedData (See class WindowProcessedData)
         # Reqruied to run only once, binary data
         if (generateBinaryData):  # RUN only once
@@ -196,7 +222,7 @@ class Main:
             #Process for entire signal or in windows
             FolderNameforSave = 'ProcessedDataWindows'
             if(self.objConfig.RunAnalysisForEntireSignalData):
-                FolderNameforSave= 'ProcessedData'
+                FolderNameforSave= 'ProcessedData'#'ProcessedData'byProcessType
 
             print(FolderNameforSave)
             #  Load Data from path and Process Data

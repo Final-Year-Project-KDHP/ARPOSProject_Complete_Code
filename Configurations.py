@@ -27,9 +27,9 @@ class Configurations:
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA","FastICAComponents3Times","FastICAComponents3", "PCA","PCAICA", "Jade","None"]
+    AlgoList = ["FastICA","PCAICA","FastICAComponents3Times", "PCA", "Jade","None"]#
     # AlgoList = ["FastICAComponents3"]#For any component higher than 1-> UserWarning: n_components is too large: it will be set to 1 #"FastICAComponents3", "FastICAComponents5","FastICAComponents10", ->Does not work
-    AlgoCombinedList = ["FastICACombined", "PCACombined", "PCAICACombined"]
+    AlgoCombinedList = ["FastICACombined", "PCACombined", "PCAICACombined","JadeCombined"]#TODO: TO APPLY THIS AS WELL in windows only as signal is of equal lenght
     #FFT method types
     fftTypeList = ["M1","M2", "M3","M4", "M5","M6"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
     #,"M7" -> same as m3 and not correct
@@ -96,7 +96,7 @@ class Configurations:
     DumpToDisk = True
 
     #Run for window or for entire signal
-    RunAnalysisForEntireSignalData = False
+    RunAnalysisForEntireSignalData = True
 
     # setup highpass filter
     ignore_freq_below_bpm = 40
