@@ -121,6 +121,7 @@ class Main:
                             fileName, self.objConfig.DumpToDisk)
                 ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
+    # a
     def LoadandGenerateFaceDatatoBianryFiles(self):
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)

@@ -266,7 +266,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                            SavePath,
                                            objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs, timeinSeconds,
                                            DumpToDisk, fileName)
-    # Loop through signal data
+    # Loop through signal data#a
     for WindowCount in range(0, int(TotalWindows)):  # RUNNING FOR WINDOW TIMES # TimeinSeconds
         # print('Window: '+ str(WindowCount))
         # Lips
