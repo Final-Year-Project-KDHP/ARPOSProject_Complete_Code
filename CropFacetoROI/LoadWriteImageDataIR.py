@@ -435,7 +435,7 @@ class LoadWriteIRROI:
 
         return xIr, yIr, wIr, hIr
 
-    def ONLYLoadandCropFilesMannually(self,img_dir,savepath, pino, position):
+    def ONLYLoadandCropFilesMannually(self,img_dir,savepath):
 
         lips = []
         leftcheek = []
@@ -613,13 +613,12 @@ class LoadWriteIRROI:
         count = 0
         for leftcheekImg in leftcheek:
 
-            if (leftcheekImg.size > 1):
-                # timestamp
-                tamp = str(timestamp[count])
-                # save cropped image
-                Imgpath = directoryleftcheek + "cropped-" + tamp + ".png"
+            # timestamp
+            tamp = str(timestamp[count])
+            # save cropped image
+            Imgpath = directoryleftcheek + "cropped-" + tamp + ".png"
 
-                cv2.imwrite(Imgpath, leftcheekImg)
+            cv2.imwrite(Imgpath, leftcheekImg)
 
             count += 1
 
