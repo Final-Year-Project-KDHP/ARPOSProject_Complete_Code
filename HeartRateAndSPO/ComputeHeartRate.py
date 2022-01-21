@@ -410,8 +410,7 @@ class ComputerHeartRate:
                + ', GreenSnr2: ' + str(self.GreenSnr) + ', BlueSnr2: ' + str(self.BlueSnr) + '\n'
 
         #Override previous and take following as final
-        self.IrSnr = float(ir_fft_maxVal) / np.average(
-            ir_fft_realabs) * 1  # * 1 # could artificially increase SNR for IR as provdes higher accuracy readings, enabling higher weighting for readings
+        self.IrSnr = float(ir_fft_maxVal) / np.average( ir_fft_realabs) * 1  # * 1 # could artificially increase SNR for IR as provdes higher accuracy readings, enabling higher weighting for readings
         if (not self.ignoreGray):
             self.GreySnr = float(grey_fft_maxVal) / np.average(grey_fft_realabs)
         else:
@@ -449,12 +448,12 @@ class ComputerHeartRate:
             blue_fft_index = blue_fft_index -1
             print('blue_fft_index reduced by 1 : ' + str(blue_fft_index))
 
-        if(len(self.freq_bpmIr)>0):
-            self.IRFreqencySamplingError = self.freq_bpmIr[ir_fft_index + 1] - self.freq_bpmIr[ir_fft_index - 1]
-        if (not self.ignoreGray):
-            self.GreyFreqencySamplingError = self.freq_bpmColor[grey_fft_index + 1] - self.freq_bpmColor[grey_fft_index - 1]
-        else:
-            self.GreyFreqencySamplingError = 0.0
+        # if(len(self.freq_bpmIr)>0):
+        self.IRFreqencySamplingError = self.freq_bpmIr[ir_fft_index + 1] - self.freq_bpmIr[ir_fft_index - 1]
+        # if (not self.ignoreGray):
+        self.GreyFreqencySamplingError = self.freq_bpmColor[grey_fft_index + 1] - self.freq_bpmColor[grey_fft_index - 1]
+        # else:
+        #     self.GreyFreqencySamplingError = 0.0
         self.RedFreqencySamplingError = self.freq_bpmColor[red_fft_index + 1] - self.freq_bpmColor[red_fft_index - 1]
         self.GreenFreqencySamplingError = self.freq_bpmColor[green_fft_index + 1] - self.freq_bpmColor[green_fft_index - 1]
         self.BlueFreqencySamplingError = self.freq_bpmColor[blue_fft_index + 1] - self.freq_bpmColor[blue_fft_index - 1]
