@@ -35,6 +35,7 @@ class Window_Data:
   RedFreqencySamplingError = 0.0
   GreenFreqencySamplingError = 0.0
   BlueFreqencySamplingError = 0.0
+  FrequencySamplieErrorForChannel=0.0
 
   oxygenSaturationValueError = 0.0
   oxygenSaturationValueValue = 0.0
