@@ -314,7 +314,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                 bestBpm = v.BestBPM
                 channeltype = v.channeltype
                 regiontype = k
-                freqencySamplingError = v.IrFreqencySamplingError
+                freqencySamplingError = v.FrequencySamplieErrorForChannel
                 diffNow = v.diffTime
                 diffTimeLog = v.diffTimeLog
                 FullTimeLog = v.gettimeDifferencesToString()
@@ -331,7 +331,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                                                                                  finaloxy)
 
             # Get difference and append data (heart rate)
-            differenceHR = round(float(HrAvg) - float(heartRateValue))
+            differenceHR = (float(HrAvg) - float(heartRateValue))
 
             # Get difference and append data (blood oxygen)
             differenceSPO = round(float(SPOAvg) - float(oxygenSaturationValue))
