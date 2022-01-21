@@ -119,6 +119,7 @@ class ProcessFaceData:
     beatsPerSecond = 0.0
     bestBpm = 0.0
     channeltype = ''
+    FrequencySamplieErrorForChannel =  0.0
     heartRatePeriod = 0.0
     SNRSummary = ''
     fileName = ''
@@ -369,9 +370,50 @@ class ProcessFaceData:
         self.WindowFrametime_list_color = self.Frametime_list_color
         # self.ColorfpswithTime=self.ColorfpswithTime
         # self.IRfpswithTime=self.IRfpswithTime
+        avg=0
+        for k,v in self.WindowColorfpswithTime.items():
+            avg = avg+ v
 
-        self.ColorEstimatedFPS =  self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
-        self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+        avg = round(avg/len(self.WindowColorfpswithTime))
+
+        avg2 = 0
+        for k, v in self.WindowIRfpswithTime.items():
+            avg2 = avg2 + v
+        avg2 = round(avg2 / len(self.WindowIRfpswithTime))
+
+        min1 = np.min(list(self.WindowColorfpswithTime.values()))
+        # iterate through the dictionary
+        min3 = 30
+        index0 =0
+        for v in self.WindowColorfpswithTime.values():
+            if (v < min3 and v > min1):
+                if(index0 !=0 ):
+                    min3 = v
+                    break
+            index0 = index0+1
+
+        min0 = np.min(list(self.WindowIRfpswithTime.values()))
+        min2 = 30
+        index0 =0
+        for v in self.WindowIRfpswithTime.values():
+            if (v < min2 and v > min0):
+                if(index0 !=0 ):
+                    min2 = v
+                    break
+            index0 = index0+1
+
+        if(self.getDuplicateValue(self.WindowColorfpswithTime) >25):
+            self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+        else:
+            self.ColorEstimatedFPS =avg# min3  # self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+
+        if(self.getDuplicateValue(self.WindowIRfpswithTime) >25):
+            self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+        else:
+            self.IREstimatedFPS =avg2# min2#self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+
+        # self.ColorEstimatedFPS =30
+        # self.IREstimatedFPS = 30
         # set estimated fps
         # self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
         # self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
@@ -562,6 +604,10 @@ class ProcessFaceData:
     def preprocessdataType1(self, bufferArray, isDetrend, FPS):
         """remove NaN and Inf values"""
         output = bufferArray[(np.isnan(bufferArray) == 0) & (np.isinf(bufferArray) == 0)]
+
+        # if(FPS<25):
+        # output = signal.resample(output, len(output) * 6)
+
         detrended_data = output
         if (isDetrend):
             detrended_data = signal.detrend(output)
@@ -625,7 +671,6 @@ class ProcessFaceData:
         processedRed = red
         processedGrey = grey
         processedIR = Irchannel
-
         if (self.Preprocess_type == 7):
             if (len(processedGrey) > 0):
                 processedBlue = self.preprocessdataType3(np.array(processedBlue), self.ColorEstimatedFPS)
@@ -1434,6 +1479,7 @@ class ProcessFaceData:
         windowList.WindowNo = self.Window_count
         windowList.BestBPM = self.bestBpm
         windowList.BestSnR = self.bestHeartRateSnr
+        windowList.FrequencySamplieErrorForChannel = self.FrequencySamplieErrorForChannel
         windowList.IrSnr = self.IrSnr
         windowList.GreySnr = self.GreySnr
         windowList.RedSnr = self.RedSnr
@@ -1680,26 +1726,32 @@ class ProcessFaceData:
             self.bestHeartRateSnr = self.IrSnr
             self.bestBpm = self.IrBpm
             self.channeltype = 'IR'
+            self.FrequencySamplieErrorForChannel = self.IrFreqencySamplingError
 
         if (self.GreySnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.GreySnr
             self.bestBpm = self.GreyBpm
             self.channeltype = 'Grey'
+            self.FrequencySamplieErrorForChannel = self.GreyFreqencySamplingError
 
         if (self.RedSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.RedSnr
             self.bestBpm = self.RedBpm
             self.channeltype = 'Red'
+            self.FrequencySamplieErrorForChannel = self.RedFreqencySamplingError
 
         if (self.GreenSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.GreenSnr
             self.bestBpm = self.GreenBpm
             self.channeltype = 'Green'
+            self.FrequencySamplieErrorForChannel = self.GreenFreqencySamplingError
 
         if (self.BlueSnr > self.bestHeartRateSnr):
             self.bestHeartRateSnr = self.BlueSnr
             self.bestBpm = self.BlueBpm
             self.channeltype = 'Blue'
+            self.FrequencySamplieErrorForChannel = self.BlueFreqencySamplingError
+
 
         # work out the length of time of one heart beat - the heart rate period
         if (self.bestBpm > 0):
