@@ -2,11 +2,13 @@ import glob
 import math
 import os
 from datetime import datetime
+import pyCompare
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
+from numpy import linspace
 
 import CommonMethods
 from Configurations import Configurations
@@ -348,6 +350,18 @@ class GeneratedDataFiltering:
             Filedata.close()
         return data
 
+    def getCasebyPath(self, SavePath,fileName):
+        filepath = SavePath + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False
+
+        pathExsists = self.objFile.FileExits(filepath)
+        data = None
+        # already generated
+        if (pathExsists):
+            Filedata = open(filepath, "r")
+            data = Filedata.read().split("\n")[0]
+            Filedata.close()
+        return data
+
     def getCaseNew(self, fileName, participant_number, position):
         SavePath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\FinalComputedResult\\'  # + fileName + '\\'
         filepath = SavePath + fileName + '.txt'  # HeartRate_FastICA_FFT-M1_FL-6_RS-1_PR-1_SM-False 'HeartRate_' +
@@ -380,7 +394,11 @@ class GeneratedDataFiltering:
         # if(avgGroundTruthStored != round(avgGroundTruth)):
         #     differenceValue=int(dataRow[2])
         # else:
-        differenceValue = int(dataRow[3].replace('HRDifference: ',''))# avgGroundTruth - generatedResult
+        diffval =dataRow[3].replace('HRDifference: ','')
+        diffval = float((diffval))
+        # if(diffval<0):
+        #     diffval = -1*(diffval)
+        differenceValue = diffval# avgGroundTruth - generatedResult
         errorrate = (differenceValue / avgGroundTruth) * 100
         return errorrate
 
@@ -425,6 +443,369 @@ class GeneratedDataFiltering:
 
         # write dataFrame to SalesRecords CSV file
         df1.to_csv(self.objConfig.DiskPath + "CaseWiseParticipantsResults_" + position + "__DiffOf" + str(self.AcceptableDifference) + ".csv")
+        t = 0
+
+    def getBestCasesFromCSV(self, position):
+        df1 = pd.read_csv(self.objConfig.DiskPath + "CaseWiseParticipantsResults_" + position + "__DiffOf" + str(self.AcceptableDifference) + ".csv")
+        NoHRlist =[]
+        ListCaseCount = {}
+        for index, row in df1.iterrows():
+            currentCase = row[1]
+            addCase = True
+            mincount = 0
+
+            for column in df1:
+                if (column.__contains__('Unnamed') or column.__contains__('Case')):
+                    continue
+                colIndex = df1.columns.get_loc(column)  # df1[column] just column in df1 get entire columns values
+                colValueInRow = df1.iloc[index, colIndex]
+                if(colValueInRow == 'NoHR'):
+                    NoHRlist.append(currentCase)
+                else:
+                    colValueInRow = float(colValueInRow)
+                    if (not math.isnan(colValueInRow)):
+                        mincount = mincount + 1
+
+            ListCaseCount[currentCase] = mincount
+
+        MaxCount=0
+        ListCasesForSelection = []
+        for key, value in ListCaseCount.items():
+            if (value > MaxCount):
+                MaxCount = value
+                # ListCasesForSelection.append(key)
+
+
+        for key, value in ListCaseCount.items():
+            if(value >= MaxCount):
+                ListCasesForSelection.append(key)
+                # ListCasesForSelection.remove(key)
+
+        # MaxCount = self.getDuplicateValue(ListCaseCount)
+        NoHRlist = list(dict.fromkeys(NoHRlist))
+        print('')
+        #Rerun for cases:
+        for item in NoHRlist:
+            print(item)
+
+        print('')
+        print('Best Cases')
+        ListCasesForSelection = list(dict.fromkeys(ListCasesForSelection))
+        for item in ListCasesForSelection:
+            if(item.__contains__('FastICAComponents3')):
+                ListCasesForSelection.remove(item)
+
+        for item in ListCasesForSelection:
+            print(item)
+
+        ###ReGeneraete sheet as
+        # totalLengofCaes = len(ListCasesForSelection)
+        # totalCharts = 8 # int(round(totalLengofCaes/7))
+        # TotalListsOfCases = []
+        # initialindex=0
+        # list1 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list2 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list3 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list4 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list5 = ListCasesForSelection[initialindex:totalCharts]
+        # initialindex=totalCharts
+        # totalCharts = totalCharts +8
+        # list6 = ListCasesForSelection[initialindex:totalCharts]
+        # list7 = ListCasesForSelection
+        n=8
+        for x in range(0, len(ListCasesForSelection),n):
+            list1 = ListCasesForSelection[x:x+n]
+            self.CreateCSVdataFromList(list1,position,x,df1)
+            a=0
+        # self.CreateCSVdataFromList(list2,position,2,df1)
+        # self.CreateCSVdataFromList(list3,position,3,df1)
+        # self.CreateCSVdataFromList(list4,position,4,df1)
+        # self.CreateCSVdataFromList(list5,position,5,df1)
+        # self.CreateCSVdataFromList(list6,position,6,df1)
+        # self.CreateCSVdataFromList(list7,position,7,df1)
+
+
+        t = 0
+        # BestCaseList = []
+        # for index, row in df1.iterrows():
+        #     currentCase = row[1]
+        #     addCase= True
+        #     for column in df1:
+        #         if(column.__contains__('Unnamed') or column.__contains__('Case')):
+        #             continue
+        #         colIndex = df1.columns.get_loc(column) #df1[column] just column in df1 get entire columns values
+        #         colValueInRow =  df1.iloc[index, colIndex]
+        #         if(np.isnan(colValueInRow)):
+        #             addCase = False
+        #
+        #     if(addCase):
+        #         BestCaseList.append(currentCase)
+        #
+        # for item in BestCaseList:
+        #     print(item)
+
+    def getfromDataFrameCSV(self, position,GroupWise):
+        df1 = pd.read_csv(self.objConfig.DiskPath + "CaseWiseFromFolder_Results_" + position + "_All.csv")
+        CaseList, LoadfNameList = self.GenerateCases()
+        x=0
+        SelectedCases = []
+        count=0
+        for case in CaseList:
+            print(count)
+            if(GroupWise):
+                if(x<9):
+                    SelectedCases.append(case)
+                else:
+                    GroupcaseData =df1[df1['Techniques'].isin(SelectedCases)]
+                    self.MakeBoxPlotbyInput(GroupcaseData, "caseGroup_" + str(count) , "CaseGroupWise")
+                    x = 0
+                    SelectedCases = []
+                x= x+1
+            else:
+                caseData = df1.where(df1.Techniques == case)
+                Gnereate=False
+                for item in caseData.iterrows():
+                    diff =item[1]['Differences']
+                    if(diff<100):
+                        Gnereate=True
+                    else:
+                        Gnereate=False
+                        break
+                if(Gnereate):
+                    self.MakeBoxPlotbyInput(caseData, "case", "CaseDiffWise_Under" + str(15))
+            count = count + 1
+
+            # caseData.to_csv(
+            #     self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\CaseGroupWise\\" + case + ".csv")
+
+    def CustomCaseListMain(self):
+        # CustomCases = self.objFile.ReaddatafromFile(self.objConfig.DiskPath,'NoHrFilesCases')
+        CustomCases = []
+
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-False')
+
+        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-False')
+
+        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-1_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-2_RS-2_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-5_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-5_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-5_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-5_RS-2_SM-False')
+        #
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-3_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-3_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-5_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-5_RS-2_SM-False')
+        # FOR White skin
+        ###second with rs=2 only
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
+        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
+        ################First attempt below
+
+        self.CaseList = []
+        for case in CustomCases:
+            case = case.replace('\n','')
+            caseSplit = case.split('_')
+            algoType = caseSplit[1]
+            preprocesstype = caseSplit[2].replace('PR-','')
+            fftype = caseSplit[3].replace('FFT-','')
+            filtertype = caseSplit[4].replace('FL-','')
+            resulttype = caseSplit[5].replace('RS-','')
+            isSmooth = caseSplit[6].replace('SM-','')
+            fileName = algoType + "_PR-" + str(preprocesstype) + "_FFT-" + str(
+                fftype) + "_FL-" + str(filtertype) \
+                       + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
+            self.CaseList.append(fileName)
+
+    def PlotfromCustomCases(self,  GroupWise):
+        fileName =  "CaseWiseFromFolder_Results_Resting1_CustomCases2_UpSampleData-False"
+        df1 = pd.read_csv(self.objConfig.DiskPath +fileName + ".csv")
+        df1.head()
+        self.CustomCaseListMain()
+        x = 0
+        SelectedCases = []
+        count = 0
+        for case in self.CaseList:
+            print(count)
+            if (GroupWise):
+                if (x < 9):
+                    SelectedCases.append(case)
+                else:
+                    GroupcaseData = df1[df1['Techniques'].isin(SelectedCases)]
+                    self.MakeBoxPlotbyInput(GroupcaseData, "caseGroup_" + str(count),fileName+ ".csv")
+                    x = 0
+                    SelectedCases = []
+                x = x + 1
+            else:
+                caseData = df1.where(df1.Techniques == case)
+                caseData = caseData.dropna()
+                Gnereate = False
+                for item in caseData.iterrows():
+                    diff = np.abs(item[1]['Differences'])
+                    if (diff < 100):
+                        Gnereate = True
+                    else:
+                        Gnereate = False
+                        break
+                if (Gnereate):
+                    self.MakeBoxPlotbyInput(caseData, "case", fileName+'_Individual' ,fileName+ '_' + str(count))
+            count = count + 1
+
+    def GenerateCasesMain(self):
+        self.CaseList = []
+        for preprocesstype in self.objConfig.preprocesses:
+            for algoType in self.objConfig.AlgoList:
+                for fftype in self.objConfig.fftTypeList:
+                    for resulttype in self.objConfig.resulttypeList:
+                        for filtertype in self.objConfig.filtertypeList:
+                            for isSmooth in self.objConfig.Smoothen:
+                                fileName = algoType + "_PR-" + str(preprocesstype) + "_FFT-" + str(
+                                    fftype) + "_FL-" + str(filtertype) \
+                                           + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
+                                if (fileName not in self.CaseList):
+                                    self.CaseList.append(fileName)
+
+
+    def RunCasewiseFromFolderCustomCases(self, position):
+        # self.CustomCaseListMain()  # GET Directories or generate below
+        self.GenerateCasesMain()
+        UpSampleData = True
+        dfFinal = []
+        for case in self.CaseList:
+            for participant_number in self.objConfig.ParticipantNumbers:
+                self.objConfig.setSavePath(participant_number, position, 'ProcessedData')
+                CaseData = self.getCasebyPath(self.objConfig.SavePath + 'Result\\', 'HRSPOwithLog_'+ case)#+ '_UpSampleData-' + str(UpSampleData)
+                if (CaseData != None):
+                    if (CaseData == ''):
+                        print(str(case) + '_' + participant_number + '= NoHR')  # nmeans does not work for this case for this person
+                        # needs to be checked if not same for all participants
+                    else:
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        dfFinal.append(
+                            {
+                                'Techniques': case,
+                                'Participants': participant_number,
+                                'Differences': differenceVal
+                            })
+                else:
+                    print(str(case) + '_' + participant_number + '= NotGenerated')
+
+        dfFinal = pd.DataFrame(dfFinal)
+        dfFinal.to_csv(self.objConfig.DiskPath + "CaseWiseFromFolder_Results_" + position + "_CustomCasesNew_UpSampleData-" + str(UpSampleData) + ".csv")
+
+
+    def RunCasewiseFromFolder(self,position,useAcceptableDiff):
+        CaseList, LoadfNameList = self.GenerateCases()  # GET Directories or generate below
+
+        dfFinal = []
+        for case in CaseList:
+            for participant_number in self.objConfig.ParticipantNumbers:
+                self.objConfig.setSavePath(participant_number,position,'ProcessedDatabyProcessType')
+                CaseData = self.getCase(case)
+                if (CaseData != None):
+                    if(CaseData == ''):
+                        print(str(case) + '_' + participant_number + '= NoHR') #nmeans does not work for this case for this person
+                        #needs to be checked if not same for all participants
+                    else:
+                        differenceVal = self.splitDataRow(CaseData, participant_number, position)  # ROW,COlum
+                        dfFinal.append(
+                            {
+                                'Techniques': case,
+                                'Participants': participant_number,
+                                'Differences': differenceVal
+                            })
+                        # if(useAcceptableDiff):
+                        #     isAcceptable = self.IsAcceptableDifference(differenceVal)
+                        #     if (isAcceptable):
+                        #         df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                        # else:
+                        #     df1.iloc[RowIndex, ColumnIndex] = differenceVal
+                else:
+                    print(str(case) + '_' + participant_number + '= NotGenerated')
+
+
+        dfFinal = pd.DataFrame(dfFinal)
+        dfFinal.to_csv(self.objConfig.DiskPath + "CaseWiseFromFolder_Results_" + position + "_All"  + ".csv")
+
         t = 0
 
     def getBlankCases(self,position):
@@ -736,16 +1117,56 @@ class GeneratedDataFiltering:
         t = 0
 
     # a
+    def MakeBoxPlotbyInput(self,Input,filename,CaseFolder,fileName):
+        self.objFile.CreatePath(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+CaseFolder+"\\")
+        Input.to_csv(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+CaseFolder+"\\" + fileName + '.csv')
+        # Input.to_csv(fileNamecsv)
+                # GroupcaseData.to_csv(
+                #     self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\CaseGroupWise\\" + case + ".csv")
+
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        ####SNS
+        sns.set_style('whitegrid')
+        sns.set(rc={"figure.figsize": (10, 8)})  # width=3, #height=4
+        ax = sns.boxplot(x='Techniques', y='Differences', data=Input)  # rotation=45, horizontalalignment='right',
+        # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        ax = sns.stripplot(x="Techniques", y="Differences", data=Input)
+        plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+CaseFolder+"\\" + fileName + ".jpg")
+
     def TestBoxPlot(self):
-        df = pd.read_csv(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotdataBestCaseParticipantsResults_Resting1_DiffOf10_listno-0.csv")  # read file
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting1_DiffOf10_listno-0"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-0"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-8"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-16"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-24"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-32"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-40"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-48"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-48Amended"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-56"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-64"
+        # filename = "BoxPlotdataBestCaseParticipantsResults_Resting2_DiffOf10_listno-72"
+        # filename = "30fpsGroupWiseBestTechniques2SM-FALSE"
+        # filename = "ParticipantsResultWhiteandOtherAsianUpSampled""
+        filename = "CaseWiseFromFolder_Results_Resting1_CustomCases_UpSampleData-True"
+        # filename = "ParticipantsResultWhiteandOtherAsianUpSampled"
+        # df = pd.read_csv(self.objConfig.DiskPath + "BoxPlotCSV\\"+ filename+ ".csv")  # read file
+        # df = pd.read_csv(self.objConfig.DiskPath + "BoxPlotCSV\\FinalBestCases\\"+ filename+ ".csv")  # read file
+        df = pd.read_csv(self.objConfig.DiskPath + filename+ ".csv")  # read file
         df.head()
 
         ####SNS
         sns.set_style('whitegrid')
+        sns.set(rc={"figure.figsize": (10, 8)})  # width=3, #height=4
         ax = sns.boxplot(x='Techniques', y='Differences',  data=df)#rotation=45, horizontalalignment='right',
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
         ax = sns.stripplot(x="Techniques", y="Differences", data=df)
-        plt.show() #('E:\\boxplotAll.jpg')
+        # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+ filename+ ".jpg")
+        # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\FinalBestCases\\"+ filename+ ".jpg")
+        plt.savefig(self.objConfig.DiskPath + filename+ ".jpg")
 
     def PlotSingalRegion(self, region, blue, green, red, grey, Irchannel, ColorEstimatedFPS, IREstimatedFPS):
         objPlots = Plots()
@@ -866,8 +1287,7 @@ class GeneratedDataFiltering:
                                     preprocesstype) \
                                            + '_Algorithm-' + str(algoType) + '_Smoothen-' + str(isSmooth) \
                                            + '_FFT-' + str(fftype) + '_Filter-' + str(filtertype)
-                                if (
-                                        fileName not in CaseList):  # not os.path.exists(self.ProcessedDataPath + fName):
+                                if (fileName not in CaseList):  # not os.path.exists(self.ProcessedDataPath + fName):
                                     CaseList.append(fileName)
                                     LoadfNameList.append(LoadName)
         return CaseList, LoadfNameList
@@ -1080,10 +1500,44 @@ class GeneratedDataFiltering:
         #
         for item in CommonFiles:
             print(item)
+    #
+    # def WriteCases(self):
+    #     CaseList= []
+    #     dfFinal=[]
+    #     for preprocesstype in self.objConfig.preprocesses:
+    #         for algoType in self.objConfig.AlgoList:
+    #             for isSmooth in self.objConfig.Smoothen:
+    #                 for fftype in self.objConfig.fftTypeList:
+    #                     for filtertype in self.objConfig.filtertypeList:
+    #                         for resulttype in self.objConfig.resulttypeList:
+    #                             fileName = "HRSPOwithLog_" + str(algoType) + "_PR-" + str(
+    #                                 preprocesstype) + "_FFT-" + str(fftype) \
+    #                                        + "_FL-" + str(filtertype) + "_RS-" + str(resulttype) + "_SM-" + str(
+    #                                 isSmooth)
+    #                             if (fileName not in CaseList):
+    #                                 CaseList.append(fileName)
+    #                                 dfFinal.append(
+    #                                     {
+    #                                         'algoType': algoType,
+    #                                         'preprocesstype': preprocesstype,
+    #                                         'fftype': fftype,
+    #                                         'filtertype': filtertype,
+    #                                         'resulttype': resulttype,
+    #                                         'isSmooth': isSmooth
+    #                                     })
+    #     dfFinal = pd.DataFrame(dfFinal)
+    #     dfFinal.to_csv(self.objConfig.DiskPath + "AllCases.csv")
+
+    def PlotComparisonMethodMean(self):
+
+        method1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        method2 = [1.03, 2.05, 2.79, 3.67, 5.00, 5.82, 7.16, 7.69, 8.53, 10.38, 11.11, 12.17, 13.47, 13.83, 15.15, 16.12, 16.94, 18.09, 19.13, 19.54]
+        pyCompare.blandAltman(method1, method2,)
+        plt.show()
 
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
-objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')
+objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')#Europe_WhiteSkin_Group,OtherAsian_OtherSkin_Group,SouthAsian_BrownSkin_Group
 objFilterData.AcceptableDifference = 10
 ##OLD ROUGH
 # objFilterData.Run(AcceptableDifference)
@@ -1100,15 +1554,22 @@ objFilterData.AcceptableDifference = 10
 
 ###Generate csv with cases for positon for all particiipants
 # objFilterData.getBlankCases('AfterExcersize')
-# objFilterData.RunCasewise('Resting2',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
+objFilterData.RunCasewiseFromFolderCustomCases('Resting1')#TODO: RUN FOR OTHER SKIN TYPES
+# objFilterData.PlotfromCustomCases(False)
+# objFilterData.RunCasewiseFromFolder('Resting1',True)#TODO: RUN FOR OTHER SKIN TYPES
+# objFilterData.RunCasewiseFromFolder('Resting2',True)
+# objFilterData.RunCasewiseFromFolder('AfterExcersize',True)
+# objFilterData.getfromDataFrameCSV('Resting1',False)
 # objFilterData.RunCasewise('Resting1',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
+# objFilterData.RunCasewisebyParticipant('Resting1',True,'PIS-4014') # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
 # objFilterData.RunCasewise('AfterExcersize',True) # Generate cases for differnec TODO: Find cases common among all resting1, 2 and after exc
 # objFilterData.getBestCasesFromCSV('Resting2')# to get bext cases
 # objFilterData.getBestCasesFromCSV('Resting1')# to get bext cases
 # objFilterData.getBestCasesFromCSV('AfterExcersize')# to get bext cases
-
+# objFilterData.WriteCases()
 ####PLOTSS
+# objFilterData.PlotComparisonMethodMean()
 # objFilterData.LinePlot() # FOR PERFORMANCE TIME LOG
-objFilterData.TestBoxPlot()# enitere signal
+# objFilterData.TestBoxPlot()# enitere signal
 # objFilterData.TestBoxPlotWindow()#WINDOWs
 # objFilterData.PlotSignal() # to plot graph
