@@ -401,17 +401,26 @@ class ProcessFaceData:
                     min2 = v
                     break
             index0 = index0+1
-
-        if(self.getDuplicateValue(self.WindowColorfpswithTime) >25):
+        ColorfpxCheck = self.getDuplicateValue(self.WindowColorfpswithTime)
+        IRfpxCheck = self.getDuplicateValue(self.WindowIRfpswithTime)
+        if( ColorfpxCheck>25):
             self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
         else:
-            self.ColorEstimatedFPS =avg# min3  # self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+            if(avg > ColorfpxCheck):
+                self.ColorEstimatedFPS = ColorfpxCheck
+            else:
+                self.ColorEstimatedFPS =avg# min3  # self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
 
-        if(self.getDuplicateValue(self.WindowIRfpswithTime) >25):
+        if(IRfpxCheck >25):
             self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
         else:
-            self.IREstimatedFPS =avg2# min2#self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+            if(avg > IRfpxCheck):
+                self.IREstimatedFPS = IRfpxCheck
+            else:
+                self.IREstimatedFPS =avg2# min2#self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
 
+        self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)
+        self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)
         # self.ColorEstimatedFPS =30
         # self.IREstimatedFPS = 30
         # set estimated fps
