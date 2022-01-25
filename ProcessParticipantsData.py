@@ -17,7 +17,7 @@ Process participants data
 
 
 def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algorithm_type, FFT_type,
-                       Filter_type, Result_type, Preprocess_type, isSmoothen, HrGr, SpoGr, fileName, DumpToDisk):
+                       Filter_type, Result_type, Preprocess_type, isSmoothen, HrGr, SpoGr, fileName, DumpToDisk,ParticipantId,position,UpSampleData):
     if (not RunAnalysisForEntireSignalData):
         Process_Participants_Data_Windows(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
@@ -27,7 +27,7 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
         Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
                                           HrGr, SpoGr,
-                                          Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk)
+                                          Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData)
 
 
 '''
@@ -209,7 +209,7 @@ Process participants data over the entire signal data
 
 def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk):
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData):
     objReliability = CheckReliability()
     # Lists to hold heart rate and blood oxygen data
     Listdata = []
@@ -346,12 +346,14 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                             'Regiontype: ' + " ,\t" + str(regiontype) + " ,\t" + FullTimeLog)
 
     # filename
-    fileNameResult = "HRSPOwithLog_" + fileName
+
+    fileNameResult = "HRSPOwithLog_" + fileName #+ '_UpSampleData-'+ str(UpSampleData)#ParticipantId+ "_" +position+
     #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
     # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
     # isSmoothen)
     # Write data to file
     objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameResult, Listdata)
+    # objFile.WriteListDatatoFile('E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\BoxPlotCSV\\FinalBestCases\\', fileNameResult, Listdata)
 
     # filename
     # fileNameSpo = "SPO_" + fileName
