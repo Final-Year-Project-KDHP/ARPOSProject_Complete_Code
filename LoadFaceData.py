@@ -261,12 +261,41 @@ class LoadFaceData:
         FrameTimeStamp = datetime.datetime(year, month, day, int(hr), int(min), int(sec), int(mili))
         return FrameTimeStamp
 
+    def getColorMeans(self,img,count, FrameTimeStamp):
+        # split channels
+        b, g, r, a = cv2.split(img)
+
+        # mean data
+        BmeanValues = cv2.mean(b)
+        GmeanValues = cv2.mean(g)
+        RmeanValues = cv2.mean(r)
+        greymeanValues = (BmeanValues[0] + GmeanValues[0] + RmeanValues[0]) / 3  # r+g+b/pixel count = grey
+
+        # add to list
+        self.blue.append(BmeanValues[0])
+        self.green.append(GmeanValues[0])
+        self.red.append(RmeanValues[0])
+        self.grey.append(greymeanValues)
+
+        # Temp fps wise
+        self.Tempblue.append(BmeanValues[0])
+        self.Tempgreen.append(GmeanValues[0])
+        self.Tempred.append(RmeanValues[0])
+        self.Tempgrey.append(greymeanValues)
+        self.TemptimecolorCount.append(count)
+        self.TempFrametime_list_color.append(FrameTimeStamp)
+
+        # Add Time Stamp with miliseconds
+        self.Frametime_list_color.append(FrameTimeStamp)
+        a=0
+        # self.timecolorCount.append(count)
+
     """
     ProcessColorImagestoArray:
     Load color region of interests, get average of b,g,r and time.
     skip first and last seconds 
     """
-    def ProcessColorImagestoArray(self, filepath):
+    def ProcessColorImagestoArray(self, filepath,UpSampleData):
 
         Image_Files = self.LoadFiles(filepath)
         Image_Files = self.SortLoadedFiles(Image_Files)
@@ -275,11 +304,14 @@ class LoadFaceData:
         ColorfpswithTime = {}
         DataColorfpsTimeWise = {}
         prevFrameTimeStamp = None
-        fpscountcolor=0
+        fpscountcolor=1
         count=0
+        totalNewLeng = 0
+        totalOrignialLeng = 0
+        endRecodrded= False
         # Go through each image
         for key, value in Image_Files.items():
-
+            countFps = True
             FrameTimeStamp = key
             FrameTimeStampWOMili = datetime.datetime(FrameTimeStamp.year, FrameTimeStamp.month, FrameTimeStamp.day,
                                                      FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second,
@@ -294,192 +326,163 @@ class LoadFaceData:
                 continue
                 # Do nothing or add steps here if required
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
+                #only do once
+                if(not endRecodrded):
+                    #record for previous last second
+                    objChannelDataClass = ChannelDataClass(self.Tempblue, self.Tempgreen, self.Tempred, self.Tempgrey, None,
+                                                           fpscountcolor, self.TempFrametime_list_color,
+                                                           None, self.TemptimecolorCount, None, None)
+                    DataColorfpsTimeWise[prevFrameTimeStamp] = objChannelDataClass
+
+                    # Record fps
+                    ColorfpswithTime[prevFrameTimeStamp] = fpscountcolor
+                    fpscountcolor = 1
+
+                    # totalNewLeng = totalNewLeng + len(self.Tempgrey)
+                    self.Tempred = []
+                    self.Tempblue = []
+                    self.Tempgreen = []
+                    self.Tempgrey = []
+                    self.TempFrametime_list_color = []
+                    self.TemptimecolorCount = []
+                    endRecodrded= True
+
                 continue
                 # Do nothing or add steps here if required
             else:
                 count = count + 1
-
-                #Color fps
+                # Color fps
                 TrimmedTime = datetime.time(FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second)
-                if(prevFrameTimeStamp == None):
-                    prevFrameTimeStamp =  TrimmedTime
-                    fpscountcolor = 1
-                    self.TempFrametime_list_color.append(FrameTimeStamp)
+                if(TrimmedTime != prevFrameTimeStamp and prevFrameTimeStamp !=None):#fpscountcolor == 30):
+                    ##Record FPS WISE here?                        ##UpSample here?
+                    objChannelDataClass = ChannelDataClass(self.Tempblue,self.Tempgreen,self.Tempred,self.Tempgrey,None,fpscountcolor,self.TempFrametime_list_color,
+                                                           None,self.TemptimecolorCount,None,None)
+                    DataColorfpsTimeWise[prevFrameTimeStamp] =objChannelDataClass
 
-                    img = value
+                    #Record fps
+                    ColorfpswithTime[prevFrameTimeStamp] = fpscountcolor
+                    fpscountcolor= 1
 
+                    # totalNewLeng = totalNewLeng + len(self.Tempgrey)
+                    self.Tempred = []
+                    self.Tempblue = []
+                    self.Tempgreen = []
+                    self.Tempgrey = []
+                    self.TempFrametime_list_color = []
+                    self.TemptimecolorCount = []
+
+                    # self.getColorMeans(value, count, FrameTimeStamp)
+                    # totalOrignialLeng =  len(self.grey)
+
+                if(TrimmedTime == prevFrameTimeStamp):#fpscountcolor == 30):
+                    fpscountcolor = fpscountcolor + 1
+
+                prevFrameTimeStamp = TrimmedTime
+
+                    # countFps = True
+                    # self.getColorMeans(value, count, FrameTimeStamp)
                     # split channels
-                    b, g, r, a = cv2.split(img)
+                img = value
+                b, g, r, a = cv2.split(img)
 
-                    # mean data
-                    BmeanValues = cv2.mean(b)
-                    GmeanValues = cv2.mean(g)
-                    RmeanValues = cv2.mean(r)
-                    greymeanValues = (BmeanValues[0] + GmeanValues[0] + RmeanValues[0]) / 3  # r+g+b/pixel count = grey
+                # mean data
+                BmeanValues = cv2.mean(b)
+                GmeanValues = cv2.mean(g)
+                RmeanValues = cv2.mean(r)
+                greymeanValues = (BmeanValues[0] + GmeanValues[0] + RmeanValues[0]) / 3  # r+g+b/pixel count = grey
 
-                    # add to list
-                    self.blue.append(BmeanValues[0])
-                    self.green.append(GmeanValues[0])
-                    self.red.append(RmeanValues[0])
-                    self.grey.append(greymeanValues)
+                # add to list
+                self.blue.append(BmeanValues[0])
+                self.green.append(GmeanValues[0])
+                self.red.append(RmeanValues[0])
+                self.grey.append(greymeanValues)
 
-                    # Temp fps wise
-                    self.Tempblue.append(BmeanValues[0])
-                    self.Tempgreen.append(GmeanValues[0])
-                    self.Tempred.append(RmeanValues[0])
-                    self.Tempgrey.append(greymeanValues)
-                    self.TemptimecolorCount.append(count)
+                # Temp fps wise
+                self.Tempblue.append(BmeanValues[0])
+                self.Tempgreen.append(GmeanValues[0])
+                self.Tempred.append(RmeanValues[0])
+                self.Tempgrey.append(greymeanValues)
+                self.TemptimecolorCount.append(count)
+                self.TempFrametime_list_color.append(FrameTimeStamp)
 
-                    # Add Time Stamp with miliseconds
-                    self.Frametime_list_color.append(FrameTimeStamp)
-                    self.timecolorCount.append(count)
+                # Add Time Stamp with miliseconds
+                self.Frametime_list_color.append(FrameTimeStamp)
 
-                else:
-                    if(prevFrameTimeStamp == TrimmedTime):
-                        fpscountcolor = fpscountcolor +1
-                        self.TempFrametime_list_color.append(FrameTimeStamp)
-
-                        img = value
-
-                        # split channels
-                        b, g, r, a = cv2.split(img)
-
-                        # mean data
-                        BmeanValues = cv2.mean(b)
-                        GmeanValues = cv2.mean(g)
-                        RmeanValues = cv2.mean(r)
-                        greymeanValues = (BmeanValues[0] + GmeanValues[0] + RmeanValues[0]) / 3  # r+g+b/pixel count = grey
-
-                        # add to list
-                        self.blue.append(BmeanValues[0])
-                        self.green.append(GmeanValues[0])
-                        self.red.append(RmeanValues[0])
-                        self.grey.append(greymeanValues)
-
-                        # Temp fps wise
-                        self.Tempblue.append(BmeanValues[0])
-                        self.Tempgreen.append(GmeanValues[0])
-                        self.Tempred.append(RmeanValues[0])
-                        self.Tempgrey.append(greymeanValues)
-                        self.TemptimecolorCount.append(count)
-
-                        # Add Time Stamp with miliseconds
-                        self.Frametime_list_color.append(FrameTimeStamp)
-                        self.timecolorCount.append(count)
-                    else:
-                        ##Record FPS WISE here?
-                        objChannelDataClass = ChannelDataClass(self.Tempblue,self.Tempgreen,self.Tempred,self.Tempgrey,None,fpscountcolor,self.TempFrametime_list_color,
-                                                               None,self.TemptimecolorCount,None,None)
-                        DataColorfpsTimeWise[prevFrameTimeStamp] =objChannelDataClass
-                        self.Tempred = []
-                        self.Tempblue = []
-                        self.Tempgreen = []
-                        self.Tempgrey = []
-                        self.TempFrametime_list_color = []
-                        self.TemptimecolorCount = []
-                        ##UpSample here?
-                        ColorfpswithTime[prevFrameTimeStamp] = fpscountcolor
-                        prevFrameTimeStamp = TrimmedTime
-                        fpscountcolor= 1
-                        self.TempFrametime_list_color.append(FrameTimeStamp)
-
-                        img = value
-
-                        # split channels
-                        b, g, r, a = cv2.split(img)
-
-                        # mean data
-                        BmeanValues = cv2.mean(b)
-                        GmeanValues = cv2.mean(g)
-                        RmeanValues = cv2.mean(r)
-                        greymeanValues = (BmeanValues[0] + GmeanValues[0] + RmeanValues[
-                            0]) / 3  # r+g+b/pixel count = grey
-
-                        # add to list
-                        self.blue.append(BmeanValues[0])
-                        self.green.append(GmeanValues[0])
-                        self.red.append(RmeanValues[0])
-                        self.grey.append(greymeanValues)
-
-                        # Temp fps wise
-                        self.Tempblue.append(BmeanValues[0])
-                        self.Tempgreen.append(GmeanValues[0])
-                        self.Tempred.append(RmeanValues[0])
-                        self.Tempgrey.append(greymeanValues)
-                        self.TemptimecolorCount.append(count)
-
-                        # Add Time Stamp with miliseconds
-                        self.Frametime_list_color.append(FrameTimeStamp)
-                        self.timecolorCount.append(count)
         self.ColorEstimatedFPS = self.getDuplicateValue(ColorfpswithTime) #Only one time
-        self.ColorfpswithTime = {} # ColorfpswithTime
+        self.ColorfpswithTime = ColorfpswithTime
+        if(UpSampleData):
+            self.UpSampleDataColor(DataColorfpsTimeWise)
+
+    def UpSampleDataColor(self,DataColorfpsTimeWise):
+        self.ColorfpswithTime = {}  # ColorfpswithTime
         # temp = self.grey
         # temp = np.array(temp).reshape((len(temp), 1))
-        for k,v in DataColorfpsTimeWise.items():
-            #resample ehre
-            if(v.fpscount <self.ColorEstimatedFPS):
+        for k, v in DataColorfpsTimeWise.items():
+            # resample ehre
+            if (v.fpscount < self.ColorEstimatedFPS):
 
                 totalSzieforRsmaple = (self.ColorEstimatedFPS - v.fpscount)
-                if(totalSzieforRsmaple + len(v.blue) > self.ColorEstimatedFPS ):
-                    totalSzieforRsmaple = totalSzieforRsmaple -1
+                if (totalSzieforRsmaple + len(v.blue) > self.ColorEstimatedFPS):
+                    totalSzieforRsmaple = totalSzieforRsmaple - 1
                 Addtional = v.blue[-totalSzieforRsmaple:]
-                v.blue = v.blue + Addtional #v.blue.append()
+                v.blue = v.blue + Addtional  # v.blue.append()
 
                 Addtional = v.green[-totalSzieforRsmaple:]
-                v.green = v.green + Addtional #v.blue.append()
+                v.green = v.green + Addtional  # v.blue.append()
                 Addtional = v.red[-totalSzieforRsmaple:]
-                v.red = v.red + Addtional #v.blue.append()
+                v.red = v.red + Addtional  # v.blue.append()
                 Addtional = v.grey[-totalSzieforRsmaple:]
-                v.grey = v.grey + Addtional #v.blue.append()
-
+                v.grey = v.grey + Addtional  # v.blue.append()
 
                 LastTimeStamp = v.Frametime_list_color[-1:][0]
                 Addtional = []
-                for x in range(0,totalSzieforRsmaple):
+                for x in range(0, totalSzieforRsmaple):
                     microSec = LastTimeStamp.microsecond + x
-                    NewTimeStamp = datetime.datetime(LastTimeStamp.year,LastTimeStamp.month, LastTimeStamp.day,LastTimeStamp.hour, LastTimeStamp.minute, LastTimeStamp.second,microSec )
+                    NewTimeStamp = datetime.datetime(LastTimeStamp.year, LastTimeStamp.month, LastTimeStamp.day,
+                                                     LastTimeStamp.hour, LastTimeStamp.minute, LastTimeStamp.second,
+                                                     microSec)
                     Addtional.append(NewTimeStamp)
 
-                v.Frametime_list_color =v.Frametime_list_color+ Addtional
+                v.Frametime_list_color = v.Frametime_list_color + Addtional
 
             self.ColorfpswithTime[k] = len(v.grey)
-                # LastCount = v.timecolorCount[-1:][0]
+            # LastCount = v.timecolorCount[-1:][0]
 
-                # Addtional=[]
-                # for x in range(0,totalSzieforRsmaple):
-                #     NewCount =LastCount + x
-                #     Addtional.append(NewCount)
-                # v.timecolorCount =v.timecolorCount+ Addtional
+            # Addtional=[]
+            # for x in range(0,totalSzieforRsmaple):
+            #     NewCount =LastCount + x
+            #     Addtional.append(NewCount)
+            # v.timecolorCount =v.timecolorCount+ Addtional
 
-                #
-                #
-                # ##############ROUGH
-                # #resample
-                # L = len(v.blue)
-                # max_time = L / v.fpscountcolor
-                # x = np.linspace(0, max_time, L)  # time_steps# x = np.arange(0, 18)
-                # y =v.blue #np.exp(-x / 3.0)
-                #
-                # f = interp.interp1d(x, y, fill_value="extrapolate")
-                # max_time = L / self.ColorEstimatedFPS
-                # L = self.ColorEstimatedFPS
-                # xnew = np.arange(0,  L,max_time)
-                # ynew = f(xnew)  # use interpolation function returned by `interp1d`
-                # plt.plot(x, y, 'o', xnew, ynew, '-')
-                # plt.show()
-                #
-                #
-                # # f = interp.interp1d(v.blue, timeCount, kind='cubic', fill_value="extrapolate")
-                # # max_time = L / self.ColorEstimatedFPS
-                # # x_new = np.linspace(0, max_time, self.ColorEstimatedFPS)  # time_steps
-                # # ynew = f(x_new)
-                # # plt.plot(v.blue, timeCount, 'o', x_new, ynew, '-')
-                # # plt.show()
-                # upsampleRate = int(len(v.blue)/totalSzieforRsmaple)
-                # v.blue = signal.resample(v.blue, len(v.blue) * 2)
-                # v.green = signal.resample(v.green, len(v.green) * 1)
-                # v.red = signal.resample(v.red, self.ColorEstimatedFP)
-                # v.grey = signal.resample(v.grey, len(v.grey) * upsampleRate)
+            #
+            #
+            # ##############ROUGH
+            # #resample
+            # L = len(v.blue)
+            # max_time = L / v.fpscountcolor
+            # x = np.linspace(0, max_time, L)  # time_steps# x = np.arange(0, 18)
+            # y =v.blue #np.exp(-x / 3.0)
+            #
+            # f = interp.interp1d(x, y, fill_value="extrapolate")
+            # max_time = L / self.ColorEstimatedFPS
+            # L = self.ColorEstimatedFPS
+            # xnew = np.arange(0,  L,max_time)
+            # ynew = f(xnew)  # use interpolation function returned by `interp1d`
+            # plt.plot(x, y, 'o', xnew, ynew, '-')
+            # plt.show()
+            #
+            #
+            # # f = interp.interp1d(v.blue, timeCount, kind='cubic', fill_value="extrapolate")
+            # # max_time = L / self.ColorEstimatedFPS
+            # # x_new = np.linspace(0, max_time, self.ColorEstimatedFPS)  # time_steps
+            # # ynew = f(x_new)
+            # # plt.plot(v.blue, timeCount, 'o', x_new, ynew, '-')
+            # # plt.show()
+            # upsampleRate = int(len(v.blue)/totalSzieforRsmaple)
+            # v.blue = signal.resample(v.blue, len(v.blue) * 2)
+            # v.green = signal.resample(v.green, len(v.green) * 1)
+            # v.red = signal.resample(v.red, self.ColorEstimatedFP)
+            # v.grey = signal.resample(v.grey, len(v.grey) * upsampleRate)
 
         self.Tempblue = []
         self.Tempgreen = []
@@ -487,17 +490,18 @@ class LoadFaceData:
         self.Tempgrey = []
         self.TempFrametime_list_color = []
         self.TemptimecolorCount = []
-        for k,v in DataColorfpsTimeWise.items():
+        count=0
+        for k, v in DataColorfpsTimeWise.items():
             if (len(v.grey)) < self.ColorEstimatedFPS:  ## if too less signal, remove that frame
                 stop = 0
                 self.ColorfpswithTime.pop(k)
             else:
-                self.Tempblue = self.Tempblue +v.blue
-                self.Tempgreen = self.Tempgreen +v.green
-                self.Tempred = self.Tempred +v.red
-                self.Tempgrey = self.Tempgrey +v.grey
-                self.TempFrametime_list_color = self.TempFrametime_list_color +v.Frametime_list_color
-                self.TemptimecolorCount.append(count)
+                self.Tempblue = self.Tempblue + v.blue
+                self.Tempgreen = self.Tempgreen + v.green
+                self.Tempred = self.Tempred + v.red
+                self.Tempgrey = self.Tempgrey + v.grey
+                self.TempFrametime_list_color = self.TempFrametime_list_color + v.Frametime_list_color
+                # self.TemptimecolorCount.append(count)
 
                 # self.TemptimecolorCount =self.TemptimecolorCount +v.timecolorCount
 
@@ -506,11 +510,9 @@ class LoadFaceData:
         self.red = self.Tempred
         self.grey = self.Tempgrey
         self.Frametime_list_color = self.TempFrametime_list_color
-        self.timecolorCount = list(range(0, len(self.TempFrametime_list_color)))#self.TemptimecolorCount
-        #Recalculate
+        self.timecolorCount = list(range(0, len(self.TempFrametime_list_color)))  # self.TemptimecolorCount
+        # Recalculate
         self.ColorEstimatedFPS = self.getDuplicateValue(self.ColorfpswithTime)
-        a=0
-
 
     def getDistance(self,distnacepath):
         fdistancem = open(distnacepath, "r")
@@ -533,22 +535,42 @@ class LoadFaceData:
 
         distanceData = self.SortTime(dstimeList)
         return distanceData
+
+
+    def getIRMeans(self,countIR,img,FrameTimeStamp,TrimmedTime,distanceData):
+        # dimensions = img.shape
+        ImgmeanValues = cv2.mean(img)  # single channel  RmeanValue = cv2.mean(r)
+
+        self.Irchannel.append(ImgmeanValues[0])
+        # Temp fps wise
+        self.TempIrchannel.append(ImgmeanValues[0])
+        self.TemptimeirCount.append(countIR)
+        self.TempFrametime_list_ir.append(FrameTimeStamp)
+
+        self.Frametime_list_ir.append(FrameTimeStamp)
+        self.timeirCount.append(countIR)
+        # Distance
+        distanceinM = distanceData.get(TrimmedTime)
+        self.distanceM.append(float(np.abs(distanceinM)))
+        self.TempdistanceM.append(float(np.abs(distanceinM)))
+
     """
     ProcessIRImagestoArray:
     Load IR region of interests, get average of b,g,r and time and distance
     also make sure color and ir data has same x and y values for processing and plotting
     skip first and last seconds 
     """
-    def ProcessIRImagestoArray(self, filepath,LoadDistancePath):
+    def ProcessIRImagestoArray(self, filepath,LoadDistancePath,UpSampleData):
 
         Image_Files = self.LoadFiles(filepath)
         Image_Files = self.SortLoadedFiles(Image_Files)
         IRfpswithTime = {}
         DataIRfpsTimeWise = {}
-        fpscountir = 0
+        fpscountir = 1
         prevFrameTimeStamp=None
         count = 0
         countIR = 0
+        endRecodrded= False
         distanceData = self.getDistance(LoadDistancePath)
         # Go through each image
         for key, value in Image_Files.items():
@@ -563,99 +585,87 @@ class LoadFaceData:
                 # Do nothing or add steps here if required
                 continue
             elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
+                # only do once
+                if (not endRecodrded):
+                    objChannelDataClass = ChannelDataClass(None, None, None, None, self.TempIrchannel, fpscountir,
+                                                           None, self.TempFrametime_list_ir, None,
+                                                           self.TemptimeirCount, self.TempdistanceM)
+                    DataIRfpsTimeWise[prevFrameTimeStamp] = objChannelDataClass
+
+                    ##FPS record
+                    IRfpswithTime[prevFrameTimeStamp] = fpscountir
+                    fpscountir = 1
+
+                    self.TempIrchannel = []
+                    self.TempFrametime_list_ir = []
+                    self.TemptimeirCount = []
+                    self.TempdistanceM = []
+                    endRecodrded= True
+                    #record for previous last second
+
                 # Do nothing or add steps here if required
                 continue
             else:
-                TrimmedTime = datetime.time(FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second)
-
-                countIR = countIR +1
                 count = count+1
 
-                #IR fps
-                if(prevFrameTimeStamp == None):
-                    prevFrameTimeStamp =  TrimmedTime
+                TrimmedTime = datetime.time(FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second)
+                # IR fps
+                if (TrimmedTime != prevFrameTimeStamp and prevFrameTimeStamp != None):  # fpscountcolor == 30):
+                    ##Record FPS WISE here?
+                    objChannelDataClass = ChannelDataClass(None, None, None, None, self.TempIrchannel, fpscountir,
+                                                           None, self.TempFrametime_list_ir, None,
+                                                           self.TemptimeirCount, self.TempdistanceM)
+                    DataIRfpsTimeWise[prevFrameTimeStamp] = objChannelDataClass
+
+                    ##FPS record
+                    IRfpswithTime[prevFrameTimeStamp] = fpscountir
                     fpscountir = 1
 
-                    img = value
-                    # dimensions = img.shape
-                    ImgmeanValues = cv2.mean(img)  # single channel  RmeanValue = cv2.mean(r)
+                    self.TempIrchannel = []
+                    self.TempFrametime_list_ir = []
+                    self.TemptimeirCount = []
+                    self.TempdistanceM = []
 
-                    self.Irchannel.append(ImgmeanValues[0])
-                    # Temp fps wise
-                    self.TempIrchannel.append(ImgmeanValues[0])
-                    self.TemptimeirCount.append(countIR)
-                    self.TempFrametime_list_ir.append(FrameTimeStamp)
+                if (TrimmedTime == prevFrameTimeStamp):  # fpscountcolor == 30):
+                    fpscountir = fpscountir + 1
 
-                    self.Frametime_list_ir.append(FrameTimeStamp)
-                    self.timeirCount.append(countIR)
-                    # Distance
-                    distanceinM = distanceData.get(TrimmedTime)
-                    self.distanceM.append(float(np.abs(distanceinM)))
-                    self.TempdistanceM.append(float(np.abs(distanceinM)))
+                prevFrameTimeStamp = TrimmedTime
 
-                else:
-                    if(prevFrameTimeStamp == TrimmedTime):
-                        fpscountir = fpscountir +1
+                img = value
 
-                        img = value
-                        # dimensions = img.shape
-                        ImgmeanValues = cv2.mean(img)  # single channel  RmeanValue = cv2.mean(r)
+                # dimensions = img.shape
+                ImgmeanValues = cv2.mean(img)  # single channel  RmeanValue = cv2.mean(r)
 
-                        self.Irchannel.append(ImgmeanValues[0])
-                        # Temp fps wise
-                        self.TempIrchannel.append(ImgmeanValues[0])
-                        self.TemptimeirCount.append(countIR)
-                        self.TempFrametime_list_ir.append(FrameTimeStamp)
+                self.Irchannel.append(ImgmeanValues[0])
+                # Temp fps wise
+                self.TempIrchannel.append(ImgmeanValues[0])
+                # self.TemptimeirCount.append(countIR)
+                self.TempFrametime_list_ir.append(FrameTimeStamp)
 
-                        self.Frametime_list_ir.append(FrameTimeStamp)
-                        self.timeirCount.append(countIR)
-                        # Distance
-                        distanceinM = distanceData.get(TrimmedTime)
-                        self.distanceM.append(float(np.abs(distanceinM)))
-                        self.TempdistanceM.append(float(np.abs(distanceinM)))
-                    else:
-                        ##Record FPS WISE here?
-                        objChannelDataClass = ChannelDataClass(None,None,None,None,self.TempIrchannel,fpscountir,None,self.TempFrametime_list_ir,None,self.TemptimeirCount,self.TempdistanceM)
-                        DataIRfpsTimeWise[prevFrameTimeStamp] =objChannelDataClass
-                        self.TempIrchannel = []
-                        self.TempFrametime_list_ir = []
-                        self.TemptimeirCount = []
-                        self.TempdistanceM=[]
+                self.Frametime_list_ir.append(FrameTimeStamp)
+                # self.timeirCount.append(countIR)
+                # Distance
+                distanceinM = distanceData.get(TrimmedTime)
+                self.distanceM.append(float(np.abs(distanceinM)))
+                self.TempdistanceM.append(float(np.abs(distanceinM)))
 
-                        ##UpSample here?
-                        IRfpswithTime[prevFrameTimeStamp] = fpscountir
-                        prevFrameTimeStamp = TrimmedTime
-                        fpscountir= 1
+                # countIR = countIR +1
 
-                        img = value
-                        # dimensions = img.shape
-                        ImgmeanValues = cv2.mean(img)  # single channel  RmeanValue = cv2.mean(r)
-
-                        self.Irchannel.append(ImgmeanValues[0])
-                        # Temp fps wise
-                        self.TempIrchannel.append(ImgmeanValues[0])
-                        self.TemptimeirCount.append(countIR)
-                        self.TempFrametime_list_ir.append(FrameTimeStamp)
-
-                        self.Frametime_list_ir.append(FrameTimeStamp)
-                        self.timeirCount.append(countIR)
-                        # Distance
-                        distanceinM = distanceData.get(TrimmedTime)
-                        self.distanceM.append(float(np.abs(distanceinM)))
-                        self.TempdistanceM.append(float(np.abs(distanceinM)))
-
-        # A=0
         self.IREstimatedFPS = self.getDuplicateValue(IRfpswithTime)
-        # self.IRfpswithTime = IRfpswithTime
-        self.IRfpswithTime={}
-        #a=0
+        self.IRfpswithTime = IRfpswithTime
+        self.totalTimeinSeconds = len(self.IRfpswithTime)
+        if(UpSampleData):
+            self.UpSampleDataIR(DataIRfpsTimeWise)
+
+    def UpSampleDataIR(self,DataIRfpsTimeWise):
+        self.IRfpswithTime = {}
         # temp = np.array(temp).reshape((len(temp), 1))
         for k, v in DataIRfpsTimeWise.items():
             # resample ehre
             if (v.fpscount < self.IREstimatedFPS):
                 totalSzieforRsmaple = self.IREstimatedFPS - v.fpscount
-                if(totalSzieforRsmaple + len(v.Irchannel) > self.IREstimatedFPS ):
-                    totalSzieforRsmaple = totalSzieforRsmaple -1
+                if (totalSzieforRsmaple + len(v.Irchannel) > self.IREstimatedFPS):
+                    totalSzieforRsmaple = totalSzieforRsmaple - 1
                 Addtional = v.Irchannel[-totalSzieforRsmaple:]
                 v.Irchannel = v.Irchannel + Addtional  # v.blue.append()
 
@@ -688,28 +698,26 @@ class LoadFaceData:
 
         self.TempIrchannel = []
         self.TempFrametime_list_ir = []
-        self.TemptimeirCount =[]
-        self.TempdistanceM =[]
+        # self.TemptimeirCount = []
+        self.TempdistanceM = []
         for k, v in DataIRfpsTimeWise.items():
             if (len(v.Irchannel)) < self.IREstimatedFPS:  ## if too less signal, remove that frame
                 stop = 0
                 self.IRfpswithTime.pop(k)
             else:
-                self.TempIrchannel =self.TempIrchannel  +v.Irchannel
-                self.TempFrametime_list_ir = self.TempFrametime_list_ir  +v.Frametime_list_ir
-                self.TemptimeirCount =self.TemptimeirCount  +v.timeirCount
-                self.TempdistanceM =self.TempdistanceM  +v.distanceM
+                self.TempIrchannel = self.TempIrchannel + v.Irchannel
+                self.TempFrametime_list_ir = self.TempFrametime_list_ir + v.Frametime_list_ir
+                # self.TemptimeirCount = self.TemptimeirCount + v.timeirCount
+                self.TempdistanceM = self.TempdistanceM + v.distanceM
 
         self.Irchannel = self.TempIrchannel
         self.Frametime_list_ir = self.TempFrametime_list_ir
-        self.timeirCount = list(range(0, len(self.TempFrametime_list_ir)))#self.TemptimeirCount
-        self.distanceM =self.TempdistanceM
+        self.timeirCount = list(range(0, len(self.TempFrametime_list_ir)))  # self.TemptimeirCount
+        self.distanceM = self.TempdistanceM
 
-        #Recalculate
+        # Recalculate
         self.IREstimatedFPS = self.getDuplicateValue(self.IRfpswithTime)
-        self.totalTimeinSeconds = len(self.IRfpswithTime) #len(self.Irchannel) / self.IREstimatedFPS
-
-        a=0
+        self.totalTimeinSeconds = len(self.IRfpswithTime)  # len(self.Irchannel) / self.IREstimatedFPS
 
 
 class ChannelDataClass:
