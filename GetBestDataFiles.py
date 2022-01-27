@@ -398,9 +398,9 @@ class GeneratedDataFiltering:
         diffval = float((diffval))
         # if(diffval<0):
         #     diffval = -1*(diffval)
-        differenceValue = diffval# avgGroundTruth - generatedResult
+        differenceValue =  diffval#avgGroundTruth - generatedResult
         errorrate = (differenceValue / avgGroundTruth) * 100
-        return errorrate
+        return errorrate #
 
     def RunCasewise(self,position,useAcceptableDiff):
         CaseList, LoadfNameList = self.GenerateCases()  # GET Directories or generate below
@@ -590,20 +590,29 @@ class GeneratedDataFiltering:
         # CustomCases = self.objFile.ReaddatafromFile(self.objConfig.DiskPath,'NoHrFilesCases')
         CustomCases = []
 
-        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-False')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-False')
-
-        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-False')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-False')
-
-        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-1_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-2_RS-2_SM-False')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-True')
-        CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M4_FL-3_RS-1_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M3_FL-7_RS-1_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M4_FL-3_RS-1_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M4_FL-7_RS-1_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M4_FL-7_RS-1_SM-False')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M4_FL-7_RS-1_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M3_FL-7_RS-1_SM-True')
+        CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-7_RS-1_SM-True')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-False')
+        #
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-1_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-2_RS-2_SM-False')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-True')
+        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-False')
         #
         # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
         # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-False')
@@ -748,11 +757,18 @@ class GeneratedDataFiltering:
     def RunCasewiseFromFolderCustomCases(self, position):
         # self.CustomCaseListMain()  # GET Directories or generate below
         self.GenerateCasesMain()
-        UpSampleData = True
+        UpSampleData = False
         dfFinal = []
         for case in self.CaseList:
             for participant_number in self.objConfig.ParticipantNumbers:
-                self.objConfig.setSavePath(participant_number, position, 'ProcessedData')
+                FolderNameforSave = 'ProcessedDataWindows'
+                if (self.objConfig.RunAnalysisForEntireSignalData):
+                    if (UpSampleData):
+                        FolderNameforSave = 'ProcessedDataUpSampled'  # 'ProcessedData'byProcessType ,ProcessedDataRevised,ProcessedDataUpSampled
+                    else:
+                        FolderNameforSave = 'ProcessedData'  # 'ProcessedData'byProcessType ,ProcessedDataRevised,ProcessedDataUpSampled
+
+                self.objConfig.setSavePath(participant_number, position, FolderNameforSave)#ProcessedDataRevised,ProcessedData,ProcessedDataUpSampled
                 CaseData = self.getCasebyPath(self.objConfig.SavePath + 'Result\\', 'HRSPOwithLog_'+ case)#+ '_UpSampleData-' + str(UpSampleData)
                 if (CaseData != None):
                     if (CaseData == ''):
@@ -770,7 +786,7 @@ class GeneratedDataFiltering:
                     print(str(case) + '_' + participant_number + '= NotGenerated')
 
         dfFinal = pd.DataFrame(dfFinal)
-        dfFinal.to_csv(self.objConfig.DiskPath + "CaseWiseFromFolder_Results_" + position + "_CustomCasesNew_UpSampleData-" + str(UpSampleData) + ".csv")
+        dfFinal.to_csv(self.objConfig.DiskPath + "CaseWiseFromFolder_Results_" + position + "_CustomCases_ProcessedDataRevised.csv")
 
 
     def RunCasewiseFromFolder(self,position,useAcceptableDiff):
@@ -1555,6 +1571,8 @@ objFilterData.AcceptableDifference = 10
 ###Generate csv with cases for positon for all particiipants
 # objFilterData.getBlankCases('AfterExcersize')
 objFilterData.RunCasewiseFromFolderCustomCases('Resting1')#TODO: RUN FOR OTHER SKIN TYPES
+# objFilterData.RunCasewiseFromFolderCustomCases('Resting2')#TODO: RUN FOR OTHER SKIN TYPES
+# objFilterData.RunCasewiseFromFolderCustomCases('AfterExcersize')#TODO: RUN FOR OTHER SKIN TYPES
 # objFilterData.PlotfromCustomCases(False)
 # objFilterData.RunCasewiseFromFolder('Resting1',True)#TODO: RUN FOR OTHER SKIN TYPES
 # objFilterData.RunCasewiseFromFolder('Resting2',True)
