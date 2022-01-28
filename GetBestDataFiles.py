@@ -13,6 +13,7 @@ from numpy import linspace
 import CommonMethods
 from Configurations import Configurations
 from FileIO import FileIO
+from SQLResults.SQLConfig import SQLConfig
 from SaveGraphs import Plots
 from boxPlotMethodComparision import BoxPlot
 import plotly.express as px
@@ -25,7 +26,7 @@ class GeneratedDataFiltering:
 
     # Constructor
     def __init__(self, skinGroup='None'):
-        self.objConfig = Configurations(True, skinGroup)
+        self.objConfig = Configurations( skinGroup)
         self.objFile = FileIO()
 
     def Getdata(self, fileName, AcceptableDifference, participant_number, position):  # "None", loadpath,methodtype
@@ -739,6 +740,33 @@ class GeneratedDataFiltering:
                     self.MakeBoxPlotbyInput(caseData, "case", fileName+'_Individual' ,fileName+ '_' + str(count))
             count = count + 1
 
+    def PlotFromSQLQuery(self,objSQLConfig):
+        #Param
+        skinGroup='Europe_WhiteSkin_Group'
+        PreProcess = '6'
+        FFT='M4'
+        Filter='1'
+        Result='2'
+        Smoothen='True'
+        sqlResultData = objSQLConfig.ReadDataTable(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
+
+        #by algo
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\AllParticipants\\"
+        self.objFile.CreatePath(fullPath)
+        fileName="boxPlot_OverallParticipants"
+        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName)
+
+        dataGroupWise = objSQLConfig.getTableQueryGroupWiseDifferences(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
+        fileName="boxPlot_OverallParticipants_GroupWise"
+        self.MakeBoxPlotGroupWisefromSQLData(dataGroupWise, fullPath,fileName)
+
+        Position = 'Resting1'
+        fileName="barPlot_OverallParticipants"
+        dataTimetoExecute = objSQLConfig.getTableQueryTimetoRun(skinGroup,PreProcess,FFT,Filter,Result,Smoothen,Position)
+        # dataTimetoExecute = dataTimetoExecute.explode('totalTimeinMilliSeconds')
+        # dataTimetoExecute['totalTimeinMilliSeconds'] = dataTimetoExecute['totalTimeinMilliSeconds'].astype('totalTimeinMilliSeconds')
+        self.MakeBarTimePlotfromSQLData(dataTimetoExecute,fullPath,fileName)#TODO: VERIFY DATA
+
     def GenerateCasesMain(self):
         self.CaseList = []
         for preprocesstype in self.objConfig.preprocesses:
@@ -1151,6 +1179,81 @@ class GeneratedDataFiltering:
         # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
         ax = sns.stripplot(x="Techniques", y="Differences", data=Input)
         plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+CaseFolder+"\\" + fileName + ".jpg")
+
+
+    def MakeBoxPlotfromSQLData(self,dataResult,fullPath,fileName):
+        sns.set(font_scale=1.5) # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        ####SNS
+        sns.set_style('whitegrid')
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        # sns.set(rc={"figure.figsize": (14, 10)})  # width=3, #height=4
+        ax = sns.boxplot(x='AlgorithmType', y='OriginalDifference', data=dataResult)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+        ax = sns.stripplot(x="AlgorithmType", y="OriginalDifference", data=dataResult)
+
+        plt.title("Box Plot for over all participants", size=18)
+
+        plt.xlabel("Algorithms")
+        plt.ylabel("OriginalDifference")
+        # for tick in ax.xaxis.get_major_ticks():
+        #     tick.label.set_fontsize(15)
+        #
+        # for tick in ax.yaxis.get_major_ticks():
+        #     tick.label.set_fontsize(15)
+
+        plt.tight_layout()
+
+        plt.savefig(fullPath + fileName + ".jpg")
+
+    def MakeBoxPlotGroupWisefromSQLData(self, dataResult, fullPath, fileName):
+
+        sns.set(font_scale=1.5)  # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        ####SNS
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        sns.set_style('whitegrid')
+
+        ax = sns.boxplot(x='differenceType', y='DifferenceHR', hue="AlgorithmType", data=dataResult)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+        ax = sns.stripplot(x="differenceType", y="DifferenceHR", hue="AlgorithmType", data=dataResult,
+                           palette="Set2")  # , size=6, marker="D",edgecolor="gray", alpha=.25
+        handles, labels = ax.get_legend_handles_labels()
+        plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        [ax.axvline(x, color='black', linestyle='--') for x in [0.5, 1.5, 2.5]]
+        plt.show()
+
+        plt.title("Box Plot for over all participants Origival vs revised vs upsampled", size=18)
+
+        plt.xlabel("Algorithms")
+        plt.ylabel("OriginalDifference")
+
+        plt.tight_layout()
+
+        plt.savefig(fullPath + fileName + ".jpg")
+
+    def MakeBarTimePlotfromSQLData(self, dataResult, fullPath, fileName):
+
+        sns.set(font_scale=1.5)  # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        ####SNS
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        sns.set_style('whitegrid')
+        sns.barplot(data=dataResult, x="AlgorithmType", y="totalTimeinMilliSeconds")
+        plt.title('Time taken to execute for this case for this skin group')
+        plt.xlabel('Algorithm types')
+        plt.ylabel('Average time over all participants')
+        plt.tight_layout()
+        plt.savefig(fullPath + fileName + ".jpg")
 
     def TestBoxPlot(self):
         # filename = "BoxPlotdataBestCaseParticipantsResults_Resting1_DiffOf10_listno-0"
@@ -1570,7 +1673,7 @@ objFilterData.AcceptableDifference = 10
 
 ###Generate csv with cases for positon for all particiipants
 # objFilterData.getBlankCases('AfterExcersize')
-objFilterData.RunCasewiseFromFolderCustomCases('Resting1')#TODO: RUN FOR OTHER SKIN TYPES
+# objFilterData.RunCasewiseFromFolderCustomCases('Resting1')#TODO: RUN FOR OTHER SKIN TYPES
 # objFilterData.RunCasewiseFromFolderCustomCases('Resting2')#TODO: RUN FOR OTHER SKIN TYPES
 # objFilterData.RunCasewiseFromFolderCustomCases('AfterExcersize')#TODO: RUN FOR OTHER SKIN TYPES
 # objFilterData.PlotfromCustomCases(False)
@@ -1591,3 +1694,5 @@ objFilterData.RunCasewiseFromFolderCustomCases('Resting1')#TODO: RUN FOR OTHER S
 # objFilterData.TestBoxPlot()# enitere signal
 # objFilterData.TestBoxPlotWindow()#WINDOWs
 # objFilterData.PlotSignal() # to plot graph
+objSQLConfig = SQLConfig()
+objFilterData.PlotFromSQLQuery(objSQLConfig)
