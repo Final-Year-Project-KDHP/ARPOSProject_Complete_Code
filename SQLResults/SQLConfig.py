@@ -1,3 +1,4 @@
+import pandas as pd
 import pyodbc
 
 
@@ -11,6 +12,54 @@ class SQLConfig:
         self.conn = pyodbc.connect('''DRIVER={SQL Server}; Server=ELCIELO; 
                                 UID=sa; PWD=A@1234567; DataBase=ARPOS''')
         self.cursor = self.conn.cursor()
+
+    def getProcessedCases(self):
+        Query = "select  CONCAT(Techniques.AlgorithmType , '_PR-',Techniques.PreProcess,'_FFT-',Techniques.FFT , '_FL-' , Techniques.Filter  , '_RS-' , Techniques.Result , '_SM-' + Techniques.Smoothen) as CaseProcessed, ParticipantId,HeartRateStatus from ParticipantsResultsEntireSignal join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId"
+        dataTable = pd.read_sql_query(Query, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def getTableQueryDifferences(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
+        ##Parameters
+        param = "declare @skinGroup as varchar(150), @PreProcess int,@FFT varchar(50), @Filter int, @Result int, @Technique int, @Smoothen varchar(50) " +\
+                " set @PreProcess = " + PreProcess +\
+                " set @FFT = '" + FFT + "' " +\
+                " set @Filter = " + Filter +\
+                " set @Result = " + Result +\
+                " set @Smoothen = '" + Smoothen + "' " +\
+                " set @skinGroup = '" + skinGroup + "' "
+
+        QuerySelect = "select"
+        QueryColumn1 = "Resting1Results.ParticipantId, Resting1Results.DifferenceHR as 'OriginalDifference', "
+        QueryColumn2 = "(select DifferenceHR from Resting1UpSampledResults where Resting1UpSampledResults.TechniqueId = Resting1Results.TechniqueId and Resting1UpSampledResults.ParticipantId = Resting1Results.ParticipantId ) as 'UpSampledDifference', "
+        QueryColumn3 = "(select DifferenceHR from Resting1RevisedResults where Resting1RevisedResults.TechniqueId = Resting1Results.TechniqueId and Resting1RevisedResults.ParticipantId = Resting1Results.ParticipantId ) as 'RevisedOriginalDifference', "
+        QueryColumn4 = "Techniques.*"
+        QueryTable = "from Resting1Results"
+        QueryJoins = "join Techniques on Techniques.Id = TechniqueId join Participants on Participants.ParticipantId = Resting1Results.ParticipantId"
+        QueryCondition = "where TechniqueId in (select Id from Techniques where  PreProcess = @PreProcess and FFT = @FFT and Filter = @Filter and Result =@Result and Smoothen = @Smoothen) AND SkinGroup=@skinGroup "
+
+        FullQuery = param + " " + QuerySelect + " " + QueryColumn1 + QueryColumn2 + QueryColumn3 + QueryColumn4 + " " + QueryTable  + " " + QueryJoins + " " + QueryCondition
+        return FullQuery
+
+    def getTableQueryTimetoRun(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen,Position):
+        ##Parameters
+        FullQuery = "exec AverageTimeAgainstTechnique '" + skinGroup + "', " + PreProcess + ",'" + FFT + "'," + Filter + "," + Result + ",'" + Smoothen + "', '" + Position + "'"
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def getTableQueryGroupWiseDifferences(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
+        ##Parameters
+        FullQuery = "exec GroupWiseDataOriginalandUpSampled '" + skinGroup + "', " + PreProcess + ",'" + FFT + "'," + Filter + "," + Result + ",'" + Smoothen + "'"
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def ReadDataTable(self,skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
+        FullQuery = self.getTableQueryDifferences(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
 
     def getTechniqueId(self,AlgorithmType,PreProcess,FFT,Filter,Result,Smoothen):
         TechniqueIdQuery = "select Id as TechniqueId from Techniques where AlgorithmType = '"+ AlgorithmType + "' and PreProcess="+\
