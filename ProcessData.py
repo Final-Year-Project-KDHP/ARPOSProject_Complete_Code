@@ -55,6 +55,8 @@ class ProcessFaceData:
     IRfrequency = []
 
     # Constants
+    SelectedColorFPSMethod = ''
+    SelectedIRFPSMethod = ''
     ColorEstimatedFPS = 0
     IREstimatedFPS = 0
     TotalWindows = 0
@@ -381,46 +383,51 @@ class ProcessFaceData:
             avg2 = avg2 + v
         avg2 = round(avg2 / len(self.WindowIRfpswithTime))
 
-        min1 = np.min(list(self.WindowColorfpswithTime.values()))
-        # iterate through the dictionary
-        min3 = 30
-        index0 =0
-        for v in self.WindowColorfpswithTime.values():
-            if (v < min3 and v > min1):
-                if(index0 !=0 ):
-                    min3 = v
-                    break
-            index0 = index0+1
-
-        min0 = np.min(list(self.WindowIRfpswithTime.values()))
-        min2 = 30
-        index0 =0
-        for v in self.WindowIRfpswithTime.values():
-            if (v < min2 and v > min0):
-                if(index0 !=0 ):
-                    min2 = v
-                    break
-            index0 = index0+1
+        # min1 = np.min(list(self.WindowColorfpswithTime.values()))#TODO: GENERATE GRAPHS FOR THIS AS WELL
+        # # iterate through the dictionary
+        # min3 = 30
+        # index0 =0
+        # for v in self.WindowColorfpswithTime.values():
+        #     if (v < min3 and v > min1):
+        #         if(index0 !=0 ):
+        #             min3 = v
+        #             break
+        #     index0 = index0+1
+        #
+        # min0 = np.min(list(self.WindowIRfpswithTime.values()))
+        # min2 = 30
+        # index0 =0
+        # for v in self.WindowIRfpswithTime.values():
+        #     if (v < min2 and v > min0):
+        #         if(index0 !=0 ):
+        #             min2 = v
+        #             break
+        #     index0 = index0+1
         ColorfpxCheck = self.getDuplicateValue(self.WindowColorfpswithTime)
         IRfpxCheck = self.getDuplicateValue(self.WindowIRfpswithTime)
         if( ColorfpxCheck>25):
             self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+            self.SelectedColorFPSMethod = 'MostOccurance'
         else:
             if(avg > ColorfpxCheck):
                 self.ColorEstimatedFPS = ColorfpxCheck
+                self.SelectedColorFPSMethod = 'MostOccurance'
             else:
                 self.ColorEstimatedFPS =avg# min3  # self.getDuplicateValue(self.WindowColorfpswithTime)  # Only one time
+                self.SelectedColorFPSMethod = 'Averaged'
 
         if(IRfpxCheck >25):
             self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
+            self.SelectedIRFPSMethod = 'MostOccurance'
         else:
             if(avg > IRfpxCheck):
                 self.IREstimatedFPS = IRfpxCheck
+                self.SelectedIRFPSMethod = 'MostOccurance'
             else:
                 self.IREstimatedFPS =avg2# min2#self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
-
-        self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)
-        self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)
+                self.SelectedIRFPSMethod = 'Averaged'
+        # self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)
+        # self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)
         # self.ColorEstimatedFPS =30
         # self.IREstimatedFPS = 30
         # set estimated fps
@@ -873,7 +880,7 @@ class ProcessFaceData:
             AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannels(
                 processedBlue, processedGreen, processedRed, processedGrey,
                 processedIR, 10)  # self.components
-        elif (self.Algorithm_type == "FastICAComponents3Times"):
+        elif (self.Algorithm_type == "FastICA3Times"):
             # FirstTime
             AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR = self.ApplyFastICAonIndividualChannelsWithoutReshape(
                 processedBlue, processedGreen, processedRed, processedGrey,
@@ -1065,6 +1072,9 @@ class ProcessFaceData:
             self.IRfrequency = self.IRfrequency[interest_idx_sub]
             return fft_of_interest
 
+
+
+
     def Filterfft_LimitFreq_BelowAbovefilter(self, signal, type):
 
         if (type == 'color'):
@@ -1152,6 +1162,7 @@ class ProcessFaceData:
             IR_filtered = self.Filterfft_LimitFreq_Belowfilter(IR_fft, 'ir')
 
         return B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered  # as differnt fps changes array length
+
 
     '''
     SmoothenData: Smooth data
@@ -1329,10 +1340,16 @@ class ProcessFaceData:
     Process_EntireSignalData: Process signal data
     '''
 
-    def Process_EntireSignalData(self, IsEntireSignal=True):  # TODO : Implement without Gray
+    def Process_EntireSignalData(self, IsEntireSignal,DumptoDisk):  # TODO : Implement without Gray
         # window data object
         windowList = Window_Data()
         windowList.WindowNo = self.Window_count
+
+        windowList.SelectedColorFPS = self.ColorEstimatedFPS
+        windowList.SelectedIRFPS = self.IREstimatedFPS
+        windowList.SelectedColorFPSMethod = self.SelectedColorFPSMethod
+        windowList.SelectedIRFPSMethod = self.SelectedIRFPSMethod
+
         windowList.LogTime(LogItems.Start_Total)
         windowList.isSmooth = self.isSmoothen
         windowList.fileName = self.fileName
@@ -1361,8 +1378,9 @@ class ProcessFaceData:
         endlogTime = windowList.LogTime(LogItems.End_PreProcess)
 
         # # Record Window Raw data
-        windowList.SignalWindowPreProcessed = self.getSignalforStoring(processedBlue, processedGreen, processedRed,
-                                                                       processedGrey, processedIR)
+        if(DumptoDisk):
+            windowList.SignalWindowPreProcessed = self.getSignalforStoring(processedBlue, processedGreen, processedRed,
+                                                                           processedGrey, processedIR)
         # self.StoreData('PreProcess', processedBlue, processedGreen, processedRed, processedGrey, processedIR,
         #                startlogTime, endlogTime, True)
 
@@ -1373,9 +1391,10 @@ class ProcessFaceData:
         endlogTime = windowList.LogTime(LogItems.End_Algorithm)
 
         # Record Window Raw data
-        windowList.SignalWindowAfterAlgorithm = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen,
-                                                                         AlgoprocessedRed, AlgoprocessedGrey,
-                                                                         AlgoprocessedIR)
+        if(DumptoDisk):
+            windowList.SignalWindowAfterAlgorithm = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen,
+                                                                             AlgoprocessedRed, AlgoprocessedGrey,
+                                                                             AlgoprocessedIR)
         # self.StoreData('Algorithm', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
         #                AlgoprocessedIR, startlogTime, endlogTime, True)
 
@@ -1398,9 +1417,10 @@ class ProcessFaceData:
                                     AlgoprocessedGrey, AlgoprocessedIR)
 
             # Record Window  data
-            windowList.SignalWindowSmoothed = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen,
-                                                                       AlgoprocessedRed, AlgoprocessedGrey,
-                                                                       AlgoprocessedIR)
+            if (DumptoDisk):
+                windowList.SignalWindowSmoothed = self.getSignalforStoring(AlgoprocessedBlue, AlgoprocessedGreen,
+                                                                           AlgoprocessedRed, AlgoprocessedGrey,
+                                                                           AlgoprocessedIR)
             # Record Window Raw data
             # self.StoreData('Smoothed', AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey,
             #                AlgoprocessedIR, startlogTime, endlogTime, True)
@@ -1414,7 +1434,8 @@ class ProcessFaceData:
         endlogTime = windowList.LogTime(LogItems.End_FFT)
 
         # Record Window  data
-        windowList.SignalWindowFFT = self.getSignalforStoring(FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, True, True)
+        if(DumptoDisk):
+            windowList.SignalWindowFFT = self.getSignalforStoring(FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, True, True)
         # # Record Window Raw data
         # self.StoreData('FFT', FFTBlue, FFTGreen, FFTRed, FFTGrey, FFTIR, startlogTime, endlogTime, True)
 
@@ -1432,8 +1453,9 @@ class ProcessFaceData:
 
         # Record Window Raw data
         # self.StoreData('Filtered', B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, startlogTime, endlogTime, True)
-        windowList.SignalWindowFiltered = self.getSignalforStoring(B_filtered, G_filtered, R_filtered, Gy_filtered,
-                                                                   IR_filtered, True, True)
+        if(DumptoDisk):
+            windowList.SignalWindowFiltered = self.getSignalforStoring(B_filtered, G_filtered, R_filtered, Gy_filtered,
+                                                                       IR_filtered, True, True)
 
         startlogTime = windowList.LogTime(LogItems.Start_ComputerHRSNR)
         self.generateHeartRateandSNR(B_filtered, G_filtered, R_filtered, Gy_filtered, IR_filtered, self.Result_type)
@@ -2101,8 +2123,39 @@ class ProcessFaceData:
         # Calculate samples
         ColorNumSamples = len(grey_fft_realabs)
         IRNumSamples = len(ir_fft_realabs)
+
+        # ####FOR COLOR
+        # self.ignore_freq_index_below = np.rint(
+        #     ((self.ignore_freq_below * ColorNumSamples) / self.ColorEstimatedFPS))  # high pass
+        # self.ignore_freq_index_above = np.rint(
+        #     ((self.ignore_freq_above * ColorNumSamples) / self.ColorEstimatedFPS))  # low pass
+        #
+        # # compute the ramp filter start and end indices double
+        # startIndex = int(self.ignore_freq_index_below)
+        # end = int(self.ignore_freq_index_above)
+        # self.freq_bpmColor = []  # size of NumSamples
+        # for x in range(startIndex, end ):
+        #     self.freq_bpmColor.append(((x * self.ColorEstimatedFPS) / ColorNumSamples) * 60)  # in beats per minute
+        #
+        # #####FOR IR
+        #
+        # ####FOR COLOR
+        # self.ignore_freq_index_below = np.rint(
+        #     ((self.ignore_freq_below * IRNumSamples) / self.IREstimatedFPS))  # high pass
+        # self.ignore_freq_index_above = np.rint(
+        #     ((self.ignore_freq_above * IRNumSamples) / self.IREstimatedFPS))  # low pass
+        #
+        # # compute the ramp filter start and end indices double
+        # startIndex = int(self.ignore_freq_index_below)
+        # end = int(self.ignore_freq_index_above)
+        # self.freq_bpmIr = []  # size of NumSamples
+        # for x in range(startIndex, end ):
+        #     self.freq_bpmIr.append(((x * self.IREstimatedFPS) / IRNumSamples) * 60)  # in beats per minute
+        #
+
         self.freq_bpmColor = 60 * self.Colorfrequency
         self.freq_bpmIr = 60 * self.IRfrequency
+
 
         # Compute heart rate and snr
         objComputerHeartRate = ComputerHeartRate(self.snrType, self.ignoreGray, ColorNumSamples, self.grayIndex,
