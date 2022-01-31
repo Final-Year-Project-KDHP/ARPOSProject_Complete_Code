@@ -14,7 +14,7 @@ class SQLConfig:
         self.cursor = self.conn.cursor()
 
     def getProcessedCases(self):
-        Query = "select  CONCAT(Techniques.AlgorithmType , '_PR-',Techniques.PreProcess,'_FFT-',Techniques.FFT , '_FL-' , Techniques.Filter  , '_RS-' , Techniques.Result , '_SM-' + Techniques.Smoothen) as CaseProcessed, ParticipantId,HeartRateStatus from ParticipantsResultsEntireSignal join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId"
+        Query = "select  CONCAT(Techniques.AlgorithmType , '_PR-',Techniques.PreProcess,'_FFT-',Techniques.FFT , '_FL-' , Techniques.Filter  , '_RS-' , Techniques.Result , '_SM-' + Techniques.Smoothen) as CaseProcessed, ParticipantId,HeartRateStatus,UpSampled from ParticipantsResultsEntireSignal join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId"
         dataTable = pd.read_sql_query(Query, self.conn)
         dataTable.head()
         return dataTable
@@ -88,42 +88,49 @@ class SQLConfig:
             return False
 
     def SaveRowParticipantsResultsEntireSignal(self, objParticipantsResultEntireSignalDataRow):
-        self.cursor.execute("exec AddParticipantsResultEntireSignal '"+ objParticipantsResultEntireSignalDataRow.ParticipantId+ "', '" +
-                            objParticipantsResultEntireSignalDataRow.HeartRateStatus + "', " +
-                            objParticipantsResultEntireSignalDataRow.bestHeartRateSnr+ ", " +
-                            objParticipantsResultEntireSignalDataRow.bestBPM + ",'"+
-                            objParticipantsResultEntireSignalDataRow.channelType + "','"+
-                            objParticipantsResultEntireSignalDataRow.regionType + "'," +
-                            objParticipantsResultEntireSignalDataRow.FrequencySamplingError + ","+
-                            objParticipantsResultEntireSignalDataRow.oxygenSaturationValueError + ","+
-                            objParticipantsResultEntireSignalDataRow.heartRateError + "," +
-                            objParticipantsResultEntireSignalDataRow.bestSPO + "," +
-                            objParticipantsResultEntireSignalDataRow.HeartRateValue + "," +
-                            objParticipantsResultEntireSignalDataRow.SPOValue + "," +
-                            objParticipantsResultEntireSignalDataRow.differenceHR + "," +
-                            objParticipantsResultEntireSignalDataRow.differenceSPO + ",'" +
-                            objParticipantsResultEntireSignalDataRow.TotalWindowCalculationTimeTaken + "','" +
-                            objParticipantsResultEntireSignalDataRow.PreProcessTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.AlgorithmTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.FFTTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.SmoothTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.FilterTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.ComputingHRSNRTimeTaken + "','"+
-                            objParticipantsResultEntireSignalDataRow.ComputingSPOTimeTaken + "','"+
-                            # objParticipantsResultEntireSignalDataRow.TechniqueId + ","+
-                            objParticipantsResultEntireSignalDataRow.Algorithm_type  + "',"+
-                            objParticipantsResultEntireSignalDataRow.Preprocess_type   + ",'"+
-                            objParticipantsResultEntireSignalDataRow.FFT_type   + "',"+
-                            objParticipantsResultEntireSignalDataRow.Filter_type   + ","+
-                            objParticipantsResultEntireSignalDataRow.Result_type   + ",'"+
-                            objParticipantsResultEntireSignalDataRow.isSmoothen    + "',"+
-                            objParticipantsResultEntireSignalDataRow.UpSampled + ","+
-                            objParticipantsResultEntireSignalDataRow.ColorFPS + ","+
-                            objParticipantsResultEntireSignalDataRow.IRFPS + ",'"+
-                            objParticipantsResultEntireSignalDataRow.SelectedColorFPSMethod + "','"+
-                            objParticipantsResultEntireSignalDataRow.SelectedIRFPSMethod + "', " +
-                            objParticipantsResultEntireSignalDataRow.GroundTruthHeartRate + ","+
-                            objParticipantsResultEntireSignalDataRow.GroundTruthSPO + " ")
+        try:
 
-        self.conn.commit()
+            self.cursor.execute("exec AddParticipantsResultEntireSignal '"+ objParticipantsResultEntireSignalDataRow.ParticipantId+ "', '" +
+                                objParticipantsResultEntireSignalDataRow.HeartRateStatus + "', " +
+                                objParticipantsResultEntireSignalDataRow.bestHeartRateSnr+ ", " +
+                                objParticipantsResultEntireSignalDataRow.bestBPM + ",'"+
+                                objParticipantsResultEntireSignalDataRow.channelType + "','"+
+                                objParticipantsResultEntireSignalDataRow.regionType + "'," +
+                                objParticipantsResultEntireSignalDataRow.FrequencySamplingError + ","+
+                                objParticipantsResultEntireSignalDataRow.oxygenSaturationValueError + ","+
+                                objParticipantsResultEntireSignalDataRow.heartRateError + "," +
+                                objParticipantsResultEntireSignalDataRow.bestSPO + "," +
+                                objParticipantsResultEntireSignalDataRow.HeartRateValue + "," +
+                                objParticipantsResultEntireSignalDataRow.SPOValue + "," +
+                                objParticipantsResultEntireSignalDataRow.differenceHR + "," +
+                                objParticipantsResultEntireSignalDataRow.differenceSPO + ",'" +
+                                objParticipantsResultEntireSignalDataRow.TotalWindowCalculationTimeTaken + "','" +
+                                objParticipantsResultEntireSignalDataRow.PreProcessTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.AlgorithmTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.FFTTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.SmoothTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.FilterTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.ComputingHRSNRTimeTaken + "','"+
+                                objParticipantsResultEntireSignalDataRow.ComputingSPOTimeTaken + "','"+
+                                # objParticipantsResultEntireSignalDataRow.TechniqueId + ","+
+                                objParticipantsResultEntireSignalDataRow.Algorithm_type  + "',"+
+                                objParticipantsResultEntireSignalDataRow.Preprocess_type   + ",'"+
+                                objParticipantsResultEntireSignalDataRow.FFT_type   + "',"+
+                                objParticipantsResultEntireSignalDataRow.Filter_type   + ","+
+                                objParticipantsResultEntireSignalDataRow.Result_type   + ",'"+
+                                objParticipantsResultEntireSignalDataRow.isSmoothen    + "',"+
+                                objParticipantsResultEntireSignalDataRow.UpSampled + ","+
+                                objParticipantsResultEntireSignalDataRow.ColorFPS + ","+
+                                objParticipantsResultEntireSignalDataRow.IRFPS + ",'"+
+                                objParticipantsResultEntireSignalDataRow.SelectedColorFPSMethod + "','"+
+                                objParticipantsResultEntireSignalDataRow.SelectedIRFPSMethod + "', " +
+                                objParticipantsResultEntireSignalDataRow.GroundTruthHeartRate + ","+
+                                objParticipantsResultEntireSignalDataRow.GroundTruthSPO + " ")
 
+            self.conn.commit()
+        except Exception:
+            print('ERROR adding ' + objParticipantsResultEntireSignalDataRow.Algorithm_type + ', preprocess: ' +objParticipantsResultEntireSignalDataRow.Preprocess_type
+                  + ', FFT: ' + objParticipantsResultEntireSignalDataRow.FFT_type
+                  + ', Filter: ' + objParticipantsResultEntireSignalDataRow.Filter_type  + ', Result: ' + objParticipantsResultEntireSignalDataRow.Result_type
+                  + ', Smoothen' + objParticipantsResultEntireSignalDataRow.SmoothTimeTaken
+                  )
