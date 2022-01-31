@@ -418,93 +418,93 @@ class InitiateProcessingStorage:
                     currentPercentage = round((currentCasesDone / TotalCasesCount) * 100)
                     currentPercentage = str(currentPercentage)
                     print(str(fileName) + "  -> " + str(currentPercentage) + " out of 100%")
-                    # if(self.objFile.FileExits(SavePath + 'ComputedFinalResult\\'+ fileName + '.txt')):
-                    #     skip=0
-                    # else:
-                    WindowRegionList = {}
+                    if(self.objFile.FileExits(SavePath + 'ComputedFinalResult\\'+ fileName + '.txt')):
+                        skip=0
+                    else:
+                        WindowRegionList = {}
 
-                    objReliability = CheckReliability()
-                    # Lists to hold heart rate and blood oxygen data
-                    Listdata = []
-                    # ListSPOdata = []
-                    bestHeartRateSnr = 0.0
-                    bestBpm = 0.0
-                    channeltype = ''
-                    regiontype = ''
-                    freqencySamplingError = 0.0
-                    previousComputedHeartRate = 0.0
-                    smallestOxygenError = sys.float_info.max
-                    timeinSeconds = 10
-                    finaloxy = 0.0
-                    SPOstd = 0.0
-                    FullTimeLog = None
-                    WindowCount = 0
+                        objReliability = CheckReliability()
+                        # Lists to hold heart rate and blood oxygen data
+                        Listdata = []
+                        # ListSPOdata = []
+                        bestHeartRateSnr = 0.0
+                        bestBpm = 0.0
+                        channeltype = ''
+                        regiontype = ''
+                        freqencySamplingError = 0.0
+                        previousComputedHeartRate = 0.0
+                        smallestOxygenError = sys.float_info.max
+                        timeinSeconds = 10
+                        finaloxy = 0.0
+                        SPOstd = 0.0
+                        FullTimeLog = None
+                        WindowCount = 0
 
 
-                    LoadFileName = LoadfNameList[countFname]
-                    SaveName = fileName
-                    # LoadData
-                    objWindowProcessedData = self.objFile.ReadfromDisk(self.objConfig.SavePath + typeProcessing + '\\',
-                                                                       LoadFileName)
+                        LoadFileName = LoadfNameList[countFname]
+                        SaveName = fileName
+                        # LoadData
+                        objWindowProcessedData = self.objFile.ReadfromDisk(self.objConfig.SavePath + typeProcessing + '\\',
+                                                                           LoadFileName)
 
-                    countFname = countFname + 1
+                        countFname = countFname + 1
 
-                    # Store Data in Window List
-                    WindowRegionList['lips'] = objWindowProcessedData.get(self.objConfig.roiregions[0])
-                    WindowRegionList['forehead'] = objWindowProcessedData.get(self.objConfig.roiregions[1])
-                    WindowRegionList['leftcheek'] = objWindowProcessedData.get(self.objConfig.roiregions[2])
-                    WindowRegionList['rightcheek'] = objWindowProcessedData.get(self.objConfig.roiregions[3])
+                        # Store Data in Window List
+                        WindowRegionList['lips'] = objWindowProcessedData.get(self.objConfig.roiregions[0])
+                        WindowRegionList['forehead'] = objWindowProcessedData.get(self.objConfig.roiregions[1])
+                        WindowRegionList['leftcheek'] = objWindowProcessedData.get(self.objConfig.roiregions[2])
+                        WindowRegionList['rightcheek'] = objWindowProcessedData.get(self.objConfig.roiregions[3])
 
-                    # Get best region data
-                    for k, v in WindowRegionList.items():
-                        if (v.bestHeartRateSnr > bestHeartRateSnr):
-                            bestHeartRateSnr = v.bestHeartRateSnr
-                            bestBpm = v.bestBpm
-                            channeltype = v.channeltype
-                            regiontype = k
-                            freqencySamplingError = v.IrFreqencySamplingError
-                            FullTimeLog = v.FullLog
-                            # diffNow = v.diffTime
-                            # diffTimeLog = v.diffTimeLog
+                        # Get best region data
+                        for k, v in WindowRegionList.items():
+                            if (v.bestHeartRateSnr > bestHeartRateSnr):
+                                bestHeartRateSnr = v.bestHeartRateSnr
+                                bestBpm = v.bestBpm
+                                channeltype = v.channeltype
+                                regiontype = k
+                                freqencySamplingError = v.IrFreqencySamplingError
+                                FullTimeLog = v.FullLog
+                                # diffNow = v.diffTime
+                                # diffTimeLog = v.diffTimeLog
 
-                        if (v.SPOerr < smallestOxygenError):
-                            smallestOxygenError = v.SPOerr  # oxygenSaturationValueError
-                            finaloxy = v.SPOoxylevl  # oxygenSaturationValueValue
-                            SPOstd = v.SPOstd  # oxygenSaturationValueValue
+                            if (v.SPOerr < smallestOxygenError):
+                                smallestOxygenError = v.SPOerr  # oxygenSaturationValueError
+                                finaloxy = v.SPOoxylevl  # oxygenSaturationValueValue
+                                SPOstd = v.SPOstd  # oxygenSaturationValueValue
 
-                    if (bestBpm > 0):
-                        # Check reliability and record best readings
-                        heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
-                                                                                         freqencySamplingError)
-                        oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(
-                            smallestOxygenError,
-                            finaloxy)
+                        if (bestBpm > 0):
+                            # Check reliability and record best readings
+                            heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
+                                                                                             freqencySamplingError)
+                            oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(
+                                smallestOxygenError,
+                                finaloxy)
 
-                        # Get difference and append data (heart rate)
-                        differenceHR = round(float(HrAvg) - float(heartRateValue))
+                            # Get difference and append data (heart rate)
+                            differenceHR = round(float(HrAvg) - float(heartRateValue))
 
-                        # Get difference and append data (blood oxygen)
-                        differenceSPO = round(float(SPOAvg) - float(oxygenSaturationValue))
+                            # Get difference and append data (blood oxygen)
+                            differenceSPO = round(float(SPOAvg) - float(oxygenSaturationValue))
 
-                        Listdata.append(
-                            'WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' + str(
-                                round(HrAvg)) + " ,\t" + 'ComputedHeartRate: ' + str(
-                                round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
-                                differenceHR) + " ,\t" + 'GroundTruthSPO: ' + str(
-                                round(SPOAvg)) + " ,\t" + 'ComputedSPO: ' + str(
-                                round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
-                                differenceSPO) + " ,\t" + 'Regiontype: ' + " ,\t" + str(
-                                regiontype) + " ,\t" + FullTimeLog)
+                            Listdata.append(
+                                'WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' + str(
+                                    round(HrAvg)) + " ,\t" + 'ComputedHeartRate: ' + str(
+                                    round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
+                                    differenceHR) + " ,\t" + 'GroundTruthSPO: ' + str(
+                                    round(SPOAvg)) + " ,\t" + 'ComputedSPO: ' + str(
+                                    round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
+                                    differenceSPO) + " ,\t" + 'Regiontype: ' + " ,\t" + str(
+                                    regiontype) + " ,\t" + FullTimeLog)
 
-                    # filename
-                    fileNameResult =  fileName #"HRSPOwithLog_" +
-                    #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
-                    # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
-                    # isSmoothen)
-                    # Write data to file
-                    self.objFile.WriteListDatatoFile(SavePath + 'ComputedFinalResult\\', fileNameResult, Listdata)
+                        # filename
+                        fileNameResult =  fileName #"HRSPOwithLog_" +
+                        #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
+                        # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
+                        # isSmoothen)
+                        # Write data to file
+                        self.objFile.WriteListDatatoFile(SavePath + 'ComputedFinalResult\\', fileNameResult, Listdata)
 
-                    del objReliability
+                        del objReliability
 
     '''
     Process_Participants_Data_EntireSignalINChunks:
@@ -871,6 +871,13 @@ class InitiateProcessingStorage:
                 RedOriginal = objOriginalUncompressedData.ROIStore.get(region).red
                 IROriginal = objOriginalUncompressedData.ROIStore.get(region).Irchannel  # regionIRData
                 dM = objOriginalUncompressedData.ROIStore.get(region).distanceM
+                #TODO:FIX
+                if(len(dM) <len(IROriginal)):
+                    dmLast = dM[-1]
+                    diffdm = len(IROriginal)-len(dM)
+                    for x in range(0, diffdm):
+                        dM.append(dmLast)
+
                 # Caclulate
                 startLogTime = self.LogTime()  # foreach region
                 objProcessData.SPOWindowProcessStartTime = startLogTime
@@ -1064,11 +1071,16 @@ class InitiateProcessingStorage:
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 self.objConfig.setSavePath(participant_number, position, 'ProcessedDatabyProcessType')  # set path
                 print('Loading and generating FaceData for ' + participant_number + ', ' + position)
-                LoadPath = self.objConfig.SavePath + LoadFolder + '\\'
+
+                LoadPath = self.objConfig.DiskPath + FolderNameforSave + '\\' + participant_number + '\\' + position + '\\' +LoadFolder+ '\\'
                 if(ProcessingStep == 'PreProcess'):
                     LoadPath = self.objConfig.DiskPath + LoadFolder+ '\\' + participant_number + '\\' + position+'\\'
                 print('Loading from path ' + LoadPath)
-                AllFileNames = CaseList#os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
+                # if(ProcessingStep == "Result"):
+                #     AllFileNames = CaseList  # os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
+                # else:
+                AllFileNames = os.listdir(LoadPath)  # 'ResultSignal_Type-' + str(Preprocess_type)
+
                 ListProcessedData = {}
                 fileCount = 0
                 for fileName in AllFileNames:
@@ -1092,7 +1104,6 @@ class InitiateProcessingStorage:
         # return ParticipantsPartiallyProcessedBinaryData
 
     def mainMethod(self, ProcessingStep):
-
         # Process for entire signal
         FolderNameforSave = 'ProcessedDatabyProcessType'
         print(FolderNameforSave)
@@ -1138,18 +1149,18 @@ class InitiateProcessingStorage:
 #a
 
 ###RUN this file CODE###
-skintype = 'Europe_WhiteSkin_Group'
+skintype = 'SouthAsian_BrownSkin_Group'#'Europe_WhiteSkin_Group'
 print('Program started for ' + skintype)
 objInitiateProcessing = InitiateProcessingStorage(skintype)
 # objInitiateProcessing.GenerateOriginalRawData()# Only do once
-objInitiateProcessing.mainMethod('PreProcess') #Completed
-objInitiateProcessing.mainMethod('Algorithm')  # Completed
-objInitiateProcessing.mainMethod('Smoothen')  # Completed
-objInitiateProcessing.mainMethod('FFT')  # Completed
-print('FFT Complteted')
-objInitiateProcessing.mainMethod('Filter')  # Completed
-print('Filter Complteted')
-objInitiateProcessing.mainMethod('Result') # restart from PIS-6327
+# objInitiateProcessing.mainMethod('PreProcess') #Completed
+# objInitiateProcessing.mainMethod('Algorithm')  # Completed
+# objInitiateProcessing.mainMethod('Smoothen')  # Completed
+# objInitiateProcessing.mainMethod('FFT')  # Completed
+# print('FFT Complteted')
+# objInitiateProcessing.mainMethod('Filter')  # Completed
+# print('Filter Complteted')
+# objInitiateProcessing.mainMethod('Result') # restart from PIS-6327
 # print('Result Complteted')
 objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
 print('ComputeFinalResults Complteted')  # TODO:GENERATE GRAPHS and object and other diagrams , class from code

@@ -27,8 +27,8 @@ class FileIO:
     """
     WritedatatoFile: Write data content to file
     """
-    def WritedatatoFile(self,savePath,fileName, content):
-        file = open(savePath + fileName + ".txt", "w+")
+    def WritedatatoFile(self,savePath,fileName, content,mode ='w+'):
+        file = open(savePath + fileName + ".txt", mode)
         file.write(str(content))
         file.close()
 

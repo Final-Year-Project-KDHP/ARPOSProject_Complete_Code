@@ -301,6 +301,7 @@ class LoadFaceData:
         Image_Files = self.SortLoadedFiles(Image_Files)
         LastFileTimeStamp = list(Image_Files.keys())[-1]
         self.EndTime = self.GetFrameTime(LastFileTimeStamp.hour, LastFileTimeStamp.minute, LastFileTimeStamp.second, 0)
+
         ColorfpswithTime = {}
         DataColorfpsTimeWise = {}
         prevFrameTimeStamp = None
@@ -319,13 +320,17 @@ class LoadFaceData:
 
             # Get start time
             if (self.HasStartTime == 0):
+                # self.StartTime  = datetime.datetime(FrameTimeStamp.year, FrameTimeStamp.month, FrameTimeStamp.day,
+                #                                          FrameTimeStamp.hour, 16,
+                #                                          20,
+                #                                          0)
                 self.StartTime = FrameTimeStampWOMili
                 self.HasStartTime = 1
 
-            if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
+            if (FrameTimeStampWOMili <= self.StartTime):  # SKIP FIRST SECOND
                 continue
                 # Do nothing or add steps here if required
-            elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
+            elif (FrameTimeStampWOMili >= self.EndTime):  # SKIP LAST SECOND
                 #only do once
                 if(not endRecodrded):
                     #record for previous last second
@@ -581,10 +586,10 @@ class LoadFaceData:
                                                      FrameTimeStamp.hour, FrameTimeStamp.minute, FrameTimeStamp.second,
                                                      0)
 
-            if (FrameTimeStampWOMili == self.StartTime):  # SKIP FIRST SECOND
+            if (FrameTimeStampWOMili <= self.StartTime):  # SKIP FIRST SECOND
                 # Do nothing or add steps here if required
                 continue
-            elif (FrameTimeStampWOMili == self.EndTime):  # SKIP LAST SECOND
+            elif (FrameTimeStampWOMili >= self.EndTime):  # SKIP LAST SECOND
                 # only do once
                 if (not endRecodrded):
                     objChannelDataClass = ChannelDataClass(None, None, None, None, self.TempIrchannel, fpscountir,

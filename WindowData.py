@@ -2,6 +2,11 @@ import enum
 from datetime import datetime
 
 class Window_Data:
+  SelectedColorFPS = 0
+  SelectedIRFPS = 0
+  SelectedColorFPSMethod = ''
+  SelectedIRFPSMethod = ''
+
   #Current Window Caluculations
   BestBPM =0.0
   BestSnR =0.0
@@ -131,6 +136,17 @@ class Window_Data:
               + 'ComputerHRSNR: ' + str(self.diffTimeLog.get(LogItems.End_ComputerHRSNR)) + ' ,\t' \
               + 'ComputerSPO: ' + str(self.diffTimeLog.get(LogItems.End_SPO))
     return FullLog
+
+  def gettimeDifferencesToStringIndividual(self):
+    if(str(self.diffTimeLog.get(LogItems.End_Algorithm)).__contains__('-1')):
+      stop=0
+    SmoothDifference = '00:00:00'
+    if(self.isSmooth):
+      SmoothDifference = str(self.diffTimeLog.get(LogItems.End_Smooth))
+    # TotalWindowCalculationTime, PreProcessTime, AlgorithmTime, FFTTime, SmoothTime, FilterTime, ComputerHRSNRTime, ComputerSPOTime
+    return str(self.diffTime),str(self.diffTimeLog.get(LogItems.End_PreProcess)),str(self.diffTimeLog.get(LogItems.End_Algorithm)),\
+           str(self.diffTimeLog.get(LogItems.End_FFT)),SmoothDifference,str(self.diffTimeLog.get(LogItems.End_Filter)) , \
+           str(self.diffTimeLog.get(LogItems.End_ComputerHRSNR)), str(self.diffTimeLog.get(LogItems.End_SPO))
 
 
 class LogItems(enum.Enum):
