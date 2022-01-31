@@ -24,10 +24,12 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
                                           HrGr, SpoGr,
                                           Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk)
     else:
-        Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
+        objParticipantsResultEntireSignalDataRow = Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
                                           HrGr, SpoGr,
                                           Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData)
+
+    return  objParticipantsResultEntireSignalDataRow
 
 
 '''
@@ -209,7 +211,7 @@ Process participants data over the entire signal data
 
 def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData):
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData ):
     objReliability = CheckReliability()
     # Lists to hold heart rate and blood oxygen data
     Listdata = []
@@ -223,7 +225,19 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
     smallestOxygenError = sys.float_info.max
     finaloxy = 0.0
     FullTimeLog = None
-
+    TotalWindowCalculationTime=None
+    PreProcessTime=None
+    AlgorithmTime=None
+    FFTTime=None
+    SmoothTime=None
+    FilterTime=None
+    ComputerHRSNRTime=None
+    ComputerSPOTime=None
+    SelectedColorFPS =0
+    SelectedIRFPS=0
+    SelectedColorFPSMethod =''
+    SelectedIRFPSMethod =''
+    ListobjParticipantsResultEntireSignalDataRow = []
     # ROI Window Result list
     WindowRegionList = {}
 
@@ -241,7 +255,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
     # TotalWindows in this sample
     TotalWindows = 1
     # Split ground truth data
-    HrAvg = CommonMethods.AvegrageGroundTruth(HrGr)
+    HrAvg = CommonMethods.AvegrageGroundTruth(HrGr)#TODO: FIX FOR NEW more processed PARTICITPANTS
     SPOAvg = CommonMethods.AvegrageGroundTruth(SpoGr)
 
     # Initialise object to process face regions signal data
@@ -272,7 +286,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
         # Lips
         objProcessDataLips.getSingalData(ROIStore, objConfig.roiregions[0], WindowCount, TotalWindows,
                                                timeinSeconds)
-        lipsResult = objProcessDataLips.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
+        lipsResult = objProcessDataLips.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData,DumpToDisk)
         if (DumpToDisk):
             objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
                                      'lipsResult_Window_' + str(WindowCount), lipsResult)
@@ -280,7 +294,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
         # Forehead
         objProcessDataForehead.getSingalData(ROIStore, objConfig.roiregions[1],
                                                    WindowCount, TotalWindows, timeinSeconds)  # Lips
-        foreheadResult = objProcessDataForehead.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
+        foreheadResult = objProcessDataForehead.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData,DumpToDisk)
         if (DumpToDisk):
             objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
                                      'foreheadResult_Window_' + str(WindowCount), foreheadResult)
@@ -288,7 +302,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
         # LeftCheek
         objProcessDataLcheek.getSingalData(ROIStore, objConfig.roiregions[2],
                                                  WindowCount, TotalWindows, timeinSeconds)
-        leftcheekResult = objProcessDataLcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
+        leftcheekResult = objProcessDataLcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData,DumpToDisk)
         if (DumpToDisk):
             objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
                                      'leftcheekResult_Window_' + str(WindowCount), leftcheekResult)
@@ -296,7 +310,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
         # RightCheek
         objProcessDataRcheek.getSingalData(ROIStore, objConfig.roiregions[3],
                                                  WindowCount, TotalWindows, timeinSeconds)
-        rightcheekResult = objProcessDataRcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData)
+        rightcheekResult = objProcessDataRcheek.Process_EntireSignalData(objConfig.RunAnalysisForEntireSignalData,DumpToDisk)
         if (DumpToDisk):
             objFile.DumpObjecttoDisk(SavePath + fileName + '_WindowsBinaryFiles' + '\\',
                                      'rightcheekResult_Window_' + str(WindowCount), rightcheekResult)
@@ -315,15 +329,23 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                 channeltype = v.channeltype
                 regiontype = k
                 freqencySamplingError = v.FrequencySamplieErrorForChannel
-                diffNow = v.diffTime
-                diffTimeLog = v.diffTimeLog
-                FullTimeLog = v.gettimeDifferencesToString()
+                # diffNow = v.diffTime#TODO: UPDATE
+                # diffTimeLog = v.diffTimeLog#TODO: UPDATE
+                # FullTimeLog = v.gettimeDifferencesToString()#TODO: UPDATE
+                SelectedColorFPS = v.SelectedColorFPS
+                SelectedIRFPS = v.SelectedIRFPS
+                SelectedColorFPSMethod = v.SelectedColorFPSMethod
+                SelectedIRFPSMethod = v.SelectedIRFPSMethod
+
+                TotalWindowCalculationTime,PreProcessTime,AlgorithmTime,\
+                FFTTime,SmoothTime,FilterTime,\
+                ComputerHRSNRTime,ComputerSPOTime = v.gettimeDifferencesToStringIndividual()
 
             if (v.oxygenSaturationValueError < smallestOxygenError):
                 smallestOxygenError = v.oxygenSaturationValueError
                 finaloxy = v.oxygenSaturationValueValue
 
-        if (bestBpm > 0):
+        if (bestBpm > 30 and bestBpm <300):#TODO: CHECK WHY THIS RANGE IS NOT PREFILTERED
             # Check reliability and record best readings
             heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
                                                                              freqencySamplingError)
@@ -336,23 +358,66 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
             # Get difference and append data (blood oxygen)
             differenceSPO = round(float(SPOAvg) - float(oxygenSaturationValue))
 
-            Listdata.append('WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' + str(
-                round(HrAvg)) + " ,\t" +
-                            'ComputedHeartRate: ' + str(round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
-                differenceHR) + " ,\t" +
-                            'GroundTruthSPO: ' + str(round(SPOAvg)) + " ,\t" +
-                            'ComputedSPO: ' + str(round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
-                differenceSPO) + " ,\t" +
-                            'Regiontype: ' + " ,\t" + str(regiontype) + " ,\t" + FullTimeLog)
+            # ###Store in list or Datatbase#TODO: UPDATE
+            # Listdata.append('WindowCount: ' + str(WindowCount) + " ,\t" + 'GroundTruthHeartRate: ' + str(
+            #     round(HrAvg)) + " ,\t" +
+            #                 'ComputedHeartRate: ' + str(round(heartRateValue)) + " ,\t" + 'HRDifference: ' + str(
+            #     differenceHR) + " ,\t" +
+            #                 'GroundTruthSPO: ' + str(round(SPOAvg)) + " ,\t" +
+            #                 'ComputedSPO: ' + str(round(oxygenSaturationValue)) + " ,\t" + 'SPODifference: ' + str(
+            #     differenceSPO) + " ,\t" +
+            #                 'Regiontype: ' + " ,\t" + str(regiontype) + " ,\t" + FullTimeLog)
+            bestSnrString= str(float(bestHeartRateSnr))
+            if(bestSnrString == "inf"):
+                bestSnrString = '-1'
+            objParticipantsResultEntireSignalDataRow = ParticipantsResultEntireSignalDataRow()
+            objParticipantsResultEntireSignalDataRow.ParticipantId = ParticipantId
+            objParticipantsResultEntireSignalDataRow.HeartRateStatus = position
+            objParticipantsResultEntireSignalDataRow.bestHeartRateSnr =bestSnrString
+            objParticipantsResultEntireSignalDataRow.bestBPM = str(float(bestBpm))
+            objParticipantsResultEntireSignalDataRow.channelType = channeltype
+            objParticipantsResultEntireSignalDataRow.regionType = regiontype
+            objParticipantsResultEntireSignalDataRow.FrequencySamplingError = str(float(freqencySamplingError))
+            objParticipantsResultEntireSignalDataRow.oxygenSaturationValueError = str(float(oxygenSaturationValueError))
+            objParticipantsResultEntireSignalDataRow.heartRateError = str(float(heartRateError))
+            objParticipantsResultEntireSignalDataRow.bestSPO = str(float(finaloxy))
+            objParticipantsResultEntireSignalDataRow.HeartRateValue = str(float(heartRateValue))
+            objParticipantsResultEntireSignalDataRow.SPOValue = str(float(oxygenSaturationValue))
+            objParticipantsResultEntireSignalDataRow.differenceHR = str(float(differenceHR))
+            objParticipantsResultEntireSignalDataRow.differenceSPO = str(float(differenceSPO))
+            objParticipantsResultEntireSignalDataRow.TotalWindowCalculationTimeTaken = str(TotalWindowCalculationTime)
+            objParticipantsResultEntireSignalDataRow.PreProcessTimeTaken = str(PreProcessTime)
+            objParticipantsResultEntireSignalDataRow.AlgorithmTimeTaken = str(AlgorithmTime)
+            objParticipantsResultEntireSignalDataRow.FFTTimeTaken = str(FFTTime)
+            objParticipantsResultEntireSignalDataRow.SmoothTimeTaken = str(SmoothTime)
+            objParticipantsResultEntireSignalDataRow.FilterTimeTaken = str(FilterTime)
+            objParticipantsResultEntireSignalDataRow.ComputingHRSNRTimeTaken = str(ComputerHRSNRTime)
+            objParticipantsResultEntireSignalDataRow.ComputingSPOTimeTaken = str(ComputerSPOTime)
+            # objParticipantsResultEntireSignalDataRow.TechniqueId = None
+            objParticipantsResultEntireSignalDataRow.Algorithm_type = str(Algorithm_type)
+            objParticipantsResultEntireSignalDataRow.FFT_type = str(FFT_type)
+            objParticipantsResultEntireSignalDataRow.Filter_type = str(Filter_type)
+            objParticipantsResultEntireSignalDataRow.Result_type = str(Result_type)
+            objParticipantsResultEntireSignalDataRow.Preprocess_type = str(Preprocess_type)
+            objParticipantsResultEntireSignalDataRow.isSmoothen = str(isSmoothen)
+            objParticipantsResultEntireSignalDataRow.UpSampled = '1' if UpSampleData == True else '0'
+            objParticipantsResultEntireSignalDataRow.ColorFPS = str(SelectedColorFPS)
+            objParticipantsResultEntireSignalDataRow.IRFPS = str(SelectedIRFPS)
+            objParticipantsResultEntireSignalDataRow.SelectedColorFPSMethod = str(SelectedColorFPSMethod)
+            objParticipantsResultEntireSignalDataRow.SelectedIRFPSMethod = str(SelectedIRFPSMethod)
+            objParticipantsResultEntireSignalDataRow.GroundTruthHeartRate = str(float(HrAvg))
+            objParticipantsResultEntireSignalDataRow.GroundTruthSPO = str(float(SPOAvg))
+            ListobjParticipantsResultEntireSignalDataRow.append(objParticipantsResultEntireSignalDataRow)
+            # objSQLConfig.SaveRowParticipantsResultsEntireSignal(objParticipantsResultEntireSignalDataRow)
 
     # filename
 
-    fileNameResult = "HRSPOwithLog_" + fileName #+ '_UpSampleData-'+ str(UpSampleData)#ParticipantId+ "_" +position+
+    # fileNameResult = "HRSPOwithLog_" + fileName #+ '_UpSampleData-'+ str(UpSampleData)#ParticipantId+ "_" +position+
     #          regiontype + "_" + Algorithm_type + "_FFT-" + str(FFT_type) + "_FL-" + str(
     # Filter_type) + "_RS-" + str(Result_type) + "_PR-" + str(Preprocess_type) + "_SM-" + str(
     # isSmoothen)
     # Write data to file
-    objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameResult, Listdata)
+    # objFile.WriteListDatatoFile(SavePath + 'Result\\', fileNameResult, Listdata)
     # objFile.WriteListDatatoFile('E:\\ARPOS_Server_Data\\Server_Study_Data\\Europe_WhiteSkin_Group\\BoxPlotCSV\\FinalBestCases\\', fileNameResult, Listdata)
 
     # filename
@@ -369,6 +434,11 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
     del objProcessDataForehead
     del objProcessDataLcheek
 
+
+    if(len(ListobjParticipantsResultEntireSignalDataRow)>0):
+        return ListobjParticipantsResultEntireSignalDataRow[0] # TODO: FIX FOR WINDOW LATER
+    else:
+        return 'NO HR'
 
 def Process_Participants_Data_EntireSignalINChunks(ROIStore, SavePath, HrGr, SpoGr, fileName, DumpToDisk, ProcessingStep,
                                            ProcessingType):
@@ -892,3 +962,41 @@ def Process_Participants_Data_GetBestHR(objresultProcessedDataLips, objresultPro
     del objReliability
 
     # return ListHrdata
+
+class ParticipantsResultEntireSignalDataRow:
+    ParticipantId = None
+    HeartRateStatus = None
+    bestHeartRateSnr = None
+    bestBPM = None
+    channelType = None
+    regionType = None
+    FrequencySamplingError = None
+    oxygenSaturationValueError = None
+    heartRateError = None
+    bestSPO = None
+    HeartRateValue = None
+    SPOValue = None
+    differenceHR = None
+    differenceSPO = None
+    TotalWindowCalculationTimeTaken = None
+    PreProcessTimeTaken = None
+    AlgorithmTimeTaken = None
+    FFTTimeTaken = None
+    SmoothTimeTaken = None
+    FilterTimeTaken = None
+    ComputingHRSNRTimeTaken = None
+    ComputingSPOTimeTaken = None
+    TechniqueId = 0
+    Algorithm_type = ''
+    FFT_type = ''
+    Filter_type = ''
+    Result_type = ''
+    Preprocess_type = ''
+    isSmoothen = ''
+    UpSampled = None
+    ColorFPS = None
+    IRFPS = None
+    SelectedColorFPSMethod = ''
+    SelectedIRFPSMethod = ''
+    GroundTruthHeartRate = None
+    GroundTruthSPO = None
