@@ -426,10 +426,12 @@ class ProcessFaceData:
             else:
                 self.IREstimatedFPS =avg2# min2#self.getDuplicateValue(self.WindowIRfpswithTime)  # Only one time
                 self.SelectedIRFPSMethod = 'Averaged'
+
+
         # self.ColorEstimatedFPS = self.getDuplicateValue(self.WindowColorfpswithTime)
         # self.IREstimatedFPS = self.getDuplicateValue(self.WindowIRfpswithTime)
-        # self.ColorEstimatedFPS =30
-        # self.IREstimatedFPS = 30
+        # self.ColorEstimatedFPS =ROIStore.get(region).ColorEstimatedFPS
+        # self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS #TODO: FIX FOR REST, THIS IS TEMP FOR PROCESSING ENITERE SIGNAL for combined signal
         # set estimated fps
         # self.ColorEstimatedFPS = ROIStore.get(region).ColorEstimatedFPS  # IREstimatedFPS
         # self.IREstimatedFPS = ROIStore.get(region).IREstimatedFPS
@@ -845,23 +847,26 @@ class ProcessFaceData:
     '''
 
     def ApplyAlgorithm(self, processedBlue, processedGreen, processedRed, processedGrey, processedIR):
-        S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
-        self.components = 4
-        if (len(processedIR) == len(processedGrey)):
-            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
-            self.components = 5
+        # S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+        # self.components = 4
+        # if (len(processedIR) == len(processedGrey)):
+        #     S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
+        #     self.components = 5
         # colorShape = np.array(processedGrey).shape
         # IRShape = np.array(processedIR).shape
-        if (self.Algorithm_type == 'None'):
+        if (self.Algorithm_type == 'None' or self.Algorithm_type.__contains__('Combined')):
             skip = 0
         else:
-            if (len(processedGrey) > 0):
-                processedBlue = np.array(processedBlue).reshape((len(processedBlue), 1))
-                processedGreen = np.array(processedGreen).reshape((len(processedGreen), 1))
-                processedRed = np.array(processedRed).reshape((len(processedRed), 1))
-                processedGrey = np.array(processedGrey).reshape((len(processedGrey), 1))
-            if (len(processedIR) > 0):
-                processedIR = np.array(processedIR).reshape((len(processedIR), 1))
+            if (self.Algorithm_type.__contains__('RGB_IR')):
+                    processedIR = np.array(processedIR).reshape((len(processedIR), 1))
+            else:
+                if (len(processedGrey) > 0):
+                    processedBlue = np.array(processedBlue).reshape((len(processedBlue), 1))
+                    processedGreen = np.array(processedGreen).reshape((len(processedGreen), 1))
+                    processedRed = np.array(processedRed).reshape((len(processedRed), 1))
+                    processedGrey = np.array(processedGrey).reshape((len(processedGrey), 1))
+                if (len(processedIR) > 0):
+                    processedIR = np.array(processedIR).reshape((len(processedIR), 1))
         # Apply by Algorithm_type
         # self.components = 1  # makes no difference with 1 to 15 components
         if (self.Algorithm_type == "FastICA"):  # ApplyICA for each channel with 1 compoenent
@@ -897,6 +902,8 @@ class ProcessFaceData:
                 AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
 
         elif (self.Algorithm_type == "FastICACombined"):
+            self.components = 5
+            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
             S_ = self.objAlgorithm.ApplyICA(S, self.components)
             if (len(processedGrey) > 0):
                 AlgoprocessedBlue = S_[:, 0]
@@ -916,6 +923,8 @@ class ProcessFaceData:
                 AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR)
 
         elif (self.Algorithm_type == "PCACombined"):
+            self.components = 5
+            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
             S_ = self.objAlgorithm.ApplyPCA(S, self.components)
             # plt.plot(AlgoprocessedGrey, 'grey')
             # plt.plot(S_[:, 3], 'black')
@@ -937,6 +946,8 @@ class ProcessFaceData:
                 AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR, component)
 
         elif (self.Algorithm_type == "PCAICACombined"):
+            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
+            self.components = 5
             S = self.objAlgorithm.ApplyPCA(S, self.components)
             S_ = self.objAlgorithm.ApplyICA(S, self.components)
 
@@ -952,8 +963,14 @@ class ProcessFaceData:
             # https://github.com/kellman/heartrate_matlab/blob/master/jadeR.m
             # r4 is slwoer and f5 is faster
             # S = np.c_[processedBlue,processedGreen,processedRed,processedGrey]
-            S_ = self.objAlgorithm.jadeOptimised(S,
-                                                 self.components)  # Only allows same or less components as array size
+            # S_ = self.objAlgorithm.jadeOptimised(S,  self.components)  # Only allows same or less components as array size
+
+            AlgoprocessedBlue = self.objAlgorithm.jadeOptimised(processedBlue,  1)
+            AlgoprocessedGreen = self.objAlgorithm.jadeOptimised(processedGreen,  1)
+            AlgoprocessedRed = self.objAlgorithm.jadeOptimised(processedRed,  1)
+            AlgoprocessedGrey = self.objAlgorithm.jadeOptimised(processedGrey,  1)
+            AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR,  1)
+
             # AlgoprocessedGreen = self.objAlgorithm.jadeOptimised(processedGreen, self.components)
             # Split data
             # newBlue = S_[0].real
@@ -962,21 +979,92 @@ class ProcessFaceData:
             # if (not self.ignoreGray):
             #     newGrey = np.array(S_[self.grayIndex])[0].real
             # newIr = np.array(S_[self.IRIndex])[0].real
-            if (len(S_[3]) > 0):
-                AlgoprocessedBlue = np.array(S_[0])[0].real  # S_[:, 0]
-                AlgoprocessedGreen = np.array(S_[1])[0].real
-                AlgoprocessedRed = np.array(S_[2])[0].real
-                AlgoprocessedGrey = np.array(S_[3])[0].real
+            # if (len(S_[3]) > 0):
+            #     AlgoprocessedBlue = np.array(S_[0])[0].real  # S_[:, 0]
+            #     AlgoprocessedGreen = np.array(S_[1])[0].real
+            #     AlgoprocessedRed = np.array(S_[2])[0].real
+            #     AlgoprocessedGrey = np.array(S_[3])[0].real
 
-            if (self.components == 4):
-                if (len(processedIR) > 0):
-                    AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR, 1)
-                    AlgoprocessedIR = np.array(AlgoprocessedIR[0])[
-                        0]  # Only allows same or less components as array size
-                    # AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))#[0]
-            else:
-                if (len(S_[4]) > 0):
-                    AlgoprocessedIR = np.array(S_[4])[0].real
+            # if (self.components == 4):
+            #     if (len(processedIR) > 0):
+            #         AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR, 1)
+            #         AlgoprocessedIR = np.array(AlgoprocessedIR[0])[
+            #             0]  # Only allows same or less components as array size
+            #         # AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))#[0]
+            # else:
+            #     if (len(S_[4]) > 0):
+            #         AlgoprocessedIR = np.array(S_[4])[0].real
+
+            AlgoprocessedIR = np.array(AlgoprocessedIR)[0].real
+            AlgoprocessedBlue = np.array(AlgoprocessedBlue)[0].real
+            AlgoprocessedGreen = np.array(AlgoprocessedGreen)[0].real
+            AlgoprocessedRed = np.array(AlgoprocessedRed)[0].real
+            AlgoprocessedGrey = np.array(AlgoprocessedGrey)[0].real
+        elif (self.Algorithm_type == "JadeCombined"):
+            # https://github.com/kellman/heartrate_matlab/blob/master/jadeR.m
+            # r4 is slwoer and f5 is faster
+            self.components = 5
+            S = self.getSignalDataCombined(processedBlue, processedGreen, processedRed, processedGrey, processedIR)
+            S_ = self.objAlgorithm.jadeOptimised(S,  self.components)  # Only allows same or less components as array size
+            # Split data
+            AlgoprocessedBlue = np.array(S_[0])[0].real  # S_[:, 0]
+            AlgoprocessedGreen = np.array(S_[1])[0].real
+            AlgoprocessedRed = np.array(S_[2])[0].real
+            AlgoprocessedGrey = np.array(S_[3])[0].real
+            AlgoprocessedIR = np.array(S_[4])[0].real
+
+        elif (self.Algorithm_type == "FastICARGB_IR"):
+            self.components = 4
+            #Color
+            S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+            S_ = self.objAlgorithm.ApplyICA(S, self.components)
+            AlgoprocessedBlue = S_[:, 0]
+            AlgoprocessedGreen = S_[:, 1]
+            AlgoprocessedRed = S_[:, 2]
+            AlgoprocessedGrey = S_[:, 3]
+            #IR
+            AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, 1)
+            AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+        elif (self.Algorithm_type == "PCARGB_IR"):
+            self.components = 4
+            # Color
+            S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+            S_ = self.objAlgorithm.ApplyPCA(S, self.components)
+            AlgoprocessedBlue = S_[:, 0]
+            AlgoprocessedGreen = S_[:, 1]
+            AlgoprocessedRed = S_[:, 2]
+            AlgoprocessedGrey = S_[:, 3]
+            # IR
+            AlgoprocessedIR = self.objAlgorithm.ApplyPCA(processedIR, 1)
+            AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        elif (self.Algorithm_type == "PCAICARGB_IR"):
+            self.components = 4
+            # Color
+            S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+            S = self.objAlgorithm.ApplyPCA(S, self.components)
+            S_ = self.objAlgorithm.ApplyICA(S, self.components)
+            AlgoprocessedBlue = S_[:, 0]
+            AlgoprocessedGreen = S_[:, 1]
+            AlgoprocessedRed = S_[:, 2]
+            AlgoprocessedGrey = S_[:, 3]
+            # IR
+            processedIR = self.objAlgorithm.ApplyPCA(processedIR, 1)
+            AlgoprocessedIR = self.objAlgorithm.ApplyICA(processedIR, 1)
+            AlgoprocessedIR = np.array(AlgoprocessedIR).reshape(1, (len(AlgoprocessedIR)))[0]
+
+        elif (self.Algorithm_type == "JadeRGB_IR"):
+            self.components = 4
+            # Color
+            S = np.c_[processedBlue, processedGreen, processedRed, processedGrey]
+            S_ = self.objAlgorithm.jadeOptimised(S,  self.components)
+            AlgoprocessedBlue = np.array(S_[0])[0].real  # S_[:, 0]
+            AlgoprocessedGreen = np.array(S_[1])[0].real
+            AlgoprocessedRed = np.array(S_[2])[0].real
+            AlgoprocessedGrey = np.array(S_[3])[0].real
+            # IR
+            AlgoprocessedIR = self.objAlgorithm.jadeOptimised(processedIR, 1)
+            AlgoprocessedIR = np.array(AlgoprocessedIR)[0].real #TODO: WHY NOT RESHPAE?
         else:
             AlgoprocessedBlue = processedBlue
             AlgoprocessedGreen = processedGreen
