@@ -17,7 +17,7 @@ Process participants data
 
 
 def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algorithm_type, FFT_type,
-                       Filter_type, Result_type, Preprocess_type, isSmoothen, HrGr, SpoGr, fileName, DumpToDisk,ParticipantId,position,UpSampleData):
+                       Filter_type, Result_type, Preprocess_type, isSmoothen, HrGr, SpoGr, fileName, DumpToDisk,ParticipantId,position,UpSampleData,AttemptType):
     if (not RunAnalysisForEntireSignalData):
         Process_Participants_Data_Windows(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
@@ -27,7 +27,7 @@ def Process_SingalData(RunAnalysisForEntireSignalData, ROIStore, SavePath, Algor
         objParticipantsResultEntireSignalDataRow = Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                           Algorithm_type, FFT_type,
                                           HrGr, SpoGr,
-                                          Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData)
+                                          Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData,AttemptType)
 
     return  objParticipantsResultEntireSignalDataRow
 
@@ -211,7 +211,7 @@ Process participants data over the entire signal data
 
 def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                                       Algorithm_type, FFT_type, HrGr, SpoGr,
-                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData ):
+                                      Filter_type, Result_type, Preprocess_type, isSmoothen, fileName, DumpToDisk,ParticipantId,position,UpSampleData,AttemptType ):
     objReliability = CheckReliability()
     # Lists to hold heart rate and blood oxygen data
     Listdata = []
@@ -240,6 +240,11 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
     ListobjParticipantsResultEntireSignalDataRow = []
     # ROI Window Result list
     WindowRegionList = {}
+    minFPSIRvalue = min(ROIStore.get(objConfig.roiregions[0]).IRfpswithTime.values())
+    maxFPSIRvalue = max(ROIStore.get(objConfig.roiregions[0]).IRfpswithTime.values())
+    minFPSColorvalue = min(ROIStore.get(objConfig.roiregions[0]).ColorfpswithTime.values())
+    maxFPSColorvalue = max(ROIStore.get(objConfig.roiregions[0]).ColorfpswithTime.values())
+    FPSNotes = 'min IRvalue: '+ str(minFPSIRvalue) + ', max IRvalue: '+ str(maxFPSIRvalue) +', min Colorvalue: '+ str(minFPSColorvalue) + ', max Colorvalue: '+ str(maxFPSColorvalue)
 
     # Windows for regions (should be same for all)
     LengthofAllFramesColor = ROIStore.get(objConfig.roiregions[0]).getLengthColor()  # len()  # all have same lenghts
@@ -345,7 +350,7 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
                 smallestOxygenError = v.oxygenSaturationValueError
                 finaloxy = v.oxygenSaturationValueValue
 
-        if (bestBpm > 30 and bestBpm <300):#TODO: CHECK WHY THIS RANGE IS NOT PREFILTERED
+        if (bestBpm > 30 and bestBpm <300):
             # Check reliability and record best readings
             heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
                                                                              freqencySamplingError)
@@ -407,6 +412,8 @@ def Process_Participants_Data_WindowEntireSignal(ROIStore, SavePath,
             objParticipantsResultEntireSignalDataRow.SelectedIRFPSMethod = str(SelectedIRFPSMethod)
             objParticipantsResultEntireSignalDataRow.GroundTruthHeartRate = str(float(HrAvg))
             objParticipantsResultEntireSignalDataRow.GroundTruthSPO = str(float(SPOAvg))
+            objParticipantsResultEntireSignalDataRow.AttemptType = str(AttemptType)
+            objParticipantsResultEntireSignalDataRow.FPSNotes = FPSNotes
             ListobjParticipantsResultEntireSignalDataRow.append(objParticipantsResultEntireSignalDataRow)
             # objSQLConfig.SaveRowParticipantsResultsEntireSignal(objParticipantsResultEntireSignalDataRow)
 
@@ -1000,3 +1007,5 @@ class ParticipantsResultEntireSignalDataRow:
     SelectedIRFPSMethod = ''
     GroundTruthHeartRate = None
     GroundTruthSPO = None
+    AttemptType = '1'
+    FPSNotes = ''
