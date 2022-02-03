@@ -834,6 +834,176 @@ class GeneratedDataFiltering:
         # fileName="boxPlot_All_" +HeartRateStatus +"_NOTSampled_" + str(TechniqueId)
         # self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType','upSampledDiff',fileName)
 
+    def appdendataTime(self,FinalDataResults,dtParticipant,InputValue):
+
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'FastICA', 'MiliTotaltime': dtParticipant["FastICA"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'FastICA3Times', 'MiliTotaltime': dtParticipant["FastICA3Times"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'FastICACombined', 'MiliTotaltime': dtParticipant["FastICACombined"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'None', 'MiliTotaltime': dtParticipant["None"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'PCA', 'MiliTotaltime': dtParticipant["PCA"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'PCACombined', 'MiliTotaltime': dtParticipant["PCACombined"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'PCAICA', 'MiliTotaltime': dtParticipant["PCAICA"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'PCAICACombined', 'MiliTotaltime': dtParticipant["PCAICACombined"], 'InputValue': InputValue},
+                       ignore_index=True)
+        FinalDataResults = FinalDataResults.append({'AlgorithmType': 'JadeCombined', 'MiliTotaltime': dtParticipant["JadeCombined"], 'InputValue': InputValue},
+                       ignore_index=True)
+
+        return FinalDataResults
+
+    def PlotFromSQLTimeAll(self,objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
+        #by algo
+        folderName=''
+        fileName="All_" +HeartRateStatus +"_TimePlot2byInput_" + str(TechniqueId)
+        if(UpSampled == '1'):
+            folderName = 'UpSampled'
+        else:
+            folderName = 'NOTUpSampled'
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\All\\"+folderName+"\\"+ HeartRateStatus+"\\"
+        self.objFile.CreatePath(fullPath)
+        ####tIME PLOT
+        dataTimetoExecute = objSQLConfig.GetAllTimeForTechniqueId(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        for i, row in dataTimetoExecute.iterrows():
+            totalTime = dataTimetoExecute.at[i, 'totalTime']
+            militotalTimeSplit = totalTime.split(':')
+            militotalTime = float(militotalTimeSplit[2]) #.split('.')[1]
+            # militotalTime = round(militotalTime)
+            # dataTimetoExecute.at[i,'MiliTotaltime'] = militotalTime
+            dataTimetoExecute.loc[i,'MiliTotaltime']  =militotalTime
+            # dataTimetoExecute['MiliTotaltime'] = militotalTime
+            a=0
+
+        FinalDataResults = pd.DataFrame()
+        FinalDataResults = pd.DataFrame(columns=['AlgorithmType', 'MiliTotaltime', 'InputValue'])
+
+        Condition1 = dataTimetoExecute['ParticipantId'] == 'PIS-1118'
+        OneParticipant = dataTimetoExecute.where(Condition1).copy(deep=True)
+        OneParticipant=OneParticipant.dropna()
+        OneParticipant = OneParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,OneParticipant,1)
+
+
+        Condition2 =  (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-7728")
+        ThreeParticipant = dataTimetoExecute.where(Condition2).copy(deep=True)
+        ThreeParticipant=ThreeParticipant.dropna()
+        ThreeParticipant = ThreeParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,ThreeParticipant,3)
+
+        Condition3 =  (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-7728") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-7180") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-1032") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-7381")
+        SixParticipant = dataTimetoExecute.where(Condition3).copy(deep=True)
+        SixParticipant=SixParticipant.dropna()
+        SixParticipant = SixParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,SixParticipant,6)
+
+        Condition4 = (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7728") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7180") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-1032") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7381") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-396") \
+                | (dataTimetoExecute['ParticipantId'] == "PIS-3186") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-5868P2") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-3252P2")
+        TenParticipant = dataTimetoExecute.where(Condition4).copy(deep=True)
+        TenParticipant=TenParticipant.dropna()
+        TenParticipant = TenParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,TenParticipant,10)
+
+        Condition5 = (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-7728") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7180") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-1032") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7381") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-396") \
+                        |(dataTimetoExecute['ParticipantId'] == "PIS-3186") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-5868P2") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-3252P2") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-6888") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-667") \
+                        | (dataTimetoExecute['ParticipantId'] == "PIS-1949") \
+                        |(dataTimetoExecute['ParticipantId'] == "PIS-8308P2") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-3807")
+        fifteenParticipant = dataTimetoExecute.where(Condition5).copy(deep=True)
+        fifteenParticipant=fifteenParticipant.dropna()
+        fifteenParticipant = fifteenParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,fifteenParticipant,15)
+
+        Condition6 = (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7728") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-7180") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-1032") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-7381") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-396") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-3186") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-5868P2") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-3252P2") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-6888") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-667") \
+                    |(dataTimetoExecute['ParticipantId'] == "PIS-1949") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-8308P2") \
+                     | (dataTimetoExecute['ParticipantId'] == "PIS-3807") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-5456") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-2047") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-4709") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-8308") \
+                    | (dataTimetoExecute['ParticipantId'] == "PIS-6729")
+        twentyParticipant = dataTimetoExecute.where(Condition6).copy(deep=True)
+        twentyParticipant = twentyParticipant.dropna()
+        twentyParticipant = twentyParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,twentyParticipant,20)
+
+        Condition7 =  (dataTimetoExecute['ParticipantId'] == "PIS-4014") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-2212") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-7728") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-7180") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-1032") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-7381") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-396") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-3186") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-5868P2") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-3252P2") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-6888") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-667") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-1949") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-8308P2") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-3807") \
+                      | (dataTimetoExecute['ParticipantId'] == "PIS-5456") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-2047") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-4709") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-8308") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-6729") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-2740") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-3252") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-1118") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-6327") \
+          | (dataTimetoExecute['ParticipantId'] == "PIS-5868")
+        twentyfiveParticipant = dataTimetoExecute.where(Condition7).copy(deep=True)
+        twentyfiveParticipant = twentyfiveParticipant.dropna()
+        twentyfiveParticipant = twentyfiveParticipant.groupby(['AlgorithmType'])['MiliTotaltime'].sum()
+        FinalDataResults =self.appdendataTime(FinalDataResults,twentyfiveParticipant,25)
+
+        AllSummed = dataTimetoExecute.groupby(['AlgorithmType'])['MiliTotaltime'].sum() #Over all participants 31
+        FinalDataResults =self.appdendataTime(FinalDataResults,AllSummed,31)
+        ## get for one two etc then send to plot
+        fileName="BarplotTime_All_" +HeartRateStatus +"_" + str(TechniqueId)
+        self.MakeLinePlotTimefromSQLData(FinalDataResults, fullPath, fileName,'InputValue','MiliTotaltime',"AlgorithmType")
+
     def GenerateCasesMain(self):
         self.CaseList = []
         for preprocesstype in self.objConfig.preprocesses:
@@ -1304,6 +1474,25 @@ class GeneratedDataFiltering:
         plt.tight_layout()
 
         plt.savefig(fullPath + fileName + ".jpg")
+    def MakeLinePlotTimefromSQLData(self,dataResult,fullPath,fileName,x,y,huet):
+        sns.set(font_scale=1.5)  # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        ####SNS
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        sns.set_style('whitegrid')
+        sns.lineplot(
+            data=dataResult,
+            x=x, y=y, hue=huet
+        )
+        plt.title('Time taken (MILLISECONDS) to execute ' + fileName)
+        plt.xlabel('Algorithm types')
+        plt.ylabel('Average time over all participants')
+        plt.tight_layout()
+        plt.savefig(fullPath + fileName + ".jpg")
+
 
     def MakeBarTimePlotfromSQLData(self, dataResult, fullPath, fileName):
 
@@ -1771,16 +1960,16 @@ objFilterData.AcceptableDifference = 10
 # UpSampledList = [9406,10414,9154,9658,9910,9532,10540,9112,9175,9616,9931,9280,10036,9364,9427,9868,9679,9784,10372,10435,9091,10351,9595,9343,9847]
 # UpSampled='1'
 
-UpSampledList= []
-NotUpsampledList = []
+# UpSampledList= []
+# NotUpsampledList = []
 UpSampled =0
-
-loadedlsit=objFilterData.objFile.ReaddatafromFile('C:\\Users\\pp62\\PycharmProjects\\ARPOSProject\\BestCaseTechniqueIds\\','SouthAsianNOTupSampledCases')
-
-for item in loadedlsit:
-    NotUpsampledList.append(item.replace('\n',''))
-
-print(NotUpsampledList)
+#
+# loadedlsit=objFilterData.objFile.ReaddatafromFile('C:\\Users\\pp62\\PycharmProjects\\ARPOSProject\\BestCaseTechniqueIds\\','SouthAsianNOTupSampledCases')
+#
+# for item in loadedlsit:
+#     NotUpsampledList.append(item.replace('\n',''))
+#
+# print(NotUpsampledList)
 
 objSQLConfig = SQLConfig()
 #objSQLConfig,skinGroup,PreProcess,FFT,Filter,Result,Smoothen,HeartRateStatus,type
@@ -1799,4 +1988,5 @@ objSQLConfig = SQLConfig()
 #     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
 #     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
 #     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
-objFilterData.PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)
+# objFilterData.PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)
+objFilterData.PlotFromSQLTimeAll(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)#objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType
