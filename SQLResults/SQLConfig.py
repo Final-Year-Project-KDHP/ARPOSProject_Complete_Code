@@ -79,6 +79,13 @@ class SQLConfig:
         dataTable.head()
         return dataTable
 
+    def GetAllTimeForTechniqueId(self, HeartRateStatus,UpSampled,AttemptType, TechniqueId):
+        ##Parameters
+        FullQuery = "exec GetAllTimeForTechniqueId " + UpSampled + ",'" + HeartRateStatus + "'," + AttemptType + "," + TechniqueId
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
     def getTableQueryGroupWiseDifferences(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
         ##Parameters
         FullQuery = "exec GroupWiseDataOriginalandUpSampled '" + skinGroup + "', " + PreProcess + ",'" + FFT + "'," + Filter + "," + Result + ",'" + Smoothen + "'"

@@ -1,3 +1,5 @@
+import numpy as np
+
 import CommonMethods
 from Configurations import Configurations
 from FileIO import FileIO
@@ -46,6 +48,8 @@ class Main:
                                                + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
                                     if (fileName not in self.CaseList):
                                         self.CaseList.append(fileName)
+                                    # print("INSERT INTO Techniques(AlgorithmType,PreProcess,FFT,Filter,Result,Smoothen)VALUES('" + algoType + "'," +
+                                    #       str(preprocesstype) +",'" + fftype + "'," + str(filtertype) + "," + str(resulttype) + ",'" + str(isSmooth) + "')")
 
         # CaseListExists= []
         # ExistingCasesDT = self.objSQLConfig.getProcessedCases()
@@ -363,76 +367,31 @@ class Main:
 
     def CustomLeftOverCases(self):
         self.CaseList = []
-        self.CaseList.append('None_PR-1_FFT-M5_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-1_FFT-M1_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-1_FFT-M2_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-1_FFT-M3_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-1_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-1_FFT-M5_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M1_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-2_FFT-M2_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-2_FFT-M3_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-2_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-2_FFT-M5_FL-5_RS-2_SM-False')
-        self.CaseList.append('PCAICA_PR-3_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCAICA_PR-5_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('PCA_PR-5_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCA_PR-1_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M1_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M2_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M3_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-2_FFT-M5_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA3Times_PR-3_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M1_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M2_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M3_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M5_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M1_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-4_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA_PR-5_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('FastICA3Times_PR-5_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-5_FFT-M1_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M2_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M3_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M5_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M1_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-5_FFT-M2_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-5_FFT-M3_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-1_FFT-M1_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-1_FFT-M2_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-1_FFT-M3_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-1_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('PCA_PR-2_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCAICA_PR-3_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('PCA_PR-3_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCAICA_PR-5_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA3Times_PR-5_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-5_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-5_FFT-M5_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA_PR-3_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('FastICA_PR-3_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA3Times_PR-3_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCA_PR-3_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('None_PR-3_FFT-M2_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-3_FFT-M3_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-3_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('None_PR-3_FFT-M5_FL-5_RS-2_SM-True')
-        self.CaseList.append('FastICA_PR-5_FFT-M4_FL-5_RS-2_SM-True')
-        self.CaseList.append('PCA_PR-5_FFT-M4_FL-5_RS-2_SM-False')
-        self.CaseList.append('PCA_PR-7_FFT-M4_FL-5_RS-2_SM-True')
-
+        self.CaseList.append('FastICACombined_PR-6_FFT-M4_FL-4_RS-3_SM-True')
+        # self.CaseList.append('JadeCombined_PR-7_FFT-M4_FL-7_RS-1_SM-False')
+        # self.CaseList.append('PCAICA_PR-7_FFT-M4_FL-7_RS-1_SM-False')
+        # self.CaseList.append('JadeCombined_PR-1_FFT-M1_FL-5_RS-3_SM-True')
+        # self.CaseList.append('JadeCombined_PR-1_FFT-M2_FL-5_RS-3_SM-True')
+        # self.CaseList.append('JadeCombined_PR-5_FFT-M4_FL-6_RS-3_SM-False')
+        # self.CaseList.append('FastICA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('FastICACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('PCACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('PCAICACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('PCAICA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('JadeCombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('FastICA3Times_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('PCA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
+        # self.CaseList.append('None_PR-3_FFT-M2_FL-3_RS-3_SM-False')
 
     """
      GenerateResultsfromParticipants:
      """
-    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing, UpSampleData,CaseListExists,NoHRCases):
+    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing, UpSampleData,CaseListExists,NoHRCases,AttemptType):
         # self.CustomCaseList()#
         self.GenerateCases()
         # self.CustomLeftOverCases()
         TotalCasesCount = len(self.CaseList)
+        print(str(TotalCasesCount))
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 print(participant_number + ', ' + position)
@@ -479,7 +438,7 @@ class Main:
                             algoType, fftype,
                             filtertype, resulttype, preprocesstype, isSmooth,
                             objWindowProcessedData.HrGroundTruthList, objWindowProcessedData.SPOGroundTruthList,
-                            fileName, self.objConfig.DumpToDisk,participant_number,position,UpSampleData)
+                            fileName, self.objConfig.DumpToDisk,participant_number,position,UpSampleData,AttemptType)
                         if(objParticipantsResultEntireSignalDataRow != 'NO HR'):
                             # ListobjParticipantsResultEntireSignalDataRowAll.append(objParticipantsResultEntireSignalDataRow)
                             self.objSQLConfig.SaveRowParticipantsResultsEntireSignal(
@@ -586,8 +545,8 @@ class Main:
 
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 self.objConfig.setSavePath(participant_number, position, 'RawOriginal')  # set path
-                print('Loading and generating FaceData for ' + participant_number + ', ' + position)
-                print('Loading from path ' + self.objConfig.SavePath)
+                # print('Loading and generating FaceData for ' + participant_number + ', ' + position)
+                # print('Loading from path ' + self.objConfig.SavePath)
 
                 # if (self.objConfig.ParticipantNumbers == "4497" or  self.objConfig.ParticipantNumbers == "2047"
                 #         or self.objConfig.ParticipantNumbers == "3186"
@@ -600,11 +559,138 @@ class Main:
                 ##Original Data in binary read from disk
                 objWindowProcessedData = self.objFileIO.ReadfromDisk(self.objConfig.SavePath,
                                                                      SaveFileName)
+                ##To print fps and update in sql
+                # minFPSIRvalue = min(objWindowProcessedData.ROIStore.get(self.objConfig.roiregions[0]).IRfpswithTime.values())
+                # maxFPSIRvalue = max(objWindowProcessedData.ROIStore.get(self.objConfig.roiregions[0]).IRfpswithTime.values())
+                # minFPSColorvalue = min(objWindowProcessedData.ROIStore.get(self.objConfig.roiregions[0]).ColorfpswithTime.values())
+                # maxFPSColorvalue = max(objWindowProcessedData.ROIStore.get(self.objConfig.roiregions[0]).ColorfpswithTime.values())
+                # FPSNotes = 'min IRvalue: ' + str(minFPSIRvalue) + ', max IRvalue: ' + str(
+                #     maxFPSIRvalue) + ', min Colorvalue: ' + str(minFPSColorvalue) + ', max Colorvalue: ' + str(
+                #     maxFPSColorvalue)
+                # upsampledb = '1' if UpSampleData == True else '0'
+                # FULLSTRing = "update ParticipantsResultsEntireSignal set FPSNotes='" + FPSNotes + "' where ParticipantId = '"+  participant_number+ "' and HeartRateStatus = '" + position + "' and FPSNotes is null and UpSampled=" + str(upsampledb) + " and AttemptType=1"
+                # print(FULLSTRing)
+
+
+                #Only for windows as for same lenght (DOWNSAMPLING) --> Bad idea
+                # SaveFileName2 = 'UnCompressedBinaryLoadedData2CombinedSameLength'
+                # if(SaveFileName2 == 'UnCompressedBinaryLoadedData2CombinedSameLength'):
+                #     #for combine donly
+                #     for regionNo in self.objConfig.roiregions:
+                #         ROIStoreCurrent = objWindowProcessedData.ROIStore.get(regionNo)
+                #         regionColor = ROIStoreCurrent.ColorfpswithTime
+                #         regionIR = ROIStoreCurrent.IRfpswithTime
+                #         if (len(ROIStoreCurrent.Irchannel) == len(ROIStoreCurrent.grey)):
+                #             break
+                #         else:
+                #             indexTime = 0
+                #             IndexArray = 0
+                #             for k in regionIR:
+                #                 if (regionIR.get(k) > regionColor.get(k)):
+                #                     IndexArray = IndexArray + regionIR.get(k)  # as color and ir are same
+                #                     difference = regionIR.get(k) - regionColor.get(k)
+                #                     for popx in range (0,difference):
+                #                         ROIStoreCurrent.Irchannel.pop(IndexArray)
+                #                         ROIStoreCurrent.Frametime_list_ir.pop(IndexArray)
+                #                         ROIStoreCurrent.distanceM.pop(IndexArray)
+                #                         IndexArray = IndexArray - 1
+                #                     regionIR[k] = regionColor.get(k)
+                #                 elif (regionColor.get(k) >regionIR.get(k)  ):
+                #                     IndexArray = IndexArray + regionColor.get(k)  # as color and ir are same
+                #                     difference = regionColor.get(k) -regionIR.get(k)
+                #                     for popx in range (0,difference):
+                #                         ROIStoreCurrent.grey.pop(IndexArray)
+                #                         ROIStoreCurrent.red.pop(IndexArray)
+                #                         ROIStoreCurrent.green.pop(IndexArray)
+                #                         ROIStoreCurrent.blue.pop(IndexArray)
+                #                         ROIStoreCurrent.Frametime_list_color.pop(IndexArray)
+                #                         IndexArray = IndexArray - 1
+                #                     regionColor[k] = regionIR.get(k)
+                #                 else:
+                #                     IndexArray= IndexArray + regionIR.get(k)# as color and ir are same
+                #
+                #
+                #                 #else do nothing
+                #                 indexTime = indexTime+1
+                #
+                #         ROIStoreCurrent.ColorEstimatedFPS = self.getDuplicateValue(ROIStoreCurrent.ColorfpswithTime)
+                #         ROIStoreCurrent.IREstimatedFPS = self.getDuplicateValue(ROIStoreCurrent.IRfpswithTime)
+                #         ROIStoreCurrent.timecolorCount = list(range(0, len(ROIStoreCurrent.Frametime_list_color)))  # self.TemptimecolorCount
+                #         ROIStoreCurrent.timeirCount = list(range(0, len(ROIStoreCurrent.Frametime_list_ir)))  # self.TemptimecolorCount
+                #
+                #
+                #     self.objFileIO.DumpObjecttoDisk(self.objConfig.SavePath, SaveFileName2,objWindowProcessedData)
+
+                ####PRINT FPS WINDOW DETAIL IN FULL DETAIL
+                # ROIStoreCurrent = objWindowProcessedData.ROIStore.get('lips')
+                # regionColor = ROIStoreCurrent.ColorfpswithTime
+                # regionIR = ROIStoreCurrent.IRfpswithTime
+                # if(len(ROIStoreCurrent.grey) != len(ROIStoreCurrent.Irchannel)):
+                #     # print(participant_number + ' - ' + position + ' : equal length')
+                #     print(participant_number + ' - ' + position + ', GreyL: ' + str(len(ROIStoreCurrent.grey)) + ', IRL: ' + str(len(ROIStoreCurrent.Irchannel)))
+                #     for k in regionIR:
+                #         if (regionIR.get(k) != regionColor.get(k)):
+                #             difference = regionIR.get(k) - regionColor.get(k)
+                #             print(str(k) + ' : ' + str(np.abs(difference)))
+                # else:
+                ##Making equl method random
+                # SaveFileName2 = 'UnCompressedBinaryLoadedData2CombinedSameLength'
+                # # exists = self.objFileIO.FileExits(self.objConfig.SavePath + SaveFileName2)
+                # # if(not exists):
+                # if (UpSampleData):
+                #     SaveFileName2 = 'UnCompressedBinaryLoadedDataUpSampledCombinedSameLength'
+                # for region in self.objConfig.roiregions:
+                #     ROIStoreCurrent = objWindowProcessedData.ROIStore.get(region)
+                #     # if(ROIStoreCurrent.ColorEstimatedFPS >15):#TODO FIX FOR FPS --15
+                #     #
+                #     if (len(ROIStoreCurrent.grey) != len(ROIStoreCurrent.Irchannel)):
+                #         regionColor = ROIStoreCurrent.ColorfpswithTime
+                #         regionIR = ROIStoreCurrent.IRfpswithTime
+                #         ####RANDOM REMOVAL
+                #         # # REMOVING BELOW as no longer constaant for ir and color
+                #         if (len(ROIStoreCurrent.Irchannel) > len(ROIStoreCurrent.grey)):
+                #             difference = len(ROIStoreCurrent.Irchannel) -  len(ROIStoreCurrent.grey)
+                #             for i in range(0, difference):
+                #                 ROIStoreCurrent.Irchannel.pop()
+                #                 ROIStoreCurrent.distanceM.pop()
+                #
+                #             ROIStoreCurrent.timeirCount = list(range(0, len(ROIStoreCurrent.Frametime_list_ir)))
+                #             if (ROIStoreCurrent.ColorEstimatedFPS <= 16):  # TODO FIX FOR FPS --15
+                #                 ROIStoreCurrent.IREstimatedFPS = 15
+                #
+                #         if (len(ROIStoreCurrent.grey) > len(ROIStoreCurrent.Irchannel)):
+                #             differnce = len(ROIStoreCurrent.grey) - len(ROIStoreCurrent.Irchannel)
+                #
+                #             for i in range(0, differnce):
+                #                 ColorTime = ROIStoreCurrent.Frametime_list_color.pop()
+                #                 ROIStoreCurrent.red.pop()
+                #                 ROIStoreCurrent.green.pop()
+                #                 ROIStoreCurrent.blue.pop()
+                #                 ROIStoreCurrent.grey.pop()
+                #
+                #             ROIStoreCurrent.timecolorCount = list(range(0, len(ROIStoreCurrent.Frametime_list_color)))  # self.TemptimecolorCount
+                #
+                # self.objFileIO.DumpObjecttoDisk(self.objConfig.SavePath, SaveFileName2,objWindowProcessedData)
 
                 # Store for procesing locally
                 ParticipantsOriginalDATA[participant_number + '_' + position] = objWindowProcessedData
 
         return ParticipantsOriginalDATA
+
+    def getDuplicateValue(self,ini_dict):
+        # finding duplicate values
+        flipped = {}
+        for key, value in ini_dict.items():
+            if value not in flipped:
+                flipped[value] = 1
+            else:
+                val = flipped.get(value)
+                flipped[value] = val + 1
+        # print(str(max(flipped.values())))
+        # printing result
+        # print("final_dictionary", str(flipped))
+        key = [fps for fps, count in flipped.items() if count == max(flipped.values())]
+        return key[0]
     '''
     Loadnohr files:  for testing cases check only
     '''
@@ -625,9 +711,6 @@ class Main:
                         ListAllbyPostion.append(item)
 
                 ListAllbyPostion = list(dict.fromkeys(ListAllbyPostion))
-                ac = ListAllbyPostion.__contains__(('FastICA_PR-2_FFT-M2_FL-4_RS-2_SM-False'))
-
-                b=0
 
                 # fileDataCasesAll = fileDataCasesAll.replace("\t",)
                 # print(participant_number + ', ' + position + ', '+ str(len(fileDataCasesAll)))
@@ -635,14 +718,27 @@ class Main:
             ListAllbyPostion = list(dict.fromkeys(ListAllbyPostion))
             # print(skintype+ ', ' + str((len(ListAllbyPostion))))
         return ListAllbyPostion
-    def mainMethod(self,UpSampleData,generateBinaryData,skintype,CaseListExists):
+    def mainMethod(self,UpSampleData,generateBinaryData,skintype,CaseListExists,combinedRun):
         # For generating meaned channel arrays of image and other required data in form of a objectProcessedData (See class WindowProcessedData)
         # Reqruied to run only once, binary data
+        # self.objConfig.ParticipantNumbers = ["PIS-1118"]#,"PIS-2047","PIS-8343"
+        # self.objConfig.hearratestatus = ["Resting1"]
+        AttemptType =1
         if(UpSampleData):
-            SaveFileName = 'UnCompressedBinaryLoadedDataUpSampled' #UnCompressedBinaryLoadedDataUpSampled,UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedUpSampled
+            SaveFileName ='UnCompressedBinaryLoadedDataUpSampled' #'UnCompressedBinaryLoadedDataUpSampledAttempt2TrimmedTime' #UnCompressedBinaryLoadedDataUpSampled,UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedUpSampled
+            if (combinedRun):
+                SaveFileName = 'UnCompressedBinaryLoadedDataUpSampledCombinedSameLength'
+            # SaveFileName = 'UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedUpSampledAttempt2' #for 4014 only
         else:
-            SaveFileName = 'UnCompressedBinaryLoadedData2'  # 'UnCompressedBinaryLoadedData'<-- Orignial , UnCompressedBinaryLoadedData2, UnCompressedBinaryLoadedDataSelectiveLowFrameRemoved
-#TODO: USE PREVIOUS NONN REVISED
+            SaveFileName = 'UnCompressedBinaryLoadedData2'#'UnCompressedBinaryLoadedData2Attempt2TrimmedTime'  # 'UnCompressedBinaryLoadedData'<-- Orignial , UnCompressedBinaryLoadedData2, UnCompressedBinaryLoadedDataSelectiveLowFrameRemoved
+            if(combinedRun):
+                SaveFileName = 'UnCompressedBinaryLoadedData2CombinedSameLength'
+            # SaveFileName = 'UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedAttempt2' #for 4014 only
+
+        if(SaveFileName.__contains__('Attempt2')):
+            AttemptType=2
+
+            #TODO: USE PREVIOUS NONN REVISED
         if (generateBinaryData):  # RUN only once
             self.LoadandGenerateFaceDatatoBianryFiles(SaveFileName,UpSampleData)
         else:
@@ -657,24 +753,25 @@ class Main:
                 else:
                     FolderNameforSave= 'ProcessedData'#'ProcessedData'byProcessType ,ProcessedDataRevised,ProcessedDataUpSampled
 
+
             print(FolderNameforSave)
 
             NoHRCases = self.LoadNoHRfILES(FolderNameforSave)
 
             #  Load Data from path and Process Data
-            self.GenerateResultsfromParticipants(self.LoadBinaryData(SaveFileName,UpSampleData),FolderNameforSave,UpSampleData,CaseListExists,NoHRCases)#FOR Window processing
+            self.GenerateResultsfromParticipants(self.LoadBinaryData(SaveFileName,UpSampleData),FolderNameforSave,UpSampleData,CaseListExists,NoHRCases,AttemptType)#FOR Window processing
 
 UpSampleDataList = [False,True]  # UpsampleDATA?
-skinGroup = ['SouthAsian_BrownSkin_Group']#,'Europe_WhiteSkin_Group','OtherAsian_OtherSkin_Group'
-loadedGeneratedCaseList = False
+skinGroup = ['OtherAsian_OtherSkin_Group','SouthAsian_BrownSkin_Group','Europe_WhiteSkin_Group' ]#
 CaseListExists = []
+combinedRun=True
 for skintype in skinGroup:
-    # skintype = 'Europe_WhiteSkin_Group'##OtherAsian_OtherSkin_Group,SouthAsian_BrownSkin_Group,Europe_WhiteSkin_Group
+    loadedGeneratedCaseList = False
     print('Program started for ' +skintype)
     objMain = Main(skintype)  # Add none here to process all skin types [Europe_WhiteSkin_Group,SouthAsian_BrownSkin_Group,OtherAsian_OtherSkin_Group]
     generateBinaryData = False
     if(not loadedGeneratedCaseList):
-        ExistingCasesDT = objMain.objSQLConfig.getProcessedCases()
+        ExistingCasesDT = objMain.objSQLConfig.getProcessedCases(skintype,'1')#AttemptType
         for fullRow in ExistingCasesDT.iterrows():
             rowData = fullRow[1]
             case = rowData.get('CaseProcessed')
@@ -684,6 +781,7 @@ for skintype in skinGroup:
             CaseListExists.append(case + '+' + participant_number + '+' + position + str(IsUpsampled))
         loadedGeneratedCaseList = True
     for UpSampleData in UpSampleDataList:
-        objMain.mainMethod(UpSampleData,generateBinaryData,skintype,CaseListExists)  # Send true to generate binary object data holding images in arrays meaned
+        print('for upsample: ' + str(UpSampleData))
+        objMain.mainMethod(UpSampleData,generateBinaryData,skintype,CaseListExists,combinedRun)  # Send true to generate binary object data holding images in arrays meaned
     del objMain
     print('Program Ended')

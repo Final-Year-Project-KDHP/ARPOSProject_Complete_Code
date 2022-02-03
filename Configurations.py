@@ -10,14 +10,10 @@ Global and configuration parameters defined in this class
 """
 class Configurations:
     # change path here for uncompressed dataset
-    def __init__(self, isMain=False, skinGroup='None'):
+    def __init__(self, skinGroup='None'):
         # Get participant Ids
         self.getParticipantNumbers(skinGroup)
         self.setDiskPath(skinGroup)
-        # if(isMain):
-        #     # Get participant Ids
-        #     self.getParticipantNumbers(skinGroup)
-        #     self.setDiskPath(skinGroup)
 
     #Global parameters
     DiskPath = ""
@@ -27,37 +23,39 @@ class Configurations:
     current_Skin_Group = ""
 
     #Algorithm List
-    AlgoList = ["FastICA","PCAICA","FastICAComponents3Times", "PCA", "Jade","None"]#
+    AlgoList = ["FastICA","PCAICA","FastICA3Times", "PCA","None","Jade","FastICACombined", "PCACombined", "PCAICACombined","JadeCombined"]#,
     # AlgoList = ["FastICAComponents3"]#For any component higher than 1-> UserWarning: n_components is too large: it will be set to 1 #"FastICAComponents3", "FastICAComponents5","FastICAComponents10", ->Does not work
     AlgoCombinedList = ["FastICACombined", "PCACombined", "PCAICACombined","JadeCombined"]#TODO: TO APPLY THIS AS WELL in windows only as signal is of equal lenght
+    AlgoICARGB_IRList = ["FastICAICARGB_IR", "PCAICARGB_IR", "PCAICAICARGB_IR", "JadeICARGB_IR"]  # TODO: TO APPLY THIS AS WELL
+
     #FFT method types
-    fftTypeList = ["M1","M2", "M3","M4", "M5","M6"]#Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
+    fftTypeList = ["M1","M2", "M3","M4","M5"]#,"M6",, "M5" Where M1=M2 and M3=M7 and "M4", "M5", "M6",-> similar in graph  but test later with other types later
     #,"M7" -> same as m3 and not correct
 
     # with butter filter try ##,3,4,5,6,7,8,9,10 rest are all same result
     # Old with butter filter methods generate same values (polynomial order does not make a differnce for end result
-    filtertypeList = [1,2,3,4,5,6,7]#4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
+    filtertypeList = [1,2,3,4,5,6,7]#2,4,5,4, --> really bad result, 3, -> no result, FL1 and FL6 are same 1, --> , 2, 5,  7 as the required freq
 
     #Pre processing techniques
-    preprocesses = [1,2,3,4,5,6,7] # FOR THE NEW PARTIAL CLASS
+    preprocesses = [1,2,3,4,5,6,7] #,7 5,FOR THE NEW PARTIAL CLASS
         #OLD-> FOR OLD CLASS[1, 3, 6,7,4, 5]#2 and 8 (same as 3 adn 7), 6, 7, 8
     ##preprcess 5 does not produce good results for after excersize
 
     #Generating result methods (peak identification and frequency value identification) and getting bpm
-    resulttypeList = [ 1,2,3] #, 4 similar1, 2,
+    resulttypeList = [1,2,3] #,3, 4 similar1, 2,
 
     #geting heart rate by different methods in bpm
-    hrTypeList = [1,2,3] #NOT USED ANYMORE
+    # hrTypeList = [1,2,3] #NOT USED ANYMORE
 
     #geting signal to noise ratio
-    SNRTypeList = [1,2] #NOT USED ANYMORE
+    # SNRTypeList = [1,2] #NOT USED ANYMORE
 
     #Smoothen Curve after filtering frequency
-    Smoothen = [ False,True]#
+    Smoothen = [False,True]#
 
     # Compressed filtered fft result (remove zeros) before caluclating snr
     # to check if this creates better snr or not
-    Compressed = [False, True] #NOT USED ANYMORE
+    # Compressed = [False, True] #NOT USED ANYMORE
 
     #region of interests, add or reduce here.. (make sure it matches foldername is same as roi region name holding the data)
     roiregions = ["lips", "forehead", "leftcheek", "rightcheek"]
@@ -84,27 +82,19 @@ class Configurations:
     hearratestatus = ["Resting1","Resting2","AfterExcersize"]
 
     #Generate HTML Summary
-    GenerateSummary = False #NOT USED ANYMORE
+    GenerateSummary = False
 
     #Ignore gray when processing signals (only process r,g,b and ir)
-    ignoregray = False #NOT USED ANYMORE
+    ignoregray = False #ignoreing it creates bad result # TODO: gNEERATE CHARTS and show diff
 
     #Generate graphs when processing signals (only process r,g,b and ir)
     GenerateGraphs = False
 
     #StoreValuesinDisk
-    DumpToDisk = True
+    DumpToDisk = False#TODO:FIX
 
     #Run for window or for entire signal
-    RunAnalysisForEntireSignalData = True
-
-    # setup highpass filter
-    ignore_freq_below_bpm = 40
-    ignore_freq_below = ignore_freq_below_bpm / 60
-
-    # setup low pass filter
-    ignore_freq_above_bpm = 200
-    ignore_freq_above = ignore_freq_above_bpm / 60
+    RunAnalysisForEntireSignalData = True#TODO:for window run
 
     def setDiskPath(self, current_Skin_Group):
         self.DiskPath = 'E:\\ARPOS_Server_Data\\Server_Study_Data\\' + current_Skin_Group + "\\"
@@ -150,27 +140,6 @@ class Configurations:
         # if not os.path.exists(ProcessedDataPath):
         #     os.makedirs(ProcessedDataPath)
         return LoadColordataPath,LoadIRdataPath,LoadDistancePath #,ProcessedDataPath
-
-    ##window settings
-    LengthofAllFramesColor = 0
-    LengthofAllFramesIR = 0
-    TimeinSeconds = 0
-    step = 0  # slide window for 1 second or 30 frames
-    WindowtimeinSeconds = 0  # Window Size in seconds
-    WindowSlider = 0  # step * 5 second,  window can hold  150 frames or 5 second data
-    TotalWindows = 0  # second window gorup
-
-    def SetWindowSettings(self,ROIStore):
-        # Windows for regions (should be same for all)
-        self.LengthofAllFramesColor = ROIStore.get(self.roiregions[0]).getLengthColor()  # len() 0 is for lips  # all have same lenghts
-        self.LengthofAllFramesIR = ROIStore.get(self.roiregions[0]).getLengthIR()
-        self.TimeinSeconds = ROIStore.get("lips").totalTimeinSeconds  # LengthofAllFrames / objProcessData.ColorEstimatedFPS  # take color as color and ir would run for same window
-        self.step = 30  # slide window for 1 second or 30 frames
-        self.WindowtimeinSeconds = 10  # Window Size in seconds
-        self.WindowSlider = self.step * self.WindowtimeinSeconds  # step * 5 second,  window can hold  150 frames or 5 second data
-        # TODO: CHECK FOR 5 AND 6 SECOND WINDOW COMPARED TO 10 with results
-        # TotalWindows in this sample
-        self.TotalWindows = (self.TimeinSeconds - self.WindowtimeinSeconds) + 1  # second window gorup
 
     """
     getParticipantNumbers:
