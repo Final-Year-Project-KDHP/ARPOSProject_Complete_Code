@@ -742,23 +742,23 @@ class GeneratedDataFiltering:
 
     def PlotFromSQLQuery(self,objSQLConfig):
         #Param
-        skinGroup='Europe_WhiteSkin_Group'
+        skinGroup='SouthAsian_BrownSkin_Group'
         PreProcess = '6'
         FFT='M4'
         Filter='1'
         Result='2'
         Smoothen='True'
-        sqlResultData = objSQLConfig.ReadDataTable(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
+        sqlResultData = objSQLConfig.ReadDataTableByTechniqueParameters(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
 
         #by algo
         fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\AllParticipants\\"
         self.objFile.CreatePath(fullPath)
         fileName="boxPlot_OverallParticipants"
-        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName)
+        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType','OriginalDifference',"Box Plot for over all participants")
 
         dataGroupWise = objSQLConfig.getTableQueryGroupWiseDifferences(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
         fileName="boxPlot_OverallParticipants_GroupWise"
-        self.MakeBoxPlotGroupWisefromSQLData(dataGroupWise, fullPath,fileName)
+        self.MakeBoxPlotGroupWisefromSQLData(dataGroupWise, fullPath,fileName,'differenceType','DifferenceHR',"AlgorithmType")
 
         Position = 'Resting1'
         fileName="barPlot_OverallParticipants"
@@ -766,6 +766,73 @@ class GeneratedDataFiltering:
         # dataTimetoExecute = dataTimetoExecute.explode('totalTimeinMilliSeconds')
         # dataTimetoExecute['totalTimeinMilliSeconds'] = dataTimetoExecute['totalTimeinMilliSeconds'].astype('totalTimeinMilliSeconds')
         self.MakeBarTimePlotfromSQLData(dataTimetoExecute,fullPath,fileName)#TODO: VERIFY DATA
+
+    def PlotFromSQLQueryFinal(self,objSQLConfig,skinGroup,type,TechniqueId,HeartRateStatus,UpSampled):
+        TechniqueDetail = objSQLConfig.getTechniqueDetailFromId(TechniqueId)
+        PreProcess=TechniqueDetail['PreProcess'][0]
+        FFT=TechniqueDetail['FFT'][0]
+        Filter=TechniqueDetail['Filter'][0]
+        Result=TechniqueDetail['Result'][0]
+        Smoothen=TechniqueDetail['Smoothen'][0]
+        sqlResultData = objSQLConfig.ReadDataTableByTechniqueAndHeartRateStatus(skinGroup,str(PreProcess),FFT,str(Filter),str(Result),str(Smoothen),HeartRateStatus,str(UpSampled))
+        #by algo
+        folderName=''
+        if(UpSampled == '1'):
+            folderName = 'UpSampled'
+        else:
+            folderName = 'NOTUpSampled'
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\" + skinGroup + '\\'+folderName+'\\'
+        self.objFile.CreatePath(fullPath)
+        fileName="boxPlot_" +skinGroup + "_" +HeartRateStatus +"_"+type + '_' + str(TechniqueId)
+        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType',type,fileName)
+        a=0
+
+    def PlotFromSQLQuerySouthAsian(self,objSQLConfig,skinGroup,type,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
+        sqlResultData = objSQLConfig.GetBestSouthAsianCases(skinGroup, HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        #by algo
+        folderName=''
+        if(UpSampled == '1'):
+            folderName = 'UpSampled'
+        else:
+            folderName = 'NOTUpSampled'
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\" + skinGroup + '\\'+folderName+'\\'+ HeartRateStatus+'\\'
+        self.objFile.CreatePath(fullPath)
+        fileName="boxPlot_" +skinGroup + "_" +HeartRateStatus +"_"+type + '_' + str(TechniqueId)
+        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType',type,fileName)
+        a=0
+
+    def PlotFromSQLQueryAll(self,objSQLConfig,type,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
+        sqlResultData = objSQLConfig.GetBestAmongAll(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        #by algo
+        folderName=''
+        if(UpSampled == '1'):
+            folderName = 'UpSampled'
+        else:
+            folderName = 'NOTUpSampled'
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\All\\"+folderName+"\\"+ HeartRateStatus+"\\"
+        self.objFile.CreatePath(fullPath)
+        fileName="boxPlot_All_" +HeartRateStatus +"_"+type + '_' + str(TechniqueId)
+        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType',type,fileName)
+
+        ####tIME PLOT
+        dataTimetoExecute = objSQLConfig.getTableQueryTimetoRunForAll(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        fileName="BarplotTime_All_" +HeartRateStatus +"_" + str(TechniqueId)
+        self.MakeBarTimePlotfromSQLData(dataTimetoExecute, fullPath, fileName)
+
+    def PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(self,objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
+        sqlResultData = objSQLConfig.GetUpSampledVSNotSampledDataSpecific(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        folderName='Comparison'
+        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\All\\"+folderName+"\\"+ HeartRateStatus+"\\"
+        self.objFile.CreatePath(fullPath)
+        #For group
+        fileName="boxPlot_All_" +HeartRateStatus +"_NotVSUpSampled_" + str(TechniqueId)
+        self.MakeBoxPlotGroupWisefromSQLData(sqlResultData, fullPath,fileName,'SampleType','differenceHR',"AlgorithmType")
+        #For idnivudal
+        # fileName="boxPlot_All_" +HeartRateStatus +"_UpSampled_" + str(TechniqueId)
+        # self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType','differenceHR',fileName)
+        #
+        # fileName="boxPlot_All_" +HeartRateStatus +"_NOTSampled_" + str(TechniqueId)
+        # self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType','upSampledDiff',fileName)
 
     def GenerateCasesMain(self):
         self.CaseList = []
@@ -1181,7 +1248,7 @@ class GeneratedDataFiltering:
         plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+CaseFolder+"\\" + fileName + ".jpg")
 
 
-    def MakeBoxPlotfromSQLData(self,dataResult,fullPath,fileName):
+    def MakeBoxPlotfromSQLData(self,dataResult,fullPath,fileName,x, y,title):
         sns.set(font_scale=1.5) # Overaall font size
         plt.switch_backend('agg')
         plt.ioff()
@@ -1191,11 +1258,11 @@ class GeneratedDataFiltering:
         sns.set_style('whitegrid')
         plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
         # sns.set(rc={"figure.figsize": (14, 10)})  # width=3, #height=4
-        ax = sns.boxplot(x='AlgorithmType', y='OriginalDifference', data=dataResult)
+        ax = sns.boxplot(x=x, y=y, data=dataResult)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-        ax = sns.stripplot(x="AlgorithmType", y="OriginalDifference", data=dataResult)
+        ax = sns.stripplot(x=x, y=y, data=dataResult)
 
-        plt.title("Box Plot for over all participants", size=18)
+        plt.title(title, size=18)
 
         plt.xlabel("Algorithms")
         plt.ylabel("OriginalDifference")
@@ -1209,7 +1276,7 @@ class GeneratedDataFiltering:
 
         plt.savefig(fullPath + fileName + ".jpg")
 
-    def MakeBoxPlotGroupWisefromSQLData(self, dataResult, fullPath, fileName):
+    def MakeBoxPlotGroupWisefromSQLData(self, dataResult, fullPath, fileName,x, y, hue):
 
         sns.set(font_scale=1.5)  # Overaall font size
         plt.switch_backend('agg')
@@ -1220,9 +1287,9 @@ class GeneratedDataFiltering:
         plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
         sns.set_style('whitegrid')
 
-        ax = sns.boxplot(x='differenceType', y='DifferenceHR', hue="AlgorithmType", data=dataResult)
+        ax = sns.boxplot(x=x, y=y, hue=hue, data=dataResult)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
-        ax = sns.stripplot(x="differenceType", y="DifferenceHR", hue="AlgorithmType", data=dataResult,
+        ax = sns.stripplot(x=x, y=y, hue=hue, data=dataResult,
                            palette="Set2")  # , size=6, marker="D",edgecolor="gray", alpha=.25
         handles, labels = ax.get_legend_handles_labels()
         plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
@@ -1249,7 +1316,7 @@ class GeneratedDataFiltering:
         plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
         sns.set_style('whitegrid')
         sns.barplot(data=dataResult, x="AlgorithmType", y="totalTimeinMilliSeconds")
-        plt.title('Time taken to execute for this case for this skin group')
+        plt.title('Time taken (MILLISECONDS) to execute ' + fileName)
         plt.xlabel('Algorithm types')
         plt.ylabel('Average time over all participants')
         plt.tight_layout()
@@ -1694,5 +1761,42 @@ objFilterData.AcceptableDifference = 10
 # objFilterData.TestBoxPlot()# enitere signal
 # objFilterData.TestBoxPlotWindow()#WINDOWs
 # objFilterData.PlotSignal() # to plot graph
+#Parameters
+
+# NotUpSapmled =[9406,10414,9154,9658,9910,9532,9763,3837,9091,3333,10540,3585,9175,9616,9259,4341,
+#                9343,10351,9847,9112,9931,3081,9427,9784,9511,10435,10036,10519,4299,9280,9595,
+#                9364,9679,9868,10372,10372]
+# UpSampled='0'
+
+# UpSampledList = [9406,10414,9154,9658,9910,9532,10540,9112,9175,9616,9931,9280,10036,9364,9427,9868,9679,9784,10372,10435,9091,10351,9595,9343,9847]
+# UpSampled='1'
+
+UpSampledList= []
+NotUpsampledList = []
+UpSampled =0
+
+loadedlsit=objFilterData.objFile.ReaddatafromFile('C:\\Users\\pp62\\PycharmProjects\\ARPOSProject\\BestCaseTechniqueIds\\','SouthAsianNOTupSampledCases')
+
+for item in loadedlsit:
+    NotUpsampledList.append(item.replace('\n',''))
+
+print(NotUpsampledList)
+
 objSQLConfig = SQLConfig()
-objFilterData.PlotFromSQLQuery(objSQLConfig)
+#objSQLConfig,skinGroup,PreProcess,FFT,Filter,Result,Smoothen,HeartRateStatus,type
+# objFilterData.PlotFromSQLQueryFinal(objSQLConfig,'SouthAsian_BrownSkin_Group','5','M3','5', '3','False','Resting1','SPODifference')
+# for hrstatus in objFilterData.objConfig.hearratestatus:
+#     for techid in NotUpsampledList:
+#         # objFilterData.PlotFromSQLQueryFinal(objSQLConfig,'SouthAsian_BrownSkin_Group','HeartRateDifference',str(techid),'Resting1',UpSampled)
+#         objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(techid),hrstatus,  UpSampled, 1)
+
+# objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting1',  UpSampled, 1)
+# objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting2',  UpSampled, 1)
+
+# for hrstatus in objFilterData.objConfig.hearratestatus:
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9406),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9154),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
+objFilterData.PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)
