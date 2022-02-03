@@ -13,8 +13,9 @@ class SQLConfig:
                                 UID=sa; PWD=A@1234567; DataBase=ARPOS''')
         self.cursor = self.conn.cursor()
 
-    def getProcessedCases(self):
-        Query = "select  CONCAT(Techniques.AlgorithmType , '_PR-',Techniques.PreProcess,'_FFT-',Techniques.FFT , '_FL-' , Techniques.Filter  , '_RS-' , Techniques.Result , '_SM-' + Techniques.Smoothen) as CaseProcessed, ParticipantId,HeartRateStatus,UpSampled from ParticipantsResultsEntireSignal join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId"
+    def getProcessedCases(self,SkinGroup,AttemptType):
+        Query = "select  CONCAT(Techniques.AlgorithmType , '_PR-',Techniques.PreProcess,'_FFT-',Techniques.FFT , '_FL-' , Techniques.Filter  , '_RS-' , Techniques.Result , '_SM-' + Techniques.Smoothen) as CaseProcessed, ParticipantsResultsEntireSignal.ParticipantId,HeartRateStatus,UpSampled from ParticipantsResultsEntireSignal join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId"
+        Query = Query + " join Participants on Participants.ParticipantId = ParticipantsResultsEntireSignal.ParticipantId where SkinGroup = '" + SkinGroup + "' and AttemptType=" + AttemptType
         dataTable = pd.read_sql_query(Query, self.conn)
         dataTable.head()
         return dataTable
@@ -41,9 +42,39 @@ class SQLConfig:
         FullQuery = param + " " + QuerySelect + " " + QueryColumn1 + QueryColumn2 + QueryColumn3 + QueryColumn4 + " " + QueryTable  + " " + QueryJoins + " " + QueryCondition
         return FullQuery
 
+    def getTableQueryDifferencesByTechniqueAndHeartRateStatus(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen,HeartRateStatus,UpSampled):
+        ##Parameters
+        param = "declare @skinGroup as varchar(150), @PreProcess int,@FFT varchar(50), @Filter int, @Result int, @Technique int, @Smoothen varchar(50),@heartRateStatus varchar(150)  " + \
+                " set @PreProcess = " + PreProcess + \
+                " set @heartRateStatus = '" + HeartRateStatus + "' " +\
+                " set @FFT = '" + FFT + "' " + \
+                " set @Filter = " + Filter + \
+                " set @Result = " + Result + \
+                " set @Smoothen = '" + Smoothen + "' " + \
+                " set @skinGroup = '" + skinGroup + "' "
+
+        QuerySelect = "select"
+        QueryColumn1 = "ParticipantsResultsEntireSignal.ParticipantId, ParticipantsResultsEntireSignal.HeartRateStatus, ParticipantsResultsEntireSignal.differenceHR as 'HeartRateDifference', ParticipantsResultsEntireSignal.differenceSPO as 'SPODifference', ParticipantsResultsEntireSignal.ColorFPS,ParticipantsResultsEntireSignal.IRFPS, "
+        # QueryColumn2 = "(select t2.differenceHR from ParticipantsResultsEntireSignal t2 where TechniqueId=ParticipantsResultsEntireSignal.TechniqueId and ParticipantId = ParticipantsResultsEntireSignal.ParticipantId and HeartRateStatus =@heartRateStatus and UpSampled =1) as 'UpSampledHeartRateDifference', "
+        # QueryColumn3 = "(select t2.differenceSPO from ParticipantsResultsEntireSignal t2 where TechniqueId=ParticipantsResultsEntireSignal.TechniqueId and ParticipantId = ParticipantsResultsEntireSignal.ParticipantId  and HeartRateStatus =@heartRateStatus and UpSampled =1)  as 'UpSampledSPODifference', "
+        QueryColumn4 = "Techniques.*"
+        QueryTable = "from ParticipantsResultsEntireSignal"
+        QueryJoins = "join Participants on Participants.ParticipantId = ParticipantsResultsEntireSignal.ParticipantId join Techniques on Techniques.Id = ParticipantsResultsEntireSignal.TechniqueId "
+        QueryCondition = "where TechniqueId in (select Id from Techniques where  PreProcess = @PreProcess and FFT = @FFT and Filter = @Filter and Result =@Result and Smoothen = @Smoothen) and SkinGroup =@SkinGroup and HeartRateStatus =@heartRateStatus and UpSampled =" + UpSampled
+
+        FullQuery = param + " " + QuerySelect + " " + QueryColumn1 +  QueryColumn4 + " " + QueryTable  + " " + QueryJoins + " " + QueryCondition
+        return FullQuery
+
     def getTableQueryTimetoRun(self, skinGroup,PreProcess,FFT,Filter,Result,Smoothen,Position):
         ##Parameters
         FullQuery = "exec AverageTimeAgainstTechnique '" + skinGroup + "', " + PreProcess + ",'" + FFT + "'," + Filter + "," + Result + ",'" + Smoothen + "', '" + Position + "'"
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def getTableQueryTimetoRunForAll(self, HeartRateStatus,UpSampled,AttemptType, TechniqueId):
+        ##Parameters
+        FullQuery = "exec AverageTimeAgainstTechniqueIdForAll " + UpSampled + ",'" + HeartRateStatus + "'," + AttemptType + "," + TechniqueId
         dataTable = pd.read_sql_query(FullQuery, self.conn)
         dataTable.head()
         return dataTable
@@ -55,9 +86,42 @@ class SQLConfig:
         dataTable.head()
         return dataTable
 
-    def ReadDataTable(self,skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
+    def ReadDataTableByTechniqueParameters(self,skinGroup,PreProcess,FFT,Filter,Result,Smoothen):
         FullQuery = self.getTableQueryDifferences(skinGroup,PreProcess,FFT,Filter,Result,Smoothen)
         dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def GetBestSouthAsianCases(self,skinGroup,HeartRateStatus,UpSampled,AttemptType, TechniqueId):
+        ##Parameters
+        FullQuery = "exec GetBestSouthAsianCases '" + skinGroup + "', " + UpSampled + ",'" + HeartRateStatus + "'," + AttemptType + "," + TechniqueId
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def GetBestAmongAll(self,HeartRateStatus,UpSampled,AttemptType, TechniqueId):
+        ##Parameters
+        FullQuery = "exec GetBestAmongAll " + UpSampled + ",'" + HeartRateStatus + "'," + AttemptType + "," + TechniqueId
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def GetUpSampledVSNotSampledDataSpecific(self,HeartRateStatus,UpSampled,AttemptType, TechniqueId):
+        ##Parameters
+        FullQuery = "exec GetUpSampledVSNotSampledDataSpecific " + UpSampled + ",'" + HeartRateStatus + "'," + AttemptType + "," + TechniqueId
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def ReadDataTableByTechniqueAndHeartRateStatus(self,skinGroup,PreProcess,FFT,Filter,Result,Smoothen,HeartRateStatus,UpSampled):
+        FullQuery = self.getTableQueryDifferencesByTechniqueAndHeartRateStatus(skinGroup,PreProcess,FFT,Filter,Result,Smoothen,HeartRateStatus,UpSampled)
+        dataTable = pd.read_sql_query(FullQuery, self.conn)
+        dataTable.head()
+        return dataTable
+
+    def getTechniqueDetailFromId(self,TechniqueId):
+        TechniqueIdQuery = "select *  from Techniques where Id = "+ TechniqueId
+        dataTable = pd.read_sql_query(TechniqueIdQuery, self.conn)
         dataTable.head()
         return dataTable
 
@@ -125,7 +189,10 @@ class SQLConfig:
                                 objParticipantsResultEntireSignalDataRow.SelectedColorFPSMethod + "','"+
                                 objParticipantsResultEntireSignalDataRow.SelectedIRFPSMethod + "', " +
                                 objParticipantsResultEntireSignalDataRow.GroundTruthHeartRate + ","+
-                                objParticipantsResultEntireSignalDataRow.GroundTruthSPO + " ")
+                                objParticipantsResultEntireSignalDataRow.GroundTruthSPO + ","+
+                                objParticipantsResultEntireSignalDataRow.AttemptType + ",'"+
+                                objParticipantsResultEntireSignalDataRow.FPSNotes + "' "
+                                )
 
             self.conn.commit()
         except Exception:
