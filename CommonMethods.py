@@ -58,6 +58,44 @@ def splitGroundTruth(groundtruth,TotalWindows,step):
     return HrAvgList
 
 
+
+def splitLastSecondGroundTruth(groundtruth,TotalWindows,step):
+    initialEndindex =step #5 in seconds
+    initialindex = 0
+    lastSecValue = 0
+    HrAvgList = []
+    TotalWindows= round(TotalWindows)
+    for j in range(0, TotalWindows):
+        #initialEndindex = initialEndindex + step
+        initialEndindex = step + j
+        if (initialEndindex < len(groundtruth)):
+            lastSecValue = groundtruth[initialEndindex-1]
+
+        HrAvgList.append(round(lastSecValue))
+
+    return HrAvgList
+
+def splitGroundTruthLessWindows(groundtruth,TotalWindows,step):
+    AvgValue = 0
+    HrAvgList = []
+    TotalWindows= round(TotalWindows)
+    groundtruth = np.array(groundtruth)
+    initialIndex = 0
+    endIndex =step
+    for j in range(0, TotalWindows):
+        AvgValue=0
+        for x in range(initialIndex, endIndex):
+            AvgValue = AvgValue + int(groundtruth[x])
+
+        AvgValue = AvgValue / step
+        HrAvgList.append(round(AvgValue))
+
+        initialIndex = initialIndex + step
+        endIndex =endIndex +step
+
+    return HrAvgList
+
+
 def AvegrageGroundTruth(groundtruth):
     AvgValue = 0
     groundtruth = np.array(groundtruth)

@@ -10,17 +10,18 @@ directory_path = os.getcwd()
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 #Global
-DiskPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\SouthAsian_BrownSkin_Group\\"
+DiskPath = "D:\\ARPOS_Server_Data\\Server_Study_Data\\AllParticipants\\GroundTruthData\\"
 
-ParticipantNumbers= ["PIS-7180"]
-hearratestatus = [ "Resting1", "Resting2", "AfterExcersize"] # , "AfterExcersize"heart rate status example resting state and after small workout
+ParticipantNumbers= ["PIS-2047"]
+
+hearratestatus = [ "Resting1", "Resting2", "AfterExcersize"] # Resting1, "Resting2", "AfterExcersize" heart rate status example resting state and after small workout
 
 # ParticipantNumber= "PIS-4709"#"PIS-1118,PIS-2212, PIS-3252, PIS-3807, PIS-4497, PIS-5868, PIS-8308, PIS-8343, PIS-9219
 # position = "Resting1"
 for ParticipantNumber in ParticipantNumbers:
     print('Participant Id : ' + ParticipantNumber)
 
-    LoadPath = DiskPath + r'\\GroundTruthData\\'+ ParticipantNumber + '\\'#r'GroundTruth/PIS-8308/Resting1/'
+    LoadPath = DiskPath +  ParticipantNumber + '\\'#r'GroundTruth/PIS-8308/Resting1/'
 
     for position in hearratestatus:
         print('Processing for : ' + position)
@@ -53,7 +54,8 @@ for ParticipantNumber in ParticipantNumbers:
             print("Wait for the header")
 
         pos_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)  # p.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)
-        endsecond =((fps *10) + (fps *60))
+        initialSkipSecond = fps*0
+        endsecond =((initialSkipSecond) + (fps *60))
 
         TfPS =1# Target Keyframes Per Second
         hop = round(fps / TfPS) #+3
@@ -62,7 +64,7 @@ for ParticipantNumber in ParticipantNumbers:
         while True:
             flag, frame = cap.read()
             if flag:
-                if(framecount> fps*20): ##Change here to skip initial seconds
+                if(framecount> initialSkipSecond): ##Change here to skip initial seconds
                     if framecount % hop == 0:
                         # count = count + 1
                         # process for ocr.
@@ -73,7 +75,7 @@ for ParticipantNumber in ParticipantNumbers:
                         img = cv2.dilate(img, kernel, iterations=1)
                         img = cv2.erode(img, kernel, iterations=1)
 
-                        # #ROI
+                        # # ROI
                         # fromCenter = 0
                         # showCrosshair = 0
                         # imgData = img
@@ -88,17 +90,17 @@ for ParticipantNumber in ParticipantNumbers:
 
                         #Changes as per mobile resolution
 
-                        Col0 = 497 #571
-                        Col1 = 234 #231
-                        Col2 =  131 #135
-                        Col3 = 77 #79
+                        Col0 = 667#582 #
+                        Col1 = 331
+                        Col2 =  209#127#
+                        Col3 =  118
                         crop_imgspo = img[Col1:int(Col1 + Col3), Col0:int(Col0 + Col2)]# img[311:int(311 + 126), 838:int(838 + 214)]
 
 
-                        Col0 =489#584
-                        Col1 = 457#534
-                        Col2 = 127#114
-                        Col3 = 69#72
+                        Col0 = 664#574#
+                        Col1 = 673#571#
+                        Col2 =205
+                        Col3 = 108
                         crop_imghr = img[Col1:int(Col1 + Col3), Col0:int(Col0 + Col2)]#img[668:int(668 + 123), 826:int(826 + 240)]
                         # # Display cropped image
                         # cv2.imshow("Image", crop_imgspo)

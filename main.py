@@ -1,18 +1,29 @@
+import csv
+import os
+import re
 import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
+import scipy.stats
+from scipy.stats import chisquare
+import scipy.stats as stats
 
 import CommonMethods
+from CalculateAndStoreOnDisk.InitiateProcessingStorage import InitiateProcessingStorage
+from CheckReliability import CheckReliability
 from Configurations import Configurations
 from FileIO import FileIO
 from LoadFaceData import LoadFaceData
 from ProcessParticipantsData import Process_SingalData, objFile
 from GlobalDataFile import GlobalData, WindowProcessedData
+from ResultsandGraphs import ResultsandGraphs
 from SQLResults.SQLConfig import SQLConfig
+from SaveGraphs import Plots
 
 """
 Main Class:
 """
-
-
 class Main:
     # Store Region of Interest and Results
     ROIStore = {}
@@ -20,17 +31,32 @@ class Main:
     # Global Objects
     objConfig = None
     objSQLConfig= None
-    objFileIO = FileIO()
+    objFileIO = None
     ParticipantsProcessedHeartRateData = {}
     ParticipantsProcessedBloodOxygenData = {}
     HRNameFileName = "AvgHRdata_"
     SPONameFileName = "AvgSPOdata_"
     CaseList = []
 
+    HeaderRow = 'WindowCount,bestSnrString,GroundTruth HeartRate Averaged,Computed HeartRate,HRDifference from averaged,' \
+                'bestBpm Without ReliabilityCheck,OriginalObtianedAveragedifferenceHR, Hr from windows last second, ' \
+                'LastSecondWindow differenceHR, OriginalObtianed LastSecondWindow differenceHR,' \
+                'GroundTruth SPO Averaged,Computed SPO,SPO Difference from averaged,best SPO WithoutReliability Check,Original Obtianed Average differenceSPO,' \
+                'SPOLastSecond,LastSecondWindowdifferenceSPO ,OriginalObtianedLastSecondWindowdifferenceSPO, Regiontype, channeltype,' \
+                'FrequencySamplingError,heartRateError,TotalWindowCalculationTimeTaken,' \
+                'PreProcessTimeTaken,AlgorithmTimeTaken,FFTTimeTaken,SmoothTimeTaken,' \
+                'FilterTimeTaken,ComputingHRSNRTimeTaken,ComputingSPOTimeTaken,Algorithm_type,' \
+                'FFT_type,Filter_type,Result_type,Preprocess_type,isSmoothen,ColorFPS,IRFPS,' \
+                'SelectedColorFPSMethod,SelectedIRFPSMethod,' \
+                'AttemptType,FPSNotes,UpSampled'
+    HeaderRowSplit = []
+
     # Constructor
     def __init__(self, skinGroup='None'):
         self.objConfig = Configurations(skinGroup)
         self.objSQLConfig = SQLConfig()
+        self.objFileIO = FileIO()
+        self.HeaderRowSplit = self.HeaderRow.split(",")
 
     """
     Generate cases:
@@ -48,20 +74,6 @@ class Main:
                                                + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
                                     if (fileName not in self.CaseList):
                                         self.CaseList.append(fileName)
-                                    # print("INSERT INTO Techniques(AlgorithmType,PreProcess,FFT,Filter,Result,Smoothen)VALUES('" + algoType + "'," +
-                                    #       str(preprocesstype) +",'" + fftype + "'," + str(filtertype) + "," + str(resulttype) + ",'" + str(isSmooth) + "')")
-
-        # CaseListExists= []
-        # ExistingCasesDT = self.objSQLConfig.getProcessedCases()
-        # for fullRow in ExistingCasesDT.iterrows():
-        #     rowData = fullRow[1]
-        #     case = rowData.get('CaseProcessed')
-        #     participant_number = rowData.get('ParticipantId')
-        #     position = rowData.get('HeartRateStatus')
-        #     IsUpsampled = rowData.get('UpSampled')
-        #     CaseListExists.append(case + '+' + participant_number+'+' +position + str(IsUpsampled))
-        #
-        # return CaseListExists
 
     def CheckIfGenerated(self, fileName):
         pathExsists = objFile.FileExits(self.objConfig.SavePath + 'Result\\' + 'HRSPOwithLog_' + fileName + ".txt")
@@ -70,351 +82,26 @@ class Main:
             return True
         return False
 
-
-    def CustomCaseList(self):
-        # CustomCases = self.objFile.ReaddatafromFile(self.objConfig.DiskPath,'NoHrFilesCases')
-        CustomCases = []
-        #FOR White skin
-        ###second with rs=2 only
-
-        CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M1_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M4_FL-3_RS-1_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M3_FL-7_RS-1_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M4_FL-3_RS-1_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M4_FL-7_RS-1_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M4_FL-7_RS-1_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M4_FL-7_RS-1_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M3_FL-7_RS-1_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-7_RS-1_SM-True')
-
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-3_RS-1_SM-True') #-->4497
-
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-5_RS-1_SM-False') #-->2047,2212,8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-3_RS-1_SM-False') #-->2047,2212,8343
-
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-1_SM-True') #-->2212
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-5_RS-1_SM-False') #-->2212
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-3_RS-1_SM-False') #-->2212
-
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-5_RS-1_SM-False') #-->8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-3_RS-1_SM-False') #-->8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-7_RS-1_SM-True') #-->8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M1_FL-7_RS-1_SM-True') #--> 8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-7_RS-1_SM-True') #--> 8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M1_FL-6_RS-2_SM-False') #--> 8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M1_FL-7_RS-1_SM-False') #--> 8343
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-7_RS-1_SM-False') #--> 8343
-        #........................................
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-6_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-1_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-6_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-1_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-2_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-6_RS-2_SM-False')
-        ############################
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M1_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M1_FL-5_RS-2_SM-False')
-
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-1_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-2_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-3_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-4_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-3_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-3_RS-2_SM-False')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-5_RS-2_SM-True')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M2_FL-5_RS-2_SM-False')
-        #
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA3Times_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA3Times_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA3Times_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA3Times_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA3Times_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
-        ################First attempt below
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M4_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M5_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M5_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M5_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-5_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M4_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M5_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M5_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M5_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-5_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M4_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M5_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M5_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M5_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-5_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M4_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M5_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M5_FL-2_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M5_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-5_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-5_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-5_FFT-M4_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-5_FFT-M4_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-5_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M6_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M2_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M4_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M5_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M6_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-6_FFT-M6_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M6_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M2_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M4_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M5_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M6_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCAICA_PR-6_FFT-M6_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-1_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M6_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M2_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M4_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M5_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M6_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-6_FFT-M6_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M1_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M4_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_PCA_PR-6_FFT-M2_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M4_FL-3_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-5_RS-1_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M6_FL-2_RS-3_SM-FALSE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M1_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-2_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-3_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-5_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M2_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M4_FL-1_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M4_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-3_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M5_FL-5_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M6_FL-1_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_None_PR-6_FFT-M6_FL-2_RS-3_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICA_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M1_FL-6_RS-2_SM-TRUE')
-        # CustomCases.append('HRSPOwithLog_FastICAComponents3Times_PR-7_FFT-M5_FL-6_RS-2_SM-TRUE')
-        self.CaseList = []
-        for case in CustomCases:
-            case = case.replace('\n','')
-            caseSplit = case.split('_')
-            algoType = caseSplit[1]
-            preprocesstype = caseSplit[2].replace('PR-','')
-            fftype = caseSplit[3].replace('FFT-','')
-            filtertype = caseSplit[4].replace('FL-','')
-            resulttype = caseSplit[5].replace('RS-','')
-            isSmooth = caseSplit[6].replace('SM-','')
-            fileName = algoType + "_PR-" + str(preprocesstype) + "_FFT-" + str(
-                fftype) + "_FL-" + str(filtertype) \
-                       + "_RS-" + str(resulttype) + "_SM-" + str(isSmooth)
-            self.CaseList.append(fileName)
-
-    def CustomLeftOverCases(self):
-        self.CaseList = []
-        self.CaseList.append('FastICACombined_PR-6_FFT-M4_FL-4_RS-3_SM-True')
-        # self.CaseList.append('JadeCombined_PR-7_FFT-M4_FL-7_RS-1_SM-False')
-        # self.CaseList.append('PCAICA_PR-7_FFT-M4_FL-7_RS-1_SM-False')
-        # self.CaseList.append('JadeCombined_PR-1_FFT-M1_FL-5_RS-3_SM-True')
-        # self.CaseList.append('JadeCombined_PR-1_FFT-M2_FL-5_RS-3_SM-True')
-        # self.CaseList.append('JadeCombined_PR-5_FFT-M4_FL-6_RS-3_SM-False')
-        # self.CaseList.append('FastICA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('FastICACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('PCACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('PCAICACombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('PCAICA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('JadeCombined_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('FastICA3Times_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('PCA_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-        # self.CaseList.append('None_PR-3_FFT-M2_FL-3_RS-3_SM-False')
-
     """
      GenerateResultsfromParticipants:
      """
-    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing, UpSampleData,CaseListExists,NoHRCases,AttemptType):
-        # self.CustomCaseList()#
+    def GenerateResultsfromParticipants(self, ParticipantsOriginalDATA,typeProcessing, UpSampleData,CaseListExists,NoHRCases,AttemptType,skintype):
         self.GenerateCases()
-        # self.CustomLeftOverCases()
         TotalCasesCount = len(self.CaseList)
-        print(str(TotalCasesCount))
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
                 print(participant_number + ', ' + position)
                 objWindowProcessedData = ParticipantsOriginalDATA.get(participant_number + '_' + position)
                 self.objConfig.setSavePath(participant_number, position,typeProcessing)
                 currentCasesDone = 0
-                IsGenerated = False
                 for case in self.CaseList:
                     casefullValue = case + '+' + participant_number+'+' +position + str(UpSampleData)
                     IsGenerated= True if CaseListExists.count(casefullValue) else False
                     if(not IsGenerated):
                         IsGenerated= True if NoHRCases.__contains__(case) else False
-                    # if casefullValue in CaseListExists:
-                    #     print('Item exists!')
-                    #     IsGenerated=True
-                    # ResultCaseList = CaseListExists.__getitem__(casefullValue) #  self.CheckIfGenerated(CaseListExists)
-                    # IsGenerated = False if len(ResultCaseList) <=0 else True #'1' if UpSampleData == True else '0'
                     if(not IsGenerated):
                         currentCasesDone = currentCasesDone + 1
                         currentPercentage = ((currentCasesDone/TotalCasesCount)*100)
-                        # if (IsGenerated):
-                        #     continue
-                        # else:
                         print(case + '  -> ' + str(currentPercentage) + ' out of 100%')
                         splitCase = case.split('_')
                         fileName = case
@@ -440,9 +127,7 @@ class Main:
                             objWindowProcessedData.HrGroundTruthList, objWindowProcessedData.SPOGroundTruthList,
                             fileName, self.objConfig.DumpToDisk,participant_number,position,UpSampleData,AttemptType)
                         if(objParticipantsResultEntireSignalDataRow != 'NO HR'):
-                            # ListobjParticipantsResultEntireSignalDataRowAll.append(objParticipantsResultEntireSignalDataRow)
-                            self.objSQLConfig.SaveRowParticipantsResultsEntireSignal(
-                                objParticipantsResultEntireSignalDataRow)
+                            self.objSQLConfig.SaveRowParticipantsResultsEntireSignal(objParticipantsResultEntireSignalDataRow)
                         else:
                             if(not NoHRCases.__contains__(case)):
                                 exists = self.objFileIO.FileExits(self.objConfig.SavePath+ "NOHRCases_" + skintype+ ".txt")
@@ -453,20 +138,13 @@ class Main:
 
                 ParticipantsOriginalDATA.pop(participant_number + '_' + position)
 
-        # for objParticipantsResultEntireSignalDataRow in ListobjParticipantsResultEntireSignalDataRowAll:
-        #     self.objSQLConfig.SaveRowParticipantsResultsEntireSignal(objParticipantsResultEntireSignalDataRow)
-
-    # a
-    def LoadandGenerateFaceDatatoBianryFiles(self,SaveFileName,UpSampleData):
+    def LoadandGenerateFaceDatatoBianryFiles(self,SaveFileName, UpSampleData, SaveFolder):
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
-                self.objConfig.setSavePath(participant_number, position, 'RawOriginal')  # set path
-                print('Loading and generating FaceData for ' + participant_number + ', ' + position)
-                print('Loading from path ' + self.objConfig.DiskPath)
-                print('Storing data to path ' + self.objConfig.SavePath)
-                # generate only if does not exist
-                # if (True):#not self.objFileIO.FileExits(self.objConfig.SavePath + SaveFileName)
-                    # for each roi and put in Store Region
+                self.objConfig.setSavePath(participant_number, position, SaveFolder)  # set path
+                print('Loading and generating FaceData for ' + participant_number + ', ' + position + " and UpSampleData" + str(UpSampleData))
+                print('Loading from path ' + self.objConfig.DiskPath + '; Storing data to path ' + self.objConfig.SavePath)
+                # for each roi and put in Store Region
                 for region in self.objConfig.roiregions:
                     # Init for each region
                     objFaceImage = LoadFaceData()
@@ -503,32 +181,40 @@ class Main:
                     # delete face image object
                     del objFaceImage
 
-                ###Get ground Truth
                 HrGr, SpoGr = CommonMethods.GetGroundTruth(participant_number, position,
-                                                           self.objConfig.DiskPath, int(self.ROIStore.get(
-                        self.objConfig.roiregions[0]).totalTimeinSeconds))
+                                                           self.objConfig.DiskPath.replace("SerialisedRawServerData",""),
+                                                           int(self.ROIStore.get(self.objConfig.roiregions[0]).totalTimeinSeconds))
 
                 ##Original Data storage
                 objWindowProcessedData = WindowProcessedData()
                 objWindowProcessedData.HrGroundTruthList = HrGr
                 objWindowProcessedData.SPOGroundTruthList = SpoGr
-                objWindowProcessedData.ColorLengthofAllFrames = self.ROIStore.get(
-                    self.objConfig.roiregions[0]).getLengthColor()
-                objWindowProcessedData.IRLengthofAllFrames = self.ROIStore.get(
-                    self.objConfig.roiregions[0]).getLengthIR()
-                objWindowProcessedData.TimeinSeconds = int(
-                    self.ROIStore.get(self.objConfig.roiregions[0]).totalTimeinSeconds)
+                objWindowProcessedData.ColorLengthofAllFrames = self.ROIStore.get(self.objConfig.roiregions[0]).getLengthColor()
+                objWindowProcessedData.IRLengthofAllFrames = self.ROIStore.get(self.objConfig.roiregions[0]).getLengthIR()
+                objWindowProcessedData.TimeinSeconds = int(self.ROIStore.get(self.objConfig.roiregions[0]).totalTimeinSeconds)
                 objWindowProcessedData.ROIStore = self.ROIStore
-
-                self.objFileIO.DumpObjecttoDisk(self.objConfig.SavePath, SaveFileName,
-                                                objWindowProcessedData)
+                self.objFileIO.DumpObjecttoDisk(self.objConfig.SavePath.replace("SerialisedRawServerData",""), SaveFileName, objWindowProcessedData)
 
                 del objWindowProcessedData
 
     '''
     LoadBinaryData: load data from disk ParticipantsOriginalDATA[ParticipantNumber + Position] -> ROISTORE data
     '''
-    def LoadBinaryData(self,SaveFileName,UpSampleData):
+    def LoadBinaryData(self, FileName,LoadFolder):
+        ParticipantsOriginalDATA = {}
+        for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
+            for position in self.objConfig.hearratestatus:  # for each heart rate status (resting or active)
+                self.objConfig.setSavePath(participant_number, position, LoadFolder)  # set path
+
+                ##binary Data read from disk
+                objWindowProcessedData = self.objFileIO.ReadfromDisk(self.objConfig.SavePath, FileName)
+
+                # Store for procesing locally
+                ParticipantsOriginalDATA[participant_number + '_' + position] = objWindowProcessedData
+
+        return ParticipantsOriginalDATA
+
+    def LoadBinaryDataOld(self,SaveFileName,UpSampleData):
         ParticipantsOriginalDATA = {}
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
 
@@ -694,7 +380,7 @@ class Main:
     '''
     Loadnohr files:  for testing cases check only
     '''
-    def LoadNoHRfILES(self,SaveFileName):
+    def LoadNoHRfILES(self,SaveFileName,skintype):
 
         for participant_number in self.objConfig.ParticipantNumbers:  # for each participant
             # ListSumCases = 0
@@ -718,70 +404,190 @@ class Main:
             ListAllbyPostion = list(dict.fromkeys(ListAllbyPostion))
             # print(skintype+ ', ' + str((len(ListAllbyPostion))))
         return ListAllbyPostion
-    def mainMethod(self,UpSampleData,generateBinaryData,skintype,CaseListExists,combinedRun):
-        # For generating meaned channel arrays of image and other required data in form of a objectProcessedData (See class WindowProcessedData)
-        # Reqruied to run only once, binary data
-        # self.objConfig.ParticipantNumbers = ["PIS-1118"]#,"PIS-2047","PIS-8343"
-        # self.objConfig.hearratestatus = ["Resting1"]
-        AttemptType =1
-        if(UpSampleData):
-            SaveFileName ='UnCompressedBinaryLoadedDataUpSampled' #'UnCompressedBinaryLoadedDataUpSampledAttempt2TrimmedTime' #UnCompressedBinaryLoadedDataUpSampled,UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedUpSampled
-            if (combinedRun):
-                SaveFileName = 'UnCompressedBinaryLoadedDataUpSampledCombinedSameLength'
-            # SaveFileName = 'UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedUpSampledAttempt2' #for 4014 only
+
+    def GenerateFaceData(self):
+        self.LoadandGenerateFaceDatatoBianryFiles("BinaryFaceROI", False,'BinaryFaceROIDataFiles')# Requries -> SaveFileName, UpSampleData, SaveFolder
+
+    def RunAllinOneGo(self,skintype):
+        self.GenerateFaceData()  # Run only once
+
+        # Load data
+        ParticipantsDATA = self.LoadBinaryData("BinaryFaceROI", 'BinaryFaceROIDataFiles')
+
+        # if(self.objConfig.RunAnalysisForEntireSignalData):
+        #     #For entire signal
+        # else:
+        #     #For Window FolderNameforSave = 'ProcessedDataWindows'
+        #  Load Data from path and Process Data
+        self.GenerateResultsfromParticipants(ParticipantsDATA, 'ProcessedData',skintype)  # FOR Window processing
+
+    '''
+    GenerateGraphfromStoredFile: 
+    '''
+    def GenerateGraphfromStoredFile(self):
+        PlotType = "FFT"# "PreProcessed"
+        DiskPath = "D:\\ARPOS_Server_Data\\Server_Study_Data\\AllParticipants\\"
+        FolderName = "FFTDataFiles"#"PreProcessDataFilesSameLength"#"PreProcessDataFiles"
+        participantNumber = "PIS-1032"
+        position = "Resting1"
+        subFolderName = "FFT_M1_Algorithm_FastICA3TimesCombined_PreProcess_6"
+        fileName = "ProcessedWindow_5"
+        fullPath = DiskPath + FolderName + "\\" + participantNumber + "\\" + position + "\\" + subFolderName + "\\"
+        self.objFileIO.CreatePath(fullPath)
+        LoadedData = self.objFileIO.ReadfromDisk(fullPath, fileName)
+        objProcessData = LoadedData.WindowRegionList["cheeksCombined"]
+        objProcessData.GenerateGraphs = True
+        objProcessData.objAlgorithm.ColorEstimatedFPS = objProcessData.ColorEstimatedFPS
+        objProcessData.objAlgorithm.IREstimatedFPS = objProcessData.IREstimatedFPS
+        objProcessData.objPlots.ColorEstimatedFPS = objProcessData.ColorEstimatedFPS
+        objProcessData.objPlots.IREstimatedFPS = objProcessData.IREstimatedFPS
+
+        processedBlue = objProcessData.ProcessedregionWindowBlueData
+        processedGreen = objProcessData.ProcessedregionWindowGreenData
+        processedRed = objProcessData.ProcessedregionWindowRedData
+        processedGrey = objProcessData.ProcessedregionWindowGreyData
+        processedIR = objProcessData.ProcessedregionWindowIRData
+        objProcessData.GenerateGrapth(PlotType, processedBlue, processedGreen, processedRed, processedGrey,
+                                      processedIR)
+        print("Graph generated for " + PlotType)
+
+    def sorted_nicely(self,l):
+        """ Sort the given iterable in the way that humans expect."""
+        convert = lambda text: int(text) if text.isdigit() else text
+        alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+        return sorted(l, key=alphanum_key)
+
+    def GenearateResults(self,objProcessingStorage):
+        ##Genearte result
+        processingStep="SaveResultstoDisk"
+        for participant_number in self.objConfig.ParticipantNumbers:
+            print(participant_number)
+            for position in self.objConfig.hearratestatus:
+                print(position)
+                previousPath = self.objConfig.getPreviousStepDetail(processingStep)  # get previous step
+                currentSavePath = self.objConfig.getPathforFolderName(processingStep + "DataFiles",
+                                                                      participant_number, position)
+                previousfullPath = self.objConfig.getPathforFolderName(previousPath, participant_number,
+                                                                       position)
+                currentSaveFileName = processingStep
+                # if (not self.objFileIO.FileExits(currentSavePath + "ProcessedCompleted.txt")):
+                for folderName in os.listdir(previousfullPath):  # Load previous step files, for each file
+                    previousWindowFilesPath = previousfullPath + folderName + "\\"
+                    objReliability = CheckReliability()  # for every type and participant
+                    # Data Frame
+                    dfWindows = pd.DataFrame(columns=self.HeaderRowSplit)
+                    # allfiles = sorted(os.listdir(previousWindowFilesPath))
+                    lst = sorted(os.listdir(previousWindowFilesPath))
+                    lst.remove("ProcessedCompleted.txt")
+                    lst.sort()
+                    finallist = self.sorted_nicely(lst)
+                    for fileName in finallist:  # Load all window files
+                        # if ((not fileName.__contains__("ProcessedCompleted"))):
+                        if ((not fileName.__contains__("Graphs"))):
+                            previousProcessedStepData = self.objFileIO.ReadfromDisk(
+                                previousWindowFilesPath, fileName)
+                            currentSaveFileName = folderName
+                            WindowCount = fileName.split("_")[1]
+                            ##Extract Readings to a file
+                            WindowDataRow = objProcessingStorage.ExtractReadings(
+                                previousProcessedStepData, self.objConfig, fileName,
+                                objReliability,participant_number,position)
+                            splitWindowRow =WindowDataRow.split(",")
+                            dfWindows.loc[WindowCount] = splitWindowRow
+
+                    # dfWindows = dfWindows.sort_values(by=['WindowCount'], ascending=[True])
+                    dfWindows.to_csv(currentSavePath + currentSaveFileName + ".csv")  # Write to file
+                    del objReliability
+                    self.objFileIO.WritedatatoFile(currentSavePath + '\\',
+                                                   "ProcessedCompleted", "Completed")
+    '''
+    mainMethod: Execute program
+    '''
+    def mainMethod(self, generateFaceData,generateResults,generateStatResults):
+        objProcessingStorage = InitiateProcessingStorage(self.objConfig)
+        if(generateFaceData):
+            self.GenerateFaceData()  # Run only once
+        elif(generateResults):
+            self.GenearateResults(objProcessingStorage)
+        elif(generateStatResults):
+            objResults =  ResultsandGraphs(self.objConfig,self.objFileIO)
+            objResults.AllPlotsforComputedResults()
         else:
-            SaveFileName = 'UnCompressedBinaryLoadedData2'#'UnCompressedBinaryLoadedData2Attempt2TrimmedTime'  # 'UnCompressedBinaryLoadedData'<-- Orignial , UnCompressedBinaryLoadedData2, UnCompressedBinaryLoadedDataSelectiveLowFrameRemoved
-            if(combinedRun):
-                SaveFileName = 'UnCompressedBinaryLoadedData2CombinedSameLength'
-            # SaveFileName = 'UnCompressedBinaryLoadedDataSelectiveLowFrameRemovedAttempt2' #for 4014 only
+            for processingStep in self.objConfig.ProcessingSteps:
+                print(processingStep)
+                if (processingStep == "SaveResultstoDisk"):
+                    continue
+                # if (processingStep != "ComputerHRandSPO"):
+                #     continue
+                for process_type in self.objConfig.getProcessType(processingStep):
+                    print("started all processing steps for window:" + str(self.objConfig.windowSize) + " ---> for type "+ str(process_type))
+                    for participant_number in self.objConfig.ParticipantNumbers:
+                        for position in self.objConfig.hearratestatus:
+                            print(participant_number +" --> "+position)
+                            previousPath = self.objConfig.getPreviousStepDetail(processingStep)  # get previous step
+                            currentSavePath = self.objConfig.getPathforFolderName(processingStep + "DataFiles",
+                                                                                  participant_number, position)
+                            if (processingStep == "PreProcess"):  # ONLY RUN ONCE TO GET same lenght array to use all signal data in any algo
+                                currentSavePath = self.objConfig.getPathforFolderName(processingStep + "DataFilesSameLength",
+                                                                                      participant_number, position)
+                            currentSaveFileName = processingStep + "_" + str(process_type)
+                            previousfullPath = self.objConfig.getPathforFolderName(previousPath, participant_number,
+                                                                                   position)
+                            if (not self.objFileIO.FileExits(currentSavePath + currentSaveFileName + "\\" + "ProcessedCompleted.txt")):
+                                if (str(process_type).__contains__("Combined")):  # ONLY RUN ONCE TO GET same lenght array to use all signal data in any algo
+                                    previousfullPath = self.objConfig.getPathforFolderName(previousPath + "SameLength",
+                                                                                           participant_number, position)  #
+                                if (previousfullPath.__contains__("BinaryFaceROI")):
+                                    for fileName in os.listdir(previousfullPath):  # Load previous step files, for each file
+                                        previousProcessedStepData = self.objFileIO.ReadfromDisk(previousfullPath, fileName)
+                                        objProcessingStorage.PreProcessDataWindow(previousProcessedStepData, self.objConfig,
+                                                                                  processingStep, process_type,
+                                                                                  currentSavePath, fileName,
+                                                                                  currentSaveFileName,
+                                                                                  self.objConfig.windowSize)
+                                else:
+                                    for folderName in os.listdir(previousfullPath):  # Load previous step files, for each file
+                                        previousWindowFilesPath = previousfullPath + folderName + "\\"
+                                        fileExsits = self.objFileIO.FileExits(currentSavePath + processingStep + "_" + str(
+                                            process_type) + "_" + folderName + "\\" + "ProcessedCompleted.txt")
+                                        if (not fileExsits):
+                                            for fileName in os.listdir(previousWindowFilesPath):  # Load all window files
+                                                if ((not fileName.__contains__("ProcessedCompleted"))):
+                                                    if ((not fileName.__contains__("Graphs"))):
+                                                        previousProcessedStepData = self.objFileIO.ReadfromDisk(
+                                                            previousWindowFilesPath, fileName)
+                                                        currentSaveFileName = processingStep + "_" + str(
+                                                            process_type) + "_" + folderName  # previousType[0] + "_" + previousType[1]
+                                                        WindowCount = fileName.split("_")[1]
+                                                        existingfilePath = currentSavePath + currentSaveFileName + "\\" + "ProcessedWindow_" + str(
+                                                            WindowCount)
+                                                        isonDisk = self.objFileIO.FileExits(existingfilePath)
+                                                        if (not isonDisk):
+                                                            objProcessingStorage.ProcessDatainStepsWindow(
+                                                                previousProcessedStepData, self.objConfig, processingStep,
+                                                                process_type,
+                                                                currentSavePath, fileName, currentSaveFileName)
+                                            self.objFileIO.WritedatatoFile(currentSavePath + currentSaveFileName + '\\',
+                                                                           "ProcessedCompleted", "Completed")
 
-        if(SaveFileName.__contains__('Attempt2')):
-            AttemptType=2
 
-            #TODO: USE PREVIOUS NONN REVISED
-        if (generateBinaryData):  # RUN only once
-            self.LoadandGenerateFaceDatatoBianryFiles(SaveFileName,UpSampleData)
-        else:
-            print('processing started')
-            # Load Data from path
-            # ParticipantsOriginalDATA = self.LoadBinaryData()
-            #Process for entire signal or in windows
-            FolderNameforSave = 'ProcessedDataWindows'
-            if(self.objConfig.RunAnalysisForEntireSignalData):
-                if (UpSampleData):
-                    FolderNameforSave= 'ProcessedDataUpSampled'#'ProcessedData'byProcessType ,ProcessedDataRevised,ProcessedDataUpSampled
-                else:
-                    FolderNameforSave= 'ProcessedData'#'ProcessedData'byProcessType ,ProcessedDataRevised,ProcessedDataUpSampled
+        del objProcessingStorage
 
 
-            print(FolderNameforSave)
+# Skin_Group_Types = ['OtherAsian_OtherSkin_Group','SouthAsian_BrownSkin_Group','Europe_WhiteSkin_Group' ]
+# for skintype in skinGroup:
 
-            NoHRCases = self.LoadNoHRfILES(FolderNameforSave)
+generateFaceData = False # Update to False when face data is generated
+generateResults = False
+generateStatResults =  True
+objMain = Main()  # Main(skintype) Pass type none here to process all skin types
+objMain.mainMethod(generateFaceData,generateResults,generateStatResults)  # Send true to generate binary object data holding images in arrays meaned
+# objMain.GenerateGraphfromStoredFile()
+# objMain.LoadComputedResults()
+# objMain.AllPlotsforComputedResults(PreProcess,position)
+del objMain
+print('Program Ended')
 
-            #  Load Data from path and Process Data
-            self.GenerateResultsfromParticipants(self.LoadBinaryData(SaveFileName,UpSampleData),FolderNameforSave,UpSampleData,CaseListExists,NoHRCases,AttemptType)#FOR Window processing
-
-UpSampleDataList = [False,True]  # UpsampleDATA?
-skinGroup = ['OtherAsian_OtherSkin_Group','SouthAsian_BrownSkin_Group','Europe_WhiteSkin_Group' ]#
-CaseListExists = []
-combinedRun=True
-for skintype in skinGroup:
-    loadedGeneratedCaseList = False
-    print('Program started for ' +skintype)
-    objMain = Main(skintype)  # Add none here to process all skin types [Europe_WhiteSkin_Group,SouthAsian_BrownSkin_Group,OtherAsian_OtherSkin_Group]
-    generateBinaryData = False
-    if(not loadedGeneratedCaseList):
-        ExistingCasesDT = objMain.objSQLConfig.getProcessedCases(skintype,'1')#AttemptType
-        for fullRow in ExistingCasesDT.iterrows():
-            rowData = fullRow[1]
-            case = rowData.get('CaseProcessed')
-            participant_number = rowData.get('ParticipantId')
-            position = rowData.get('HeartRateStatus')
-            IsUpsampled = rowData.get('UpSampled')
-            CaseListExists.append(case + '+' + participant_number + '+' + position + str(IsUpsampled))
-        loadedGeneratedCaseList = True
-    for UpSampleData in UpSampleDataList:
-        print('for upsample: ' + str(UpSampleData))
-        objMain.mainMethod(UpSampleData,generateBinaryData,skintype,CaseListExists,combinedRun)  # Send true to generate binary object data holding images in arrays meaned
-    del objMain
-    print('Program Ended')
+##Todo: add
+#https://github.com/Aura-healthcare/hrv-analysis
+#https://scikit-learn.org/stable/modules/generated/sklearn.manifold.SpectralEmbedding.html

@@ -301,6 +301,7 @@ class LoadFaceData:
         Image_Files = self.SortLoadedFiles(Image_Files)
         LastFileTimeStamp = list(Image_Files.keys())[-1]
         self.EndTime = self.GetFrameTime(LastFileTimeStamp.hour, LastFileTimeStamp.minute, LastFileTimeStamp.second, 0)
+        # self.EndTime = self.GetFrameTime(5, 2, 57, 0) #05:02:58
 
         ColorfpswithTime = {}
         DataColorfpsTimeWise = {}
@@ -321,9 +322,9 @@ class LoadFaceData:
             # Get start time
             if (self.HasStartTime == 0):
                 # self.StartTime  = datetime.datetime(FrameTimeStamp.year, FrameTimeStamp.month, FrameTimeStamp.day,
-                #                                          FrameTimeStamp.hour, 16,
-                #                                          20,
-                #                                          0)
+                #                                          1, 51,
+                #                                          41,
+                #                                          0)#01:51:41
                 self.StartTime = FrameTimeStampWOMili
                 self.HasStartTime = 1
 

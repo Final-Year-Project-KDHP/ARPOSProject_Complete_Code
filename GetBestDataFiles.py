@@ -10,6 +10,11 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 from numpy import linspace
 
+from sklearn.metrics import mean_squared_error
+from scipy.stats import pearsonr
+import scipy.stats
+from scipy.stats import chisquare
+import scipy.stats as stats
 import CommonMethods
 from Configurations import Configurations
 from FileIO import FileIO
@@ -26,7 +31,7 @@ class GeneratedDataFiltering:
 
     # Constructor
     def __init__(self, skinGroup='None'):
-        self.objConfig = Configurations( skinGroup)
+        self.objConfig = Configurations()
         self.objFile = FileIO()
 
     def Getdata(self, fileName, AcceptableDifference, participant_number, position):  # "None", loadpath,methodtype
@@ -803,21 +808,30 @@ class GeneratedDataFiltering:
 
     def PlotFromSQLQueryAll(self,objSQLConfig,type,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
         sqlResultData = objSQLConfig.GetBestAmongAll(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
-        #by algo
-        folderName=''
-        if(UpSampled == '1'):
-            folderName = 'UpSampled'
-        else:
-            folderName = 'NOTUpSampled'
-        fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\All\\"+folderName+"\\"+ HeartRateStatus+"\\"
-        self.objFile.CreatePath(fullPath)
-        fileName="boxPlot_All_" +HeartRateStatus +"_"+type + '_' + str(TechniqueId)
-        self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType',type,fileName)
-
-        ####tIME PLOT
-        dataTimetoExecute = objSQLConfig.getTableQueryTimetoRunForAll(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
-        fileName="BarplotTime_All_" +HeartRateStatus +"_" + str(TechniqueId)
-        self.MakeBarTimePlotfromSQLData(dataTimetoExecute, fullPath, fileName)
+        lst = [0] * len(sqlResultData['HeartRateValue'].tolist())
+        mean_squared_error_result = np.sqrt(mean_squared_error(lst, (sqlResultData['HeartRateDifference'].tolist())))#sqlResultData['GroundTruthHeartRate'].tolist()
+        # print(position + " HR "+ Algorithm + " RMSE:", mean_squared_error_result)#HeartRateValue
+        r, p = scipy.stats.pearsonr(lst, (sqlResultData['HeartRateDifference'].tolist()))  ##Final
+        print(str(mean_squared_error_result))
+        print(str(r))
+        print(str(p))
+        a=0
+        #
+        # #by algo
+        # folderName=''
+        # if(UpSampled == '1'):
+        #     folderName = 'UpSampled'
+        # else:
+        #     folderName = 'NOTUpSampled'
+        # fullPath = "E:\\ARPOS_Server_Data\\Server_Study_Data\\Plots\\All\\"+folderName+"\\"+ HeartRateStatus+"\\"
+        # self.objFile.CreatePath(fullPath)
+        # fileName="boxPlot_All_" +HeartRateStatus +"_"+type + '_' + str(TechniqueId)
+        # self.MakeBoxPlotfromSQLData(sqlResultData,fullPath,fileName,'AlgorithmType',type,fileName)
+        #
+        # ####tIME PLOT
+        # dataTimetoExecute = objSQLConfig.getTableQueryTimetoRunForAll(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
+        # fileName="BarplotTime_All_" +HeartRateStatus +"_" + str(TechniqueId)
+        # self.MakeBarTimePlotfromSQLData(dataTimetoExecute, fullPath, fileName)
 
     def PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(self,objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType):
         sqlResultData = objSQLConfig.GetUpSampledVSNotSampledDataSpecific(HeartRateStatus, str(UpSampled), str(AttemptType), TechniqueId)
@@ -1608,33 +1622,101 @@ class GeneratedDataFiltering:
         plt.show()
 
     def TestBoxPlotWindow(self):
-        df = pd.read_csv("E:\\TestResultWindow.csv")  # read file
+        fullPathFiles = "D:\\"#"D:\\ARPOS_Server_Data\\Server_Study_Data\\AllParticipants\\SaveResultstoDiskDataFiles\\PIS-1032\\Resting1\\"
+        # self.objFile.CreatePath(fullPathFiles + "Graphs\\")
+        FirstDf = pd.read_csv(fullPathFiles + "Test2.csv")  # read file
+
+        # for fileName in os.listdir(fullPathFiles):
+        #     if(fileName.__contains__("ComputerHR")):
+        #         FirstDf = pd.read_csv(fullPathFiles + fileName)  # read file
+        #         if(not FirstDf.empty):
+        #             self.GenerateObservedvsActual("Resting1", FirstDf['GroundTruthHeartRate'].tolist(),
+        #                                      FirstDf['ComputedHeartRate'].tolist(),
+        #                                      fullPathFiles + "Graphs\\",fileName)
+        # FirstDf = pd.DataFrame()
+        # for fileName in os.listdir(fullPathFiles):
+        #     if(not fileName.__contains__("ProcessedCompleted")):
+        #         if (fileName.__contains__("_PreProcess_1")):
+        #             if(fileName.__contains__("FastICA_") or fileName.__contains__("PCA_") or fileName.__contains__("PCAICA_")): #
+        #                 techniqueName = fileName.replace(".csv", "")
+        #                 techniqueNameSplit = techniqueName.split("_")
+        #                 techniqueName = techniqueNameSplit[len(techniqueNameSplit) - 3] # + "_Pre" + techniqueNameSplit[len(techniqueNameSplit) - 1]
+        #
+        #                 if(FirstDf.empty):
+        #                     FirstDf = pd.read_csv(fullPathFiles+fileName)  # read file
+        #                     FirstDf = FirstDf.assign(Techniques=techniqueName)
+        #                 else:
+        #                     dfnext = pd.read_csv(fullPathFiles+fileName)  # read file
+        #                     dfnext.head()
+        #                     dfnext = dfnext.assign(Techniques=techniqueName)
+        #
+        #                     FirstDf=FirstDf.append(dfnext)
+        #                     a=0
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+
+        FirstDf = FirstDf.reset_index(drop=True)
+
+        FirstDf.head()
+        # FirstDf = FirstDf.where(FirstDf['WindowCount']<=3)
+        # FirstDf=FirstDf.dropna()
+        # define figure size
+        sns.set(rc={"figure.figsize": (10, 8)})  # width=6, height=5
         # Draw a vertical boxplot grouped
         # by a categorical variable:
-        df.head()
         ###MEthod2#####
         # fig, ax = plt.subplots(1, sharex=False, sharey=False, gridspec_kw={'hspace': 0}, figsize=(10, 5))
         # sns.boxplot(x="Window", y="Differences", hue="Techniques", data=df, palette="PRGn")
         # [ax.axvline(x, color='black', linestyle='--') for x in [0.5,1.5,2.5]]
         # plt.show()
+        # sns.lineplot(x="WindowCount", y="HRDifference", hue="Techniques", data=FirstDf)
+        # plt.savefig(fullPathFiles + "windowLinefig.jpg")
+        #
+        # plt.switch_backend('agg')
+        # plt.ioff()
+        # plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        sns.set(font_scale=1.5)  # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        #
+        # sns.set_style('whitegrid')
+        # sns.set(rc={"figure.figsize": (10, 8)})  # width=3, #height=4
+        # ax = sns.boxplot(x='Techniques', y='HRDifference',  data=FirstDf)#rotation=45, horizontalalignment='right',
+        # # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        # ax = sns.stripplot(x="Techniques", y="HRDifference", data=FirstDf)
+        # # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+ filename+ ".jpg")
+        # # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\FinalBestCases\\"+ filename+ ".jpg")
+        # plt.savefig(fullPathFiles + "windowLinefig2.jpg")
         ###MEthod1#####
         sns.set_style('whitegrid')
-        ax = sns.boxplot(x='Window', y='Differences', hue="Techniques", data=df)
-        ax = sns.stripplot(x="Window", y="Differences", hue="Techniques", data=df,
+
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        ax = sns.boxplot(x='WindowCount', y='HRDifference', hue="Techniques", data=FirstDf)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+        ax = sns.stripplot(x="WindowCount", y="HRDifference", hue="Techniques", data=FirstDf,
                            palette="Set2")  # , size=6, marker="D",edgecolor="gray", alpha=.25
         handles, labels = ax.get_legend_handles_labels()
-        plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        # plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         [ax.axvline(x, color='black', linestyle='--') for x in [0.5, 1.5, 2.5]]
-        plt.show()
+
+        plt.title("title", size=18)
+        plt.tight_layout()
+        plt.savefig(fullPathFiles+"windowfigTest.jpg")
+        a=0
 
         #########method3
-        # sns.stripplot(x="Window", y="Differences", hue="Techniques",
-        #               data=df, jitter=True,
+        # sns.stripplot(x="WindowCount", y="HRDifference", hue="Techniques",
+        #               data=FirstDf, jitter=True,
         #               palette="Set2", split=True, linewidth=1, edgecolor='gray')
         #
         # # Get the ax object to use later.
-        # ax = sns.boxplot(x="Window", y="Differences", hue="Techniques",
-        #                  data=df, palette="Set2", fliersize=0)
+        # ax = sns.boxplot(x="WindowCount", y="HRDifference", hue="Techniques",
+        #                  data=FirstDf, palette="Set2", fliersize=0)
         #
         # # Get the handles and labels. For this example it'll be 2 tuples
         # # of length 4 each.
@@ -1643,7 +1725,50 @@ class GeneratedDataFiltering:
         # # When creating the legend, only use the first two elements
         # # to effectively remove the last two.
         # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-        # plt.show()
+        # plt.savefig(fullPathFiles+"windowfig4.jpg")
+
+    def GenerateObservedvsActual(self,position_type,  Actual_HR_AllValues_Resting, Observed_HR_AllValues_Resting,
+                                 path,fileName):
+        ###PLOT chart3
+        plt.ioff()
+        plt.clf()
+
+        actual = []
+        observed = []
+
+        actual = Actual_HR_AllValues_Resting
+        observed = Observed_HR_AllValues_Resting
+
+        actualArry = []
+        # iterate over the list
+        for val in actual:
+            actualArry.append(int(float(val)))
+
+        observedArry = []
+        # iterate over the list
+        for val in observed:
+            observedArry.append(int(float(val)))
+
+        rng = np.random.RandomState(0)
+        sizes = 1000 * rng.rand(len(Actual_HR_AllValues_Resting))
+        true_value = actualArry
+        observed_value = observedArry
+        plt.figure(figsize=(10, 10))
+        plt.rc('font', size=16)
+        plt.scatter(true_value, observed_value, c='crimson', s=sizes, alpha=0.3)
+        # plt.yscale('log')
+        # plt.xscale('log')
+
+        p1 = max(max(observed_value), max(true_value))
+        p2 = min(min(observed_value), min(true_value))
+        plt.plot([p1, p2], [p1, p2], 'b-')
+        plt.xlabel('Commercial Heart Rate (bpm)', fontsize=15)
+        plt.ylabel('ARPOS Heart Rate (bpm)', fontsize=15)
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.tick_params(axis='both', which='minor', labelsize=12)
+        plt.axis('equal')
+        plt.savefig(path + fileName + "_ActualvsObserved"  + ".png")
+        plt.close()
 
     def GenerateCases(self):
         CaseList = []
@@ -1910,10 +2035,117 @@ class GeneratedDataFiltering:
         pyCompare.blandAltman(method1, method2,)
         plt.show()
 
+
+    def AllPlotsforComputedResults(self):
+        fullPathFiles = "D:\\"#"D:\\ARPOS_Server_Data\\Server_Study_Data\\AllParticipants\\SaveResultstoDiskDataFiles\\PIS-1032\\Resting1\\"
+        # self.objFile.CreatePath(fullPathFiles + "Graphs\\")
+        FirstDf = pd.read_csv(fullPathFiles + "Test2.csv")  # read file
+
+        # for fileName in os.listdir(fullPathFiles):
+        #     if(fileName.__contains__("ComputerHR")):
+        #         FirstDf = pd.read_csv(fullPathFiles + fileName)  # read file
+        #         if(not FirstDf.empty):
+        #             self.GenerateObservedvsActual("Resting1", FirstDf['GroundTruthHeartRate'].tolist(),
+        #                                      FirstDf['ComputedHeartRate'].tolist(),
+        #                                      fullPathFiles + "Graphs\\",fileName)
+        # FirstDf = pd.DataFrame()
+        # for fileName in os.listdir(fullPathFiles):
+        #     if(not fileName.__contains__("ProcessedCompleted")):
+        #         if (fileName.__contains__("_PreProcess_1")):
+        #             if(fileName.__contains__("FastICA_") or fileName.__contains__("PCA_") or fileName.__contains__("PCAICA_")): #
+        #                 techniqueName = fileName.replace(".csv", "")
+        #                 techniqueNameSplit = techniqueName.split("_")
+        #                 techniqueName = techniqueNameSplit[len(techniqueNameSplit) - 3] # + "_Pre" + techniqueNameSplit[len(techniqueNameSplit) - 1]
+        #
+        #                 if(FirstDf.empty):
+        #                     FirstDf = pd.read_csv(fullPathFiles+fileName)  # read file
+        #                     FirstDf = FirstDf.assign(Techniques=techniqueName)
+        #                 else:
+        #                     dfnext = pd.read_csv(fullPathFiles+fileName)  # read file
+        #                     dfnext.head()
+        #                     dfnext = dfnext.assign(Techniques=techniqueName)
+        #
+        #                     FirstDf=FirstDf.append(dfnext)
+        #                     a=0
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+
+        FirstDf = FirstDf.reset_index(drop=True)
+
+        FirstDf.head()
+        # FirstDf = FirstDf.where(FirstDf['WindowCount']<=3)
+        # FirstDf=FirstDf.dropna()
+        # define figure size
+        sns.set(rc={"figure.figsize": (10, 8)})  # width=6, height=5
+        # Draw a vertical boxplot grouped
+        # by a categorical variable:
+        ###MEthod2#####
+        # fig, ax = plt.subplots(1, sharex=False, sharey=False, gridspec_kw={'hspace': 0}, figsize=(10, 5))
+        # sns.boxplot(x="Window", y="Differences", hue="Techniques", data=df, palette="PRGn")
+        # [ax.axvline(x, color='black', linestyle='--') for x in [0.5,1.5,2.5]]
+        # plt.show()
+        # sns.lineplot(x="WindowCount", y="HRDifference", hue="Techniques", data=FirstDf)
+        # plt.savefig(fullPathFiles + "windowLinefig.jpg")
+        #
+        # plt.switch_backend('agg')
+        # plt.ioff()
+        # plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        sns.set(font_scale=1.5)  # Overaall font size
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        #
+        # sns.set_style('whitegrid')
+        # sns.set(rc={"figure.figsize": (10, 8)})  # width=3, #height=4
+        # ax = sns.boxplot(x='Techniques', y='HRDifference',  data=FirstDf)#rotation=45, horizontalalignment='right',
+        # # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+        # ax = sns.stripplot(x="Techniques", y="HRDifference", data=FirstDf)
+        # # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\BoxPlotImages\\"+ filename+ ".jpg")
+        # # plt.savefig(self.objConfig.DiskPath + "BoxPlotCSV\\FinalBestCases\\"+ filename+ ".jpg")
+        # plt.savefig(fullPathFiles + "windowLinefig2.jpg")
+        ###MEthod1#####
+        sns.set_style('whitegrid')
+
+        plt.figure(figsize=(14, 9))  # this creates a figure 8 inch wide, 4 inch high
+        ax = sns.boxplot(x='WindowCount', y='HRDifference', hue="Techniques", data=FirstDf)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+        ax = sns.stripplot(x="WindowCount", y="HRDifference", hue="Techniques", data=FirstDf,
+                           palette="Set2")  # , size=6, marker="D",edgecolor="gray", alpha=.25
+        handles, labels = ax.get_legend_handles_labels()
+        # plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        [ax.axvline(x, color='black', linestyle='--') for x in [0.5, 1.5, 2.5]]
+
+        plt.title("title", size=18)
+        plt.tight_layout()
+        plt.savefig(fullPathFiles+"windowfigTest.jpg")
+        a=0
+
+        #########method3
+        # sns.stripplot(x="WindowCount", y="HRDifference", hue="Techniques",
+        #               data=FirstDf, jitter=True,
+        #               palette="Set2", split=True, linewidth=1, edgecolor='gray')
+        #
+        # # Get the ax object to use later.
+        # ax = sns.boxplot(x="WindowCount", y="HRDifference", hue="Techniques",
+        #                  data=FirstDf, palette="Set2", fliersize=0)
+        #
+        # # Get the handles and labels. For this example it'll be 2 tuples
+        # # of length 4 each.
+        # handles, labels = ax.get_legend_handles_labels()
+        #
+        # # When creating the legend, only use the first two elements
+        # # to effectively remove the last two.
+        # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        # plt.savefig(fullPathFiles+"windowfig4.jpg")
+
 # Execute method to get filenames which have good differnce
 # AcceptableDifference = 3 # Max Limit of acceptable differnce
-objFilterData = GeneratedDataFiltering('Europe_WhiteSkin_Group')#Europe_WhiteSkin_Group,OtherAsian_OtherSkin_Group,SouthAsian_BrownSkin_Group
-objFilterData.AcceptableDifference = 10
+objFilterData = GeneratedDataFiltering()#Europe_WhiteSkin_Group,OtherAsian_OtherSkin_Group,SouthAsian_BrownSkin_Group
+# objFilterData.AcceptableDifference = 10
 ##OLD ROUGH
 # objFilterData.Run(AcceptableDifference)
 # objFilterData.RunAllCaseParticipantwise() S
@@ -1949,6 +2181,7 @@ objFilterData.AcceptableDifference = 10
 # objFilterData.LinePlot() # FOR PERFORMANCE TIME LOG
 # objFilterData.TestBoxPlot()# enitere signal
 # objFilterData.TestBoxPlotWindow()#WINDOWs
+objFilterData.AllPlotsforComputedResults()
 # objFilterData.PlotSignal() # to plot graph
 #Parameters
 
@@ -1982,11 +2215,11 @@ objSQLConfig = SQLConfig()
 # objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting1',  UpSampled, 1)
 # objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting2',  UpSampled, 1)
 
-# for hrstatus in objFilterData.objConfig.hearratestatus:
-#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9406),hrstatus,  UpSampled, 1)
-#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9154),hrstatus,  UpSampled, 1)
-#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
-#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
-#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
+for hrstatus in objFilterData.objConfig.hearratestatus:
+    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9406),hrstatus,  UpSampled, 1)
+    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9154),hrstatus,  UpSampled, 1)
+    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
+    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
+    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
 # objFilterData.PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)
-objFilterData.PlotFromSQLTimeAll(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)#objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType
+# objFilterData.PlotFromSQLTimeAll(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)#objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType

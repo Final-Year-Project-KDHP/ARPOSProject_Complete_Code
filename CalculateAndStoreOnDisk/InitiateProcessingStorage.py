@@ -13,6 +13,8 @@ import pickle
 
 from ProcessData import ProcessFaceData
 from ProcessParticipantsData import Process_Participants_Data_GetBestHR
+from ProcessedParticipantsData import ProcessedParticipantsData
+from WindowData import Window_Data, LogItems
 
 '''
 InitiateProcessingStorage:
@@ -26,8 +28,8 @@ class InitiateProcessingStorage:
     objFile = None
 
     # Constructor
-    def __init__(self, skinGroup):
-        self.objConfig = Configurations(False, skinGroup)
+    def __init__(self,objConfig):
+        self.objConfig = objConfig
         self.objFile = FileIO()
 
     def WritetoDisk(self, location, filename, data):
@@ -74,6 +76,504 @@ class InitiateProcessingStorage:
         # Load from disk
         dataFile = self.ReadfromDisk(self.ProcessedDataPath, name)
         return dataFile
+
+    def getProcessParameters(self,processingStep, process_type, dataObject=None):
+
+        Algorithm_type = 'None'
+        FFT_type = 'None'
+        Filter_type = 0
+        Result_type = 0
+        Preprocess_type = 0
+        isSmoothen = None
+
+        if(dataObject != None):
+            Algorithm_type = dataObject.Algorithm_type
+            FFT_type = dataObject.FFT_type
+            Filter_type = dataObject.Filter_type
+            Result_type = dataObject.Result_type
+            Preprocess_type = dataObject.Preprocess_type
+            isSmoothen = dataObject.isSmoothen
+
+        if (processingStep == "PreProcess"):
+            Preprocess_type = process_type
+        elif (processingStep == "Algorithm"):
+            Algorithm_type = process_type
+        elif (processingStep == "Smoothen"):
+            isSmoothen = process_type
+        elif (processingStep == "FFT"):
+            FFT_type = process_type
+        elif (processingStep == "Filter"):
+            Filter_type = process_type
+        elif (processingStep == "ComputerHRandSPO"):
+            Result_type = process_type
+
+        return Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, isSmoothen
+
+
+    '''
+    ProcessDatainSteps: 
+    '''
+    def PreProcessDataWindow(self, dataObject, objConfig, processingStep,process_type, SavePath, prevfileName,currentSaveFileName,timeinSeconds):
+        objFile = FileIO()
+        WindowRegionList = {} # ROI Window Result list
+        minFPSIRvalue = min(dataObject.ROIStore.get(objConfig.roiregions[0]).IRfpswithTime.values())
+        maxFPSIRvalue = max(dataObject.ROIStore.get(objConfig.roiregions[0]).IRfpswithTime.values())
+        minFPSColorvalue = min(dataObject.ROIStore.get(objConfig.roiregions[0]).ColorfpswithTime.values())
+        maxFPSColorvalue = max(dataObject.ROIStore.get(objConfig.roiregions[0]).ColorfpswithTime.values())
+
+        FPSNotes = 'min IRvalue: ' + str(minFPSIRvalue) + ', max IRvalue: ' + str(
+            maxFPSIRvalue) + ', min Colorvalue: ' + str(minFPSColorvalue) + ', max Colorvalue: ' + str(maxFPSColorvalue)
+
+        # Windows for regions (should be same for all)
+        LengthofAllFramesColor = dataObject.ROIStore.get(objConfig.roiregions[0]).getLengthColor()
+        LengthofAllFramesIR = dataObject.ROIStore.get(objConfig.roiregions[0]).getLengthIR()
+
+        totalTimeinSeconds = dataObject.ROIStore.get("lips").totalTimeinSeconds
+        HrGr = dataObject.HrGroundTruthList[:totalTimeinSeconds]
+        SpoGr = dataObject.SPOGroundTruthList[:totalTimeinSeconds]
+
+        TimeinSeconds = totalTimeinSeconds
+        # timeinSeconds = 4 #reason to chose as herat rate for paricipants takes attleast 4 second to change so ground truth is closer to window data genreated
+
+        TotalWindows = (TimeinSeconds - timeinSeconds) + 1  # second window gorup
+        TotalWindows = round(TotalWindows)
+
+        # Split ground truth data
+        HrAvgList = CommonMethods.splitGroundTruth(HrGr, TotalWindows, timeinSeconds)
+        SPOAvgList = CommonMethods.splitGroundTruth(SpoGr, TotalWindows, timeinSeconds)
+
+        # for entire signal
+        # TotalWindows = 1
+        # timeinSeconds = round(TimeinSeconds)
+        # HrAvg = CommonMethods.AvegrageGroundTruth(HrGr)
+        # SPOAvg = CommonMethods.AvegrageGroundTruth(SpoGr)
+
+        Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, isSmoothen = self.getProcessParameters(processingStep, process_type)
+
+        Gy_filtered = None
+
+        # Initialise object to process face regions signal data
+        objProcessDataLips = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath, objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,
+                                         timeinSeconds,
+                                         self.objConfig.DumpToDisk, currentSaveFileName)
+        # Initialise object to process face regions signal data
+        objProcessDataForehead = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath, objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,
+                                         timeinSeconds,
+                                         self.objConfig.DumpToDisk, currentSaveFileName)
+        # Initialise object to process face regions signal data
+        objProcessDataLeftCheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath, objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,
+                                         timeinSeconds,
+                                         self.objConfig.DumpToDisk, currentSaveFileName)
+        # Initialise object to process face regions signal data
+        objProcessDataRightCheek = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath, objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,
+                                         timeinSeconds,
+                                         self.objConfig.DumpToDisk, currentSaveFileName)
+        # Initialise object to process face regions signal data
+        objProcessDataCheeksCombined = ProcessFaceData(Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type,
+                                         SavePath, objConfig.ignoregray, isSmoothen, objConfig.GenerateGraphs,
+                                         timeinSeconds,
+                                         self.objConfig.DumpToDisk, currentSaveFileName)
+
+        for WindowCount in range(0, int(TotalWindows)):  # RUNNING FOR WINDOW TIMES # TimeinSeconds
+
+            objProcessedParticipantsData = ProcessedParticipantsData(minFPSIRvalue, maxFPSIRvalue, minFPSColorvalue,
+                                                                     maxFPSColorvalue, FPSNotes,
+                                                                     LengthofAllFramesColor, LengthofAllFramesIR,
+                                                                     totalTimeinSeconds, TimeinSeconds, timeinSeconds,
+                                                                     TotalWindows, HrAvgList, SPOAvgList,
+                                                                     Algorithm_type, FFT_type, Filter_type, Result_type,
+                                                                     Preprocess_type,
+                                                                     isSmoothen)
+
+            #objProcessDataLips process data
+            if(SavePath.__contains__("SameLength")):
+                objProcessDataLips.getSingalDataWindowSameLenght(dataObject.ROIStore, objConfig.roiregions[0], WindowCount, TotalWindows, timeinSeconds)
+            else:
+                objProcessDataLips.getSingalDataWindow(dataObject.ROIStore, objConfig.roiregions[0], WindowCount, TotalWindows, timeinSeconds)
+
+            objProcessDataLips.ProcessStep(processingStep)
+
+            # objProcessDataForehead process data
+            if (SavePath.__contains__("SameLength")):
+                objProcessDataForehead.getSingalDataWindowSameLenght(dataObject.ROIStore, objConfig.roiregions[1], WindowCount,
+                                                           TotalWindows, timeinSeconds)
+            else:
+                objProcessDataForehead.getSingalDataWindow(dataObject.ROIStore, objConfig.roiregions[1], WindowCount,
+                                                           TotalWindows, timeinSeconds)
+            objProcessDataForehead.ProcessStep(processingStep)
+
+            # objProcessDataLeftCheek process data
+            if (SavePath.__contains__("SameLength")):
+                objProcessDataLeftCheek.getSingalDataWindowSameLenght(dataObject.ROIStore, objConfig.roiregions[2], WindowCount,
+                                                            TotalWindows, timeinSeconds)
+            else:
+                objProcessDataLeftCheek.getSingalDataWindow(dataObject.ROIStore, objConfig.roiregions[2], WindowCount,
+                                                            TotalWindows, timeinSeconds)
+            objProcessDataLeftCheek.ProcessStep(processingStep)
+
+            # objProcessDataRightCheek process data
+            if (SavePath.__contains__("SameLength")):
+                objProcessDataRightCheek.getSingalDataWindowSameLenght(dataObject.ROIStore, objConfig.roiregions[3], WindowCount,
+                                                             TotalWindows, timeinSeconds)
+            else:
+                objProcessDataRightCheek.getSingalDataWindow(dataObject.ROIStore, objConfig.roiregions[3], WindowCount,
+                                                             TotalWindows, timeinSeconds)
+            objProcessDataRightCheek.ProcessStep(processingStep)
+
+            # objProcessDataCheeksCombined process data
+            if (SavePath.__contains__("SameLength")):
+                objProcessDataCheeksCombined.getSingalDataWindowSameLenght(dataObject.ROIStore, objConfig.roiregions[4],
+                                                                 WindowCount, TotalWindows, timeinSeconds)
+            else:
+                objProcessDataCheeksCombined.getSingalDataWindow(dataObject.ROIStore, objConfig.roiregions[4],
+                                                                 WindowCount, TotalWindows, timeinSeconds)
+            objProcessDataCheeksCombined.ProcessStep(processingStep)
+
+            WindowRegionList[objConfig.roiregions[0]] = objProcessDataLips
+            WindowRegionList[objConfig.roiregions[1]] = objProcessDataForehead
+            WindowRegionList[objConfig.roiregions[2]] = objProcessDataLeftCheek
+            WindowRegionList[objConfig.roiregions[3]] = objProcessDataRightCheek
+            WindowRegionList[objConfig.roiregions[4]] = objProcessDataCheeksCombined
+
+            objProcessedParticipantsData.WindowRegionList = WindowRegionList
+
+            if (self.objConfig.DumpToDisk):
+                objFile.DumpObjecttoDisk(SavePath + currentSaveFileName + '\\' ,
+                                        "ProcessedWindow_" + str(WindowCount), objProcessedParticipantsData)
+                # objFile.DumpObjecttoDisk(SavePath + currentSaveFileName + '\\' + objConfig.roiregions[1] + "\\",
+                #                         "ProcessedWindow_" + str(WindowCount), objProcessDataForehead)
+                # objFile.DumpObjecttoDisk(SavePath + currentSaveFileName + '\\' + objConfig.roiregions[2] + "\\",
+                #                         "ProcessedWindow_" + str(WindowCount), objProcessDataLeftCheek)
+                # objFile.DumpObjecttoDisk(SavePath + currentSaveFileName + '\\' + objConfig.roiregions[3] + "\\",
+                #                         "ProcessedWindow_" + str(WindowCount), objProcessDataRightCheek)
+                # objFile.DumpObjecttoDisk(SavePath + currentSaveFileName + '\\' + objConfig.roiregions[4] + "\\",
+                #                         "ProcessedWindow_" + str(WindowCount), objProcessDataCheeksCombined)
+
+            del objProcessedParticipantsData
+
+        del objProcessDataLips
+        del objProcessDataForehead
+        del objProcessDataLeftCheek
+        del objProcessDataRightCheek
+        del objProcessDataCheeksCombined
+
+        objFile.WritedatatoFile(SavePath + currentSaveFileName + '\\' ,
+                                        "ProcessedCompleted", "Completed")
+        del objFile
+
+    def ProcessDatainStepsWindow(self, dataObject, objConfig, processingStep,process_type, SavePath, prevfileName,currentSaveFileName):
+        objFile = FileIO()
+
+        WindowRegionList = {} # ROI Window Result list
+
+        Algorithm_type, FFT_type, Filter_type, Result_type, Preprocess_type, isSmoothen = self.getProcessParameters(processingStep, process_type, dataObject)
+
+        # for region in self.objConfig.roiregions:
+        # print(prevfileName)
+        WindowCountList = prevfileName.split("_")
+        WindowCount = int(WindowCountList[1])
+
+        # Initialise object to process face regions signal data
+        objProcessDataLips = dataObject.WindowRegionList[objConfig.roiregions[0]]
+        objProcessDataLips.Algorithm_type =Algorithm_type
+        objProcessDataLips.FFT_type =FFT_type
+        objProcessDataLips.Filter_type =Filter_type
+        objProcessDataLips.Result_type =Result_type
+        objProcessDataLips.Preprocess_type =Preprocess_type
+        objProcessDataLips.SavePath =SavePath
+        objProcessDataLips.ignoregray =objConfig.ignoregray
+        objProcessDataLips.isSmoothen =isSmoothen
+        objProcessDataLips.GenerateGraphs =objConfig.GenerateGraphs
+        objProcessDataLips.fileName =currentSaveFileName
+        objProcessDataLips.DumpToDisk = self.objConfig.DumpToDisk
+        objProcessDataLips.objAlgorithm.ColorEstimatedFPS = objProcessDataLips.ColorEstimatedFPS
+        objProcessDataLips.objAlgorithm.IREstimatedFPS = objProcessDataLips.IREstimatedFPS
+        objProcessDataLips.objPlots.ColorEstimatedFPS = objProcessDataLips.ColorEstimatedFPS
+        objProcessDataLips.objPlots.IREstimatedFPS = objProcessDataLips.IREstimatedFPS
+        objProcessDataLips.Window_count =WindowCount
+        objProcessDataLips.region = objConfig.roiregions[0]
+
+        # Initialise object to process face regions signal data
+        objProcessDataForehead =dataObject.WindowRegionList[objConfig.roiregions[1]]
+        objProcessDataForehead.Algorithm_type = Algorithm_type
+        objProcessDataForehead.FFT_type = FFT_type
+        objProcessDataForehead.Filter_type = Filter_type
+        objProcessDataForehead.Result_type = Result_type
+        objProcessDataForehead.Preprocess_type = Preprocess_type
+        objProcessDataForehead.SavePath = SavePath
+        objProcessDataForehead.ignoregray = objConfig.ignoregray
+        objProcessDataForehead.isSmoothen = isSmoothen
+        objProcessDataForehead.GenerateGraphs = objConfig.GenerateGraphs
+        objProcessDataForehead.fileName = currentSaveFileName
+        objProcessDataForehead.DumpToDisk = self.objConfig.DumpToDisk
+        objProcessDataForehead.objAlgorithm.ColorEstimatedFPS = objProcessDataForehead.ColorEstimatedFPS
+        objProcessDataForehead.objAlgorithm.IREstimatedFPS = objProcessDataForehead.IREstimatedFPS
+        objProcessDataForehead.objPlots.ColorEstimatedFPS = objProcessDataForehead.ColorEstimatedFPS
+        objProcessDataForehead.objPlots.IREstimatedFPS = objProcessDataForehead.IREstimatedFPS
+        objProcessDataForehead.Window_count =WindowCount
+        objProcessDataForehead.region = objConfig.roiregions[1]
+
+        # Initialise object to process face regions signal data
+        objProcessDataLeftCheek =dataObject.WindowRegionList[objConfig.roiregions[2]]
+        objProcessDataLeftCheek.Algorithm_type = Algorithm_type
+        objProcessDataLeftCheek.FFT_type = FFT_type
+        objProcessDataLeftCheek.Filter_type = Filter_type
+        objProcessDataLeftCheek.Result_type = Result_type
+        objProcessDataLeftCheek.Preprocess_type = Preprocess_type
+        objProcessDataLeftCheek.SavePath = SavePath
+        objProcessDataLeftCheek.ignoregray = objConfig.ignoregray
+        objProcessDataLeftCheek.isSmoothen = isSmoothen
+        objProcessDataLeftCheek.GenerateGraphs = objConfig.GenerateGraphs
+        objProcessDataLeftCheek.fileName = currentSaveFileName
+        objProcessDataLeftCheek.DumpToDisk = self.objConfig.DumpToDisk
+        objProcessDataLeftCheek.objAlgorithm.ColorEstimatedFPS = objProcessDataLeftCheek.ColorEstimatedFPS
+        objProcessDataLeftCheek.objAlgorithm.IREstimatedFPS = objProcessDataLeftCheek.IREstimatedFPS
+        objProcessDataLeftCheek.objPlots.ColorEstimatedFPS = objProcessDataLeftCheek.ColorEstimatedFPS
+        objProcessDataLeftCheek.objPlots.IREstimatedFPS = objProcessDataLeftCheek.IREstimatedFPS
+        objProcessDataLeftCheek.Window_count =WindowCount
+        objProcessDataLeftCheek.region = objConfig.roiregions[2]
+
+        # Initialise object to process face regions signal data
+        objProcessDataRightCheek =dataObject.WindowRegionList[objConfig.roiregions[3]]
+        objProcessDataRightCheek.Algorithm_type = Algorithm_type
+        objProcessDataRightCheek.FFT_type = FFT_type
+        objProcessDataRightCheek.Filter_type = Filter_type
+        objProcessDataRightCheek.Result_type = Result_type
+        objProcessDataRightCheek.Preprocess_type = Preprocess_type
+        objProcessDataRightCheek.SavePath = SavePath
+        objProcessDataRightCheek.ignoregray = objConfig.ignoregray
+        objProcessDataRightCheek.isSmoothen = isSmoothen
+        objProcessDataRightCheek.GenerateGraphs = objConfig.GenerateGraphs
+        objProcessDataRightCheek.fileName = currentSaveFileName
+        objProcessDataRightCheek.DumpToDisk = self.objConfig.DumpToDisk
+        objProcessDataRightCheek.objAlgorithm.ColorEstimatedFPS = objProcessDataRightCheek.ColorEstimatedFPS
+        objProcessDataRightCheek.objAlgorithm.IREstimatedFPS = objProcessDataRightCheek.IREstimatedFPS
+        objProcessDataRightCheek.objPlots.ColorEstimatedFPS = objProcessDataRightCheek.ColorEstimatedFPS
+        objProcessDataRightCheek.objPlots.IREstimatedFPS = objProcessDataRightCheek.IREstimatedFPS
+        objProcessDataRightCheek.Window_count =WindowCount
+        objProcessDataRightCheek.region = objConfig.roiregions[3]
+
+        # Initialise object to process face regions signal data
+        objProcessDataCheeksCombined =dataObject.WindowRegionList[objConfig.roiregions[4]]
+        objProcessDataCheeksCombined.Algorithm_type = Algorithm_type
+        objProcessDataCheeksCombined.FFT_type = FFT_type
+        objProcessDataCheeksCombined.Filter_type = Filter_type
+        objProcessDataCheeksCombined.Result_type = Result_type
+        objProcessDataCheeksCombined.Preprocess_type = Preprocess_type
+        objProcessDataCheeksCombined.SavePath = SavePath
+        objProcessDataCheeksCombined.ignoregray = objConfig.ignoregray
+        objProcessDataCheeksCombined.isSmoothen = isSmoothen
+        objProcessDataCheeksCombined.GenerateGraphs = objConfig.GenerateGraphs
+        objProcessDataCheeksCombined.fileName = currentSaveFileName
+        objProcessDataCheeksCombined.DumpToDisk = self.objConfig.DumpToDisk
+        objProcessDataCheeksCombined.objAlgorithm.ColorEstimatedFPS = objProcessDataCheeksCombined.ColorEstimatedFPS
+        objProcessDataCheeksCombined.objAlgorithm.IREstimatedFPS = objProcessDataCheeksCombined.IREstimatedFPS
+        objProcessDataCheeksCombined.objPlots.ColorEstimatedFPS = objProcessDataCheeksCombined.ColorEstimatedFPS
+        objProcessDataCheeksCombined.objPlots.IREstimatedFPS = objProcessDataCheeksCombined.IREstimatedFPS
+        objProcessDataCheeksCombined.Window_count =WindowCount
+        objProcessDataCheeksCombined.region = objConfig.roiregions[4]
+
+        objProcessedParticipantsData = ProcessedParticipantsData(dataObject.minFPSIRvalue, dataObject.maxFPSIRvalue, dataObject.minFPSColorvalue,
+                                                                 dataObject.maxFPSColorvalue, dataObject.FPSNotes,
+                                                                 dataObject.LengthofAllFramesColor, dataObject.LengthofAllFramesIR,
+                                                                 dataObject.totalTimeinSeconds, dataObject.TimeinSeconds, dataObject.timeinSeconds,
+                                                                 dataObject.TotalWindows, dataObject.HrAvgList, dataObject.SPOAvgList,
+                                                                 Algorithm_type, FFT_type, Filter_type, Result_type,
+                                                                 Preprocess_type,
+                                                                 isSmoothen)
+
+        #objProcessDataLips process data
+        objProcessDataLips.ProcessStep(processingStep)
+        # objProcessDataForehead process data
+        objProcessDataForehead.ProcessStep(processingStep)
+        # objProcessDataLeftCheek process data
+        objProcessDataLeftCheek.ProcessStep(processingStep)
+        # objProcessDataRightCheek process data
+        objProcessDataRightCheek.ProcessStep(processingStep)
+        # objProcessDataCheeksCombined process data
+        objProcessDataCheeksCombined.ProcessStep(processingStep)
+
+        WindowRegionList[objConfig.roiregions[0]] = objProcessDataLips
+        WindowRegionList[objConfig.roiregions[1]] = objProcessDataForehead
+        WindowRegionList[objConfig.roiregions[2]] = objProcessDataLeftCheek
+        WindowRegionList[objConfig.roiregions[3]] = objProcessDataRightCheek
+        WindowRegionList[objConfig.roiregions[4]] = objProcessDataCheeksCombined
+
+        objProcessedParticipantsData.WindowRegionList = WindowRegionList
+
+        if (self.objConfig.DumpToDisk):
+            objFile.DumpObjecttoDisk(SavePath + currentSaveFileName  + '\\',
+                                     "ProcessedWindow_" + str(WindowCount), objProcessedParticipantsData)
+
+        del objProcessedParticipantsData
+
+        del objProcessDataLips
+        del objProcessDataForehead
+        del objProcessDataLeftCheek
+        del objProcessDataRightCheek
+        del objProcessDataCheeksCombined
+
+        del objFile
+
+
+    '''
+    Save readings to file or db
+    '''
+    def ExtractReadings(self, dataObject, objConfig, prevfileName, objReliability,participant_number,position):
+        # Lists to hold heart rate and blood oxygen data
+        bestHeartRateSnr = 0.0
+        bestBpm = 0.0
+        channeltype = ''
+        regiontype = ''
+        freqencySamplingError = 0.0
+        previousComputedHeartRate = 0.0
+        smallestOxygenError = sys.float_info.max
+        finaloxy = 0.0
+        WindowDataRow=""
+
+        TotalWindowCalculationTime = "00:00:00"
+        PreProcessTime = "00:00:00"
+        AlgorithmTime = "00:00:00"
+        FFTTime = "00:00:00"
+        SmoothTime = "00:00:00"
+        FilterTime = "00:00:00"
+        ComputerHRSNRTime = "00:00:00"
+        ComputerSPOTime = "00:00:00"
+
+        # ROI Window Result list
+        WindowRegionList = {}
+
+        # HrAvgList = dataObject.HrAvgList
+        # SPOAvgList = dataObject.SPOAvgList
+        HrGr= self.objFile.ReaddatafromFile(self.objConfig.DiskPath + "GroundTruthData\\"+ participant_number + "\\" +position+"\\","HR")
+        SpoGr=self.objFile.ReaddatafromFile(self.objConfig.DiskPath + "GroundTruthData\\"+ participant_number + "\\" +position+"\\","SPO")
+
+        HrGrFinal=[]
+        SpoGrFinal=[]
+
+        for element in HrGr:
+            HrGrFinal.append(int(element.strip()))
+
+        for element in SpoGr:
+            SpoGrFinal.append(int(element.strip()))
+
+        # Split ground truth data
+        HrAvgWindowSizeList = CommonMethods.splitGroundTruth(HrGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
+        SPOAvgWindowSizeList = CommonMethods.splitGroundTruth(SpoGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
+        
+        HrLastSecondList = CommonMethods.splitLastSecondGroundTruth(HrGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
+        SPOLastSecondList = CommonMethods.splitLastSecondGroundTruth(SpoGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
+
+        # print(prevfileName)
+        WindowCountList = prevfileName.split("_")
+        WindowCount = int(WindowCountList[1])
+
+        # Store Data in Window List
+        WindowRegionList['lips'] = dataObject.WindowRegionList[objConfig.roiregions[0]]
+        WindowRegionList['forehead'] = dataObject.WindowRegionList[objConfig.roiregions[1]]
+        WindowRegionList['leftcheek'] = dataObject.WindowRegionList[objConfig.roiregions[2]]
+        WindowRegionList['rightcheek'] = dataObject.WindowRegionList[objConfig.roiregions[3]]
+        WindowRegionList['cheeksCombined'] = dataObject.WindowRegionList[objConfig.roiregions[4]]
+
+        # Get best region data
+        for k, v in WindowRegionList.items():
+            if (v.ProcessedwindowList.BestSnR > bestHeartRateSnr):
+                bestHeartRateSnr = v.ProcessedwindowList.BestSnR
+                bestBpm = v.ProcessedwindowList.BestBPM
+                channeltype = v.channeltype
+                regiontype = k
+                freqencySamplingError = v.FrequencySamplieErrorForChannel
+                SelectedColorFPS = v.ColorEstimatedFPS
+                SelectedIRFPS = v.IREstimatedFPS
+                SelectedColorFPSMethod = v.SelectedColorFPSMethod
+                SelectedIRFPSMethod = v.SelectedIRFPSMethod
+
+                #todo: Fix IN ALL FILES
+                # TotalWindowCalculationTime, PreProcessTime, AlgorithmTime, \
+                # FFTTime, SmoothTime, FilterTime, \
+                # ComputerHRSNRTime, ComputerSPOTime = v.ProcessedwindowList.gettimeDifferencesToStringIndividual()
+
+            if (v.ProcessedwindowList.oxygenSaturationValueError < smallestOxygenError):
+                smallestOxygenError = v.ProcessedwindowList.oxygenSaturationValueError
+                finaloxy = v.ProcessedwindowList.oxygenSaturationValueValue
+
+        if (bestBpm > 30 and bestBpm < 250):
+            # Check reliability and record best readings
+            heartRateValue, heartRateError = objReliability.AcceptorRejectHR(bestHeartRateSnr, bestBpm,
+                                                                             freqencySamplingError)
+            oxygenSaturationValue, oxygenSaturationValueError = objReliability.AcceptorRejectSPO(smallestOxygenError,
+                                                                                                 finaloxy)
+            # Get difference and append data (heart rate)
+            AveragedifferenceHR = round(float(HrAvgWindowSizeList[WindowCount]) - float(heartRateValue))
+            OriginalObtianedAveragedifferenceHR = round(float(HrAvgWindowSizeList[WindowCount]) - float(bestBpm))
+            OriginalObtianedLastSecondWindowdifferenceHR = round(float(HrLastSecondList[WindowCount]) - float(bestBpm))
+            LastSecondWindowdifferenceHR = round(float(HrLastSecondList[WindowCount]) - float(heartRateValue))
+
+            # Get difference and append data (blood oxygen)
+            AveragedifferenceSPO = round(float(SPOAvgWindowSizeList[WindowCount]) - float(oxygenSaturationValue))
+            OriginalObtianedAveragedifferenceSPO = round(float(SPOAvgWindowSizeList[WindowCount]) - float(finaloxy))
+            LastSecondWindowdifferenceSPO = round(float(SPOLastSecondList[WindowCount]) - float(oxygenSaturationValue))
+            OriginalObtianedLastSecondWindowdifferenceSPO = round(float(SPOLastSecondList[WindowCount]) - float(finaloxy))
+
+            bestSnrString = str(float(bestHeartRateSnr))
+            if (bestSnrString == "inf"):
+                bestSnrString = '-1'
+
+            WindowDataRow = str( str(WindowCount) + "," +
+                str(bestSnrString) + "," +
+                str(round(HrAvgWindowSizeList[WindowCount])) + "," +
+                str(round(heartRateValue)) + "," +
+                str(AveragedifferenceHR) + "," +
+                str(bestBpm) + "," +
+                str(OriginalObtianedAveragedifferenceHR) + "," +
+                str((HrLastSecondList[WindowCount])) + "," +
+                str(LastSecondWindowdifferenceHR ) + "," +
+                str(OriginalObtianedLastSecondWindowdifferenceHR) + "," +
+                str(round(SPOAvgWindowSizeList[WindowCount])) + "," +
+                str(round(oxygenSaturationValue)) + "," +
+                str(AveragedifferenceSPO) + "," +
+                str(finaloxy) + "," +
+                str(OriginalObtianedAveragedifferenceSPO) + "," +
+                str((SPOLastSecondList[WindowCount])) + "," +
+                str(LastSecondWindowdifferenceSPO ) + "," +
+                str(OriginalObtianedLastSecondWindowdifferenceSPO ) + "," +
+                str(regiontype) + "," +
+                str(channeltype) + "," +
+                str(float(freqencySamplingError)) + "," +
+                str(float(heartRateError)) + "," +
+                str(TotalWindowCalculationTime) + "," +
+                str(PreProcessTime) + "," +
+                str(AlgorithmTime) + "," +
+                str(FFTTime) + "," +
+                str(SmoothTime) + "," +
+                str(FilterTime) + "," +
+                str(ComputerHRSNRTime) + "," +
+                str(ComputerSPOTime) + "," +
+                str(dataObject.Algorithm_type) + "," +
+                str(dataObject.FFT_type) + "," +
+                str(dataObject.Filter_type) + "," +
+                str(dataObject.Result_type) + "," +
+                str(dataObject.Preprocess_type) + "," +
+                str(dataObject.isSmoothen) + "," +
+                str(SelectedColorFPS) + "," +
+                str(SelectedIRFPS) + "," +
+                str(SelectedColorFPSMethod) + "," +
+                str(SelectedIRFPSMethod) + "," +
+                str(1) + "," +
+                dataObject.FPSNotes.replace(",",";") + "," +
+                str(False) )
+        else:
+            WindowDataRow =str( "," + "," + "," + "," + ","  + "," + "," + ","
+                                + ","+ "," + ","+ ","  + "," + "," + "," + ","  + "," + "," + "," + "," + ","+ ","  + "," + "," + ","
+                                + "," + ","  + "," + ","  + "," + "," + "," + "," + "," + "," + ","  + ","  + ","  + ","  + ","  + ","  + "," )
+
+        # del objReliability
+
+        return WindowDataRow
 
     '''
     Process participants data over the entire signal data
@@ -222,7 +722,7 @@ class InitiateProcessingStorage:
                     if (fileName not in FileNames):
                         FileNames.append(fileName)
                         ###
-                        dataContent = objInitiateProcessing.ReadData(fileName)
+                        dataContent = self.ReadData(fileName)
                         fileConent[fileName] = dataContent
 
         FileNames = []
@@ -241,7 +741,7 @@ class InitiateProcessingStorage:
                             preprocess_type) + "_Smoothed-" + str(isSmoothed)
                         if (fileName not in FileNames):
                             FileNames.append(fileName)
-                            dataContent = objInitiateProcessing.ReadData(fileName)
+                            dataContent = self.ReadData(fileName)
                             fileConent[fileName] = dataContent
         FileNames = []
         return fileConent
@@ -265,7 +765,7 @@ class InitiateProcessingStorage:
                                         self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'ResultDataWithoutSmooth\\'
                                     else:
                                         self.ProcessedDataPath = self.objConfig.DiskPath + '\\ProcessedData\\' + participant_number + '\\' + position + '\\' + 'ResultDataSmoothed\\'
-                                    dataContent = objInitiateProcessing.ReadData(fileName)
+                                    dataContent = self.ReadData(fileName)
                                     fileConent[fileName] = dataContent
         FileNames = []
         return fileConent
@@ -1144,14 +1644,14 @@ class InitiateProcessingStorage:
                                                                ProcessingStep,
                                                                ProcessCase)
 
-        if (ProcessingStep == "ComputeFinalResults"):
-            self.Process_Participants_Result_forEntireSignal('Result_WindowsBinaryFiles')
+        # if (ProcessingStep == "ComputeFinalResults"):
+            # self.Process_Participants_Result_forEntireSignal('Result_WindowsBinaryFiles')
 #a
 
 ###RUN this file CODE###
-skintype = 'SouthAsian_BrownSkin_Group'#'Europe_WhiteSkin_Group'
-print('Program started for ' + skintype)
-objInitiateProcessing = InitiateProcessingStorage(skintype)
+# skintype = 'SouthAsian_BrownSkin_Group'#'Europe_WhiteSkin_Group'
+# print('Program started for ' + skintype)
+# objInitiateProcessing = InitiateProcessingStorage()#skintype
 # objInitiateProcessing.GenerateOriginalRawData()# Only do once
 # objInitiateProcessing.mainMethod('PreProcess') #Completed
 # objInitiateProcessing.mainMethod('Algorithm')  # Completed
@@ -1162,7 +1662,7 @@ objInitiateProcessing = InitiateProcessingStorage(skintype)
 # print('Filter Complteted')
 # objInitiateProcessing.mainMethod('Result') # restart from PIS-6327
 # print('Result Complteted')
-objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
-print('ComputeFinalResults Complteted')  # TODO:GENERATE GRAPHS and object and other diagrams , class from code
-print('Program completed')
+# objInitiateProcessing.mainMethod('ComputeFinalResults')  # to process
+# print('ComputeFinalResults Complteted')  # TODO:GENERATE GRAPHS and object and other diagrams , class from code
+# print('Program completed')
 # objInitiateProcessing.ProduceFinalResult() #OLD METHOD

@@ -1,3 +1,4 @@
+import csv
 import os
 import pickle
 
@@ -28,10 +29,30 @@ class FileIO:
     WritedatatoFile: Write data content to file
     """
     def WritedatatoFile(self,savePath,fileName, content,mode ='w+'):
-        file = open(savePath + fileName + ".txt", mode)
-        file.write(str(content))
-        file.close()
+        if(self.FileExits(savePath)):
+            file = open(savePath + fileName + ".txt", mode)
+            file.writelines(str(content))
+            file.close()
+        else:
+            print(savePath  +" does not exists")
 
+    """
+    WritedataCSV: Write data content to csv
+    """
+    def WritedataCSV(self,savePath,fileName, content,mode ='w'):
+        with open(savePath + fileName + ".csv", mode, newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([content])
+
+    # with open(currentSavePath + currentSaveFileName + ".csv", 'w', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow(["SN", "Movie", "Protagonist"])
+    #     writer.writerow([1, "Lord of the Rings", "Frodo Baggins"])
+    #     writer.writerow([2, "Harry Potter", "Harry Potter"])
+    #
+    # with open(currentSavePath + currentSaveFileName + ".csv", 'a', newline='') as file:
+    #     writer = csv.writer(file)
+    #     writer.writerow([2, "Harry Potter", "Harry Potter"])
     """
     ReaddatafromFile: Read data content from file
     """
@@ -39,7 +60,18 @@ class FileIO:
         file = open(filePath + fileName + ".txt", "r")
         Lines = file.readlines()
         file.close()
-        return Lines #.split('\n')
+        return Lines  # .split('\n')
+    """
+    ReaddatafromFile: Read data content from file
+    """
+    def ReaddatafromFileIndividualLine(self,filePath,fileName):
+        try:
+            file = open(filePath + fileName + ".txt", "r")
+            Lines = file.readlines()
+            file.close()
+            return Lines[0]  # .split('\n')
+        except os.error:
+            return ""
 
     """
     FileExits: check if file exists
@@ -82,6 +114,9 @@ class FileIO:
 
     def ReadfromDisk(self,location, filename):
         ##Read data
-        with open(location + filename, 'rb') as filehandle:
-            data = pickle.load(filehandle)
-        return data
+        try:
+            with open(location + filename, 'rb') as filehandle:
+                data = pickle.load(filehandle)
+            return data
+        except:
+            print(location)

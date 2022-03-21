@@ -5,6 +5,8 @@ from scipy.fftpack import fft, ifft
 from scipy.fft import fft, fftfreq, fftshift
 import scipy.fftpack as fftpack
 import jade
+from sklearn.datasets import load_digits
+from sklearn.manifold import SpectralEmbedding
 
 from SaveGraphs import Plots
 
@@ -309,23 +311,97 @@ class AlgorithmCollection:
     #########------Algorithms------#############
 
     def ApplyICA(self,S,compts):
-        ica = FastICA(n_components=compts, max_iter=1000)#n_components=3,max_iter=10000 whiten=True, max_iter=1000
-        np.random.seed(0)
-        S /= S.std(axis=0)  # Standardize data
-        self.X = S
-        # X = np.dot(self.S, A.T)
-        self.S_ = ica.fit(self.X).transform(self.X)  # Get the estimated sources
-        A_ = ica.mixing_  # Get estimated mixing matrix , setting seed , numpy
+        try:
+            np.random.seed(0)
+            ica = FastICA(n_components=compts, max_iter=1000)  # n_components=3,max_iter=10000 whiten=True, max_iter=1000, random_state=0
+            # S /= S.std(axis=0)  # Standardize data
+            self.X = S
 
-        return self.S_
+            if (compts == 4):
+                # S /= S.std(axis=0)  # Standardize data
+                AlgoprocessedBlue = S[:, 0]
+                AlgoprocessedGreen = S[:, 1]
+                AlgoprocessedRed = S[:, 2]
+                AlgoprocessedGrey = S[:, 3]
+                if (np.isinf(AlgoprocessedRed).any() or np.isnan(AlgoprocessedRed).any() ):
+                    print('replace red')
+                    AlgoprocessedRed = AlgoprocessedBlue
+                if (np.isinf(AlgoprocessedGrey).any() or np.isnan(AlgoprocessedGrey).any() ):
+                    print('replace grey')
+                    AlgoprocessedGrey = AlgoprocessedBlue
+                self.X = np.c_[AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey]
+            elif (compts == 5):
+                S /= S.std(axis=0)  # Standardize data
+                AlgoprocessedBlue = S[:, 0]
+                AlgoprocessedGreen = S[:, 1]
+                AlgoprocessedRed = S[:, 2]
+                AlgoprocessedGrey = S[:, 3]
+                AlgoprocessedIR = S[:, 4]
+                if (np.isinf(AlgoprocessedRed).any() or np.isnan(AlgoprocessedRed).any() ):
+                    print('replace red')
+                    AlgoprocessedRed = AlgoprocessedBlue
+                if (np.isinf(AlgoprocessedGrey).any() or np.isnan(AlgoprocessedGrey).any() ):
+                    print('replace grey')
+                    AlgoprocessedGrey = AlgoprocessedBlue
+                self.X = np.c_[
+                    AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR]
+            # X = np.dot(self.S, A.T)
+            self.S_ = ica.fit(self.X).transform(self.X)  # Get the estimated sources
+            A_ = ica.mixing_  # Get estimated mixing matrix , setting seed , numpy
+            return self.S_
+
+        except:
+            np.random.seed(0)
+            ica = FastICA(n_components=compts, whiten=False,
+                          random_state=0)  # n_components=3,max_iter=10000 whiten=True, max_iter=1000, random_state=0
+            # S /= S.std(axis=0)  # Standardize data
+            self.X = S
+
+            if (compts == 4):
+                AlgoprocessedBlue = S[:, 0]
+                AlgoprocessedGreen = S[:, 1]
+                AlgoprocessedRed = S[:, 2]
+                AlgoprocessedGrey = S[:, 3]
+                if (np.isinf(AlgoprocessedRed).any() or np.isnan(AlgoprocessedRed).any() ):
+                    print('replace red')
+                    AlgoprocessedRed = AlgoprocessedBlue
+                if (np.isinf(AlgoprocessedGrey).any() or np.isnan(AlgoprocessedGrey).any() ):
+                    print('replace grey')
+                    AlgoprocessedGrey = AlgoprocessedBlue
+                self.X = np.c_[AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey]
+            elif (compts == 5):
+                # S /= S.std(axis=0)  # Standardize data
+                AlgoprocessedBlue = S[:, 0]
+                AlgoprocessedGreen = S[:, 1]
+                AlgoprocessedRed = S[:, 2]
+                AlgoprocessedGrey = S[:, 3]
+                AlgoprocessedIR = S[:, 4]
+                if (np.isinf(AlgoprocessedRed).any() or np.isnan(AlgoprocessedRed).any() ):
+                    print('replace red')
+                    AlgoprocessedRed = AlgoprocessedBlue
+                if (np.isinf(AlgoprocessedGrey).any() or np.isnan(AlgoprocessedGrey).any() ):
+                    print('replace grey')
+                    AlgoprocessedGrey = AlgoprocessedBlue
+                self.X = np.c_[
+                    AlgoprocessedBlue, AlgoprocessedGreen, AlgoprocessedRed, AlgoprocessedGrey, AlgoprocessedIR]
+
+            # X = np.dot(self.S, A.T)
+            self.S_ = ica.fit(self.X).transform(self.X)  # Get the estimated sources
+            A_ = ica.mixing_  # Get estimated mixing matrix , setting seed , numpy
+            return self.S_
 
     def ApplyPCA(self,X,compts):
-        X /= X.std(axis=0)  # Standardize data
+        # X /= X.std(axis=0)  # Standardize data
         pca = PCA(n_components=compts)
         pca.fit(X)
         X_new = pca.fit_transform(X)
         #v=pca.explained_variance_ratio_
         return X_new
+
+    def ApplySpectralembedding(self,X,compts):# non-linear dimensionality reduction.
+        embedding = SpectralEmbedding(n_components=compts)
+        X_transformed = embedding.fit_transform(X)
+        return  X_transformed
 
     def jadeOriginal(self,X,m):
 

@@ -46,6 +46,7 @@ class LoadWriteIRROI:
         leftcheek = []
         rightcheek = []
         forehead = []
+        cheeksCombined = []
 
         IsManual = False
         regionOfInterests = 4
@@ -56,7 +57,9 @@ class LoadWriteIRROI:
         detector = dlib.get_frontal_face_detector()
         predictor = dlib.shape_predictor("shape_predictor_81_face_landmarks.dat")
 
-        roiItems = OrderedDict([("lip", (48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59)),
+        roiItems = OrderedDict([
+            ("cheeksCombined", (1, 2, 3, 50, 52, 13, 14, 15, 28)),
+            ("lip", (48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59)),
                                 ("right_cheek", (11, 12, 13, 14, 15, 35, 53, 54)),
                                 ("left_cheek", (1, 2, 3, 4, 5, 48, 49, 31)),
                                 ("forehead", (17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 79, 80, 71, 70, 76, 75))
@@ -78,8 +81,13 @@ class LoadWriteIRROI:
                 overlay = f1.copy()
                 gray = cv2.cvtColor(overlay, cv2.COLOR_BGR2GRAY)
                 gray = imutils.resize(gray, width=600)
-                # Enhance image
                 gray = cv2.equalizeHist(gray)
+                # sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                # sharpen = cv2.filter2D(gray, -1, sharpen_kernel)
+                # alpha = 1.5  # Contrast control (1.0-3.0)
+                # beta = 0  # Brightness control (0-100)
+                # adjusted = cv2.convertScaleAbs(sharpen, alpha=alpha, beta=beta)
+                # gray = adjusted
 
                 detections = detector(gray, 0)
 
@@ -123,6 +131,9 @@ class LoadWriteIRROI:
                     elif key == "forehead":
                         if (len(forehead) < imagecount):
                             forehead.append(RoiCrop)
+                    elif key == "cheeksCombined":
+                        if (len(cheeksCombined) < imagecount):
+                            cheeksCombined.append(RoiCrop)
                 else:
 
                     for k, d in enumerate(detections):
@@ -146,9 +157,6 @@ class LoadWriteIRROI:
                             hIr = int(h / height_ratio)
 
                             roiIR = original[yIr:yIr + hIr, xIr:xIr + wIr]
-
-                            # cv2.imshow("Image", roi)
-                            # cv2.waitKey(0)
 
                             # grayIr = (roiIR / 256).astype('uint8')
                             # grayIr = imutils.resize(grayIr, width=600)
@@ -198,74 +206,90 @@ class LoadWriteIRROI:
                             var3Ir =0
                             var4Ir =0
 
-
-                            if key == "forehead":
-
-                                var1 = int(20)
-                                var2 = int(h /2)+20
-                                var3 = int(70)
-                                var4 = int(w-58)
-                                #(87, 35, 167, 56)
-                                #35:91, 87:254
-
-                                if(isXnegative):
-                                    var3=0
-
-                                roi = roi[var1:int(var2), var3:var4]#y:y + h, x:x + w
-
-                                # print(var1)
-                                # print(var2)
-                                # print(var3)
-                                # print(var4)
-                                # y = y + 15
-                                # x = x + 90
-                                # h = int(h / 2)
-                                # w = int(w / 2)
-                                # h = h - 20
-                                # w = w - 35
-
-                            elif key == "right_cheek":
-                                var1 = 10
-                                var2 = int(var1 + (h / 2))
-                                var3 = 10
-                                var4 = int(var1 + ((w / 2) + 5))
-                                other = int(5)
-
-                                if(isXnegative):
-                                    var3=0
-                                roi = roi[var1:int(var2), var3:int(var1 + ((w / 2) + other))]
-
-                                #print(str(var1)+ ":" + str(var2) + ", "+ str(var3)+ ":" + str(var4))
-                                # y= y+60
-                                # x = x+40
-                                # h=int(h/2)
-                                # w=int(w/2)
-                                # h = h-5
-                                # w = w-4
-
-                            elif key == "left_cheek":
-
-                                var1 = 10
-                                var2 = int(15 + ((h / 2) + 5))
-                                var3 = 15
-                                var4 = int(15 + ((w / 2) + 5))
-
-
-                                if(isXnegative):
-                                    var3=0
-
-                                roi = roi[var1:var2, var3:var4]
-
-                                if (var2 > 0):
-                                    var2Ir = int(var2 / height_ratio)   # int(var1Ir + (hIr / 2))
-
-
-                                # y = y + 60
-                                # x = x + 40
-                                # h = int(h / 2)
-                                # w = int(w / 2)
-                                # h = h - 5
-                                # w = w - 4
+                            #
+                            # if key == "forehead":
+                            #
+                            #     var1 = int(20)
+                            #     var2 = int(h /2)+20
+                            #     var3 = int(70)
+                            #     var4 = int(w-58)
+                            #     #(87, 35, 167, 56)
+                            #     #35:91, 87:254
+                            #
+                            #     if(isXnegative):
+                            #         var3=0
+                            #
+                            #     roi = roi[var1:int(var2), var3:var4]#y:y + h, x:x + w
+                            #
+                            #     # print(var1)
+                            #     # print(var2)
+                            #     # print(var3)
+                            #     # print(var4)
+                            #     # y = y + 15
+                            #     # x = x + 90
+                            #     # h = int(h / 2)
+                            #     # w = int(w / 2)
+                            #     # h = h - 20
+                            #     # w = w - 35
+                            #
+                            # elif key == "right_cheek":
+                            #     var1 = 10
+                            #     var2 = int(var1 + (h / 2))
+                            #     var3 = 10
+                            #     var4 = int(var1 + ((w / 2) + 5))
+                            #     other = int(5)
+                            #
+                            #     if(isXnegative):
+                            #         var3=0
+                            #     roi = roi[var1:int(var2), var3:int(var1 + ((w / 2) + other))]
+                            #
+                            #     #print(str(var1)+ ":" + str(var2) + ", "+ str(var3)+ ":" + str(var4))
+                            #     # y= y+60
+                            #     # x = x+40
+                            #     # h=int(h/2)
+                            #     # w=int(w/2)
+                            #     # h = h-5
+                            #     # w = w-4
+                            #
+                            # elif key == "left_cheek":
+                            #
+                            #     var1 = 10
+                            #     var2 = int(15 + ((h / 2) + 5))
+                            #     var3 = 15
+                            #     var4 = int(15 + ((w / 2) + 5))
+                            #
+                            #
+                            #     if(isXnegative):
+                            #         var3=0
+                            #
+                            #     roi = roi[var1:var2, var3:var4]
+                            #
+                            #     if (var2 > 0):
+                            #         var2Ir = int(var2 / height_ratio)   # int(var1Ir + (hIr / 2))
+                            #
+                            #
+                            #
+                            #     # y = y + 60
+                            #     # x = x + 40
+                            #     # h = int(h / 2)
+                            #     # w = int(w / 2)
+                            #     # h = h - 5
+                            #     # w = w - 4
+                            #
+                            # elif key == "cheeksCombined":
+                            #     var1 = int(15)
+                            #     var2 = h
+                            #     var3 = int(25)
+                            #     var4 = int(w - 35)
+                            #     # (87, 35, 167, 56)
+                            #     # 35:91, 87:254
+                            #
+                            #     if (isXnegative):
+                            #         var3 = 0
+                            #
+                            #     roi = roi[var1:int(var2), var3:var4]  # y:y + h, x:x + w
+                            #     # cv2.imshow("Image", roi)
+                            #     # cv2.waitKey(0)
 
                             # Map resized image cords and get cords for oringal image
                             # left cheek
@@ -327,6 +351,17 @@ class LoadWriteIRROI:
                                 roiIR = roiIR[yIr:yIr + hIr, xIr:xIr + wIr]  # crop orignal
 
                             # print(str(x)+','+str(y)+','+str(w)+','+str(h))
+                            if (key == "lip"):  # if roi is not correctly detected and cropped
+                                h, w = roiIR.shape
+                                if (h <= 0 or w <= 0):
+                                    print('SELECT REGION: ' + key)
+                                    # Select ROI
+                                    ROI0 = cv2.selectROI(original, 0, 0)
+                                    # # Crop image
+                                    roiIR = original[int(ROI0[1]):int(ROI0[1] + ROI0[3]),
+                                            int(ROI0[0]):int(ROI0[0] + ROI0[2])]
+                                    cv2.waitKey(0)
+                                    cv2.destroyAllWindows()
 
                             # store roi
                             if key == "lip":
@@ -341,6 +376,9 @@ class LoadWriteIRROI:
                             elif key == "forehead":
                                 if(len(forehead)<imagecount):
                                     forehead.append(roiIR)
+                            elif key == "cheeksCombined":
+                                if(len(cheeksCombined)<imagecount):
+                                    cheeksCombined.append(roiIR)
                             # # Display cropped image
                             # grayIr = (roiIR / 256).astype('uint8')
                             # grayIr = imutils.resize(grayIr, width=600)
@@ -356,6 +394,10 @@ class LoadWriteIRROI:
         directoryforehead = savepath + r'/forehead/'
         if not os.path.exists(directoryforehead):
             os.makedirs(directoryforehead)
+
+        directorycheeksCombined = savepath + r'/cheeksCombined/'
+        if not os.path.exists(directorycheeksCombined):
+            os.makedirs(directorycheeksCombined)
 
         directoryrightcheek = savepath + r'/rightcheek/'
         if not os.path.exists(directoryrightcheek):
@@ -387,6 +429,18 @@ class LoadWriteIRROI:
             count += 1
 
         print('Forehead Completed...')
+
+        count = 0
+        for cheeksCombinedImg in cheeksCombined:
+            # timestamp
+            tamp = str(timestamp[count])
+
+            # save cropped image
+            Imgpath = directorycheeksCombined + "cropped-" + tamp + ".png"
+            cv2.imwrite(Imgpath, cheeksCombinedImg)
+            count += 1
+
+        print('cheeksCombined Completed...')
 
         count = 0
         for leftcheekImg in leftcheek:
@@ -441,11 +495,14 @@ class LoadWriteIRROI:
         leftcheek = []
         rightcheek = []
         forehead = []
+        cheekscombined = []
+
         prevtimstampImg = ''
         PrevLipsCheekCrop = None
         PrevRightCheekCrop= None
         PrevLeftCheekCrop= None
         PrevForeheadCrop= None
+        PrevCheeksCombinedCrop= None
 
         imagecount = 0
         timestamp = []
@@ -488,6 +545,7 @@ class LoadWriteIRROI:
                 width_ratio = (graywidth / IRwidth)
                 height_ratio = (grayheight / IRheight)
 
+                print('Select ForeheadCrop')
                 # # Select ROI and Crop ForeheadCrop
                 ROI0 = cv2.selectROI(gray, 0, 0)
                 ForeheadCrop = gray[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
@@ -504,6 +562,25 @@ class LoadWriteIRROI:
                 hIr = int(h / height_ratio)
                 ForeheadCrop = original[yIr:yIr + hIr, xIr:xIr + wIr]
 
+
+                print('Select CheeksCombinedCrop')
+                # # Select ROI and Crop CheeksCombinedCrop
+                ROI0 = cv2.selectROI(gray, 0, 0)
+                CheeksCombinedCrop = gray[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+
+                ####RESCALE CheeksCombinedCrop
+                h, w = CheeksCombinedCrop.shape
+                x= int(ROI0[0])
+                y= int(ROI0[1])
+                xIr = int(x / width_ratio)
+                yIr = int(y / height_ratio)
+                wIr = int(w / width_ratio)
+                hIr = int(h / height_ratio)
+                CheeksCombinedCrop = original[yIr:yIr + hIr, xIr:xIr + wIr]
+
+                print('Select RightCheekCrop')
                 # # Select ROI and Crop RightCheekCrop
                 ROI0 = cv2.selectROI(gray, 0, 0)
                 RightCheekCrop = gray[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
@@ -520,6 +597,7 @@ class LoadWriteIRROI:
                 hIr = int(h / height_ratio)
                 RightCheekCrop = original[yIr:yIr + hIr, xIr:xIr + wIr]
 
+                print('Select LeftCheekCrop')
                 # # Select ROI and Crop LeftCheekCrop
                 ROI0 = cv2.selectROI(gray, 0, 0)
                 LeftCheekCrop = gray[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
@@ -536,6 +614,7 @@ class LoadWriteIRROI:
                 hIr = int(h / height_ratio)
                 LeftCheekCrop = original[yIr:yIr + hIr, xIr:xIr + wIr]
 
+                print('Select LipsCheekCrop')
                 # # Select ROI and Crop LipsCrop
                 ROI0 = cv2.selectROI(gray, 0, 0)
                 LipsCheekCrop = gray[int(ROI0[1]):int(ROI0[1] + ROI0[3]), int(ROI0[0]):int(ROI0[0] + ROI0[2])]
@@ -556,11 +635,13 @@ class LoadWriteIRROI:
                 PrevRightCheekCrop = RightCheekCrop
                 PrevLeftCheekCrop = LeftCheekCrop
                 PrevForeheadCrop = ForeheadCrop
+                PrevCheeksCombinedCrop = CheeksCombinedCrop
 
                 lips.append(LipsCheekCrop)
                 rightcheek.append(RightCheekCrop)
                 leftcheek.append(LeftCheekCrop)
                 forehead.append(ForeheadCrop)
+                cheekscombined.append(CheeksCombinedCrop)
 
             elif(prevtimstampImg == timstampImgShort):
 
@@ -568,12 +649,17 @@ class LoadWriteIRROI:
                 rightcheek.append(PrevRightCheekCrop)
                 leftcheek.append(PrevLeftCheekCrop)
                 forehead.append(PrevForeheadCrop)
+                cheekscombined.append(PrevCheeksCombinedCrop)
 
         print('Storing ROIs on disk...')
 
         directorylips = savepath + r'/lips/'
         if not os.path.exists(directorylips):
             os.makedirs(directorylips)
+
+        directorycheekscombined = savepath + r'/cheeksCombined/'
+        if not os.path.exists(directorycheekscombined):
+            os.makedirs(directorycheekscombined)
 
         directoryforehead = savepath + r'/forehead/'
         if not os.path.exists(directoryforehead):
@@ -597,6 +683,18 @@ class LoadWriteIRROI:
             count += 1
 
         print('Lips Completed...')
+
+        count = 0
+        for chkheadImg in cheekscombined:
+            # timestamp
+            tamp = str(timestamp[count])
+
+            # save cropped image
+            Imgpath = directorycheekscombined + "cropped-" + tamp + ".png"
+            cv2.imwrite(Imgpath, chkheadImg)
+            count += 1
+
+        print('cheeksCombined Completed...')
 
         count = 0
         for frheadImg in forehead:

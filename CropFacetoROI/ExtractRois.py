@@ -30,6 +30,7 @@ class ExtractROIdata:
             # Run for cropping Color
             objLoadCrop = LoadWriteROI()
             objLoadCrop.LoadFiles(ROI_dataPath + 'Color',SaveROIPath+ 'Color')
+            # objLoadCrop.ONLYLoadandCropFilesMannually(ROI_dataPath + 'Color',SaveROIPath+ 'Color')
             self.objFile.WritedatatoFile(SaveROIPath,'ColorCompleted','Completed')
 
         if not (self.objFile.FileExits(SaveROIPath + 'IRCompleted.txt')):
@@ -37,6 +38,7 @@ class ExtractROIdata:
             # Run for cropping IR
             objLoadIRCrop = LoadWriteIRROI()
             objLoadIRCrop.LoadandCropFiles(ROI_dataPath + 'IR',SaveROIPath+ 'IR')
+            # objLoadIRCrop.ONLYLoadandCropFilesMannually(ROI_dataPath + 'IR',SaveROIPath+ 'IR')
             self.objFile.WritedatatoFile(SaveROIPath,'IRCompleted','Completed')
 
     '''
@@ -51,30 +53,30 @@ class ExtractROIdata:
         #Process as per type
         if(type == 'Single'):
             #set group type
-            self.objConfig.setDiskPath('SouthAsian_BrownSkin_Group')
+            self.objConfig.setDiskPath()
             self.CropandLoadData(position, ParticipantNumber)
         elif(type == 'All'):
-            for skinPigementation in self.objConfig.Skin_Group_Types:
-                self.objConfig.setDiskPath(skinPigementation)
-                #Get all participant numbers (each folders data)
-                folder = self.objConfig.UnCompressed_dataPath
-                subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
+            # for skinPigementation in self.objConfig.Skin_Group_Types:
+            self.objConfig.setDiskPath()
+            #Get all participant numbers (each folders data)
+            folder = self.objConfig.UnCompressed_dataPath
+            subfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
 
-                #for each participant
-                for folder in subfolders:
-                    foldername = str(folder)
-                    foldernameparams = foldername.split("\\")
-                    ParticipantNumber = foldernameparams[len(foldernameparams)-1]
+            #for each participant
+            for folder in subfolders:
+                foldername = str(folder)
+                foldernameparams = foldername.split("\\")
+                ParticipantNumber = foldernameparams[len(foldernameparams)-1]
 
-                    # for each position
-                    for pos in self.positions:
-                        print("Processing for : " + ParticipantNumber + " for " + pos)
-                        self.CropandLoadData(pos, ParticipantNumber)
+                # for each position
+                for pos in self.positions:
+                    print("Processing for : " + ParticipantNumber + " for " + pos)
+                    self.CropandLoadData(pos, ParticipantNumber)
         else:
             print('PLEASE ENTER CORRECT TYPE Croping data type ("Single", "All")')
 
 objExtractData = ExtractROIdata()
-# objExtractData.InitiateProcess('All', '', '')
-objExtractData.InitiateProcess('Single','Resting1','PIS-9167')
-objExtractData.InitiateProcess('Single','Resting2','PIS-9167')
-objExtractData.InitiateProcess('Single','AfterExcersize','PIS-9167')
+objExtractData.InitiateProcess('All', '', '')
+# objExtractData.InitiateProcess('Single','Resting1','PIS-256')
+# objExtractData.InitiateProcess('Single','Resting2','PIS-5456P2')
+# objExtractData.InitiateProcess('Single','AfterExcersize','PIS-5456P2')

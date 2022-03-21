@@ -79,6 +79,11 @@ class Window_Data:
     self.TimeLog[LogItem] = logTime
     return logTime
 
+  def timeDifferencesbyType(self,startTime,endTime,LogType):
+    diffTime = (endTime - startTime)
+    self.diffTimeLog[LogType] = diffTime
+    return diffTime
+
   def timeDifferences(self):
     startTime = self.TimeLog[LogItems.Start_Total]
     endTime = self.TimeLog[LogItems.End_Total]

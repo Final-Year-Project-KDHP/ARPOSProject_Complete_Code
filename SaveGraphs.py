@@ -103,10 +103,10 @@ class Plots:
         Colortx, IRtx = self.getTimeStep(red, ir)
 
         self.figNumber = self.figNumber + 1
-        plt.figure(self.figNumber, figsize=(20, 16))
+        plt.figure(self.figNumber, figsize=(20, 11))
 
         # plt.tick_params(axis='both', which='major', labelsize=16)
-        plt.rcParams.update({'font.size': 18})
+        plt.rcParams.update({'font.size': 16})
 
         plt.tick_params(axis='both', which='major', labelsize=16)
 
@@ -122,10 +122,10 @@ class Plots:
         plt.plot(IRtx, ir, 'black')
 
         plt.legend(["blue", "green", "red","grey","Ir"])
-        plt.xlabel(xlabel, fontsize=18)
-        plt.ylabel(ylabel, fontsize=18)
+        plt.xlabel(xlabel, fontsize=16)
+        plt.ylabel(ylabel, fontsize=16)
 
-        plt.savefig(Savefilepath + filename + '.png')#, dpi=300, bbox_inches='tight'
+        plt.savefig(Savefilepath + filename + '.png', dpi=300, bbox_inches='tight')#
 
     def getTimeStep(self, signal, signalIR):
         # tx = np.arange(0, windowsize, T)
@@ -246,3 +246,144 @@ class Plots:
         plt.ylabel('power')
 
         plt.savefig(Savefilepath + filename + "-" + color + '.png')
+
+    def Genrateboxplot(self,data, savepath, position_type, datatype, xlabeltype,skintype):
+        fig = plt.figure(figsize=(12, 8))
+        ax = fig.add_subplot(111)
+
+        # Creating axes instance
+        bp = ax.boxplot(data, patch_artist=True,
+                        notch='True', vert=0, showfliers=False)
+
+        colors = ['#DCDDDE', '#B4B5B5',
+                  '#8B8D8D', '#5A5F5F', '#242525', '#B4B5B5', '#5A5F5F']
+
+        for patch, color in zip(bp['boxes'], colors):
+            patch.set_facecolor(color)
+
+        # changing color and linewidth of
+        # whiskers
+        for whisker in bp['whiskers']:
+            whisker.set(color='#8B008B',
+                        linewidth=1.5,
+                        linestyle=":")
+
+        # changing color and linewidth of
+        # caps
+        for cap in bp['caps']:
+            cap.set(color='#8B008B',
+                    linewidth=2)
+
+        # changing color and linewidth of
+        # medians
+        for median in bp['medians']:
+            median.set(color='red',
+                       linewidth=3)
+
+        # changing style of fliers
+        for flier in bp['fliers']:
+            flier.set(marker='D',
+                      color='#e7298a',
+                      alpha=0.5)
+
+        # x-axis labels
+        ax.set_yticklabels(['FastICA', 'None',
+                            'PCA', 'PCAICA', 'Spectralembedding','Jade','GroundTruth'])
+
+        # Adding title
+        plt.title("Boxplot showing" + xlabeltype + " differences among various algorithms")
+
+        plt.xlabel(xlabeltype + 'Difference (Commercial - ARPOS)')
+        plt.ylabel('Commercial Pulse Oximeter')
+        # Removing top axes and right axes
+        # ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+
+        # show plot
+        path = savepath + position_type + "_boxplot_"+ skintype+"_" + datatype + ".png"
+        plt.savefig(path)  # show()
+
+    ###Results
+
+    def GenerateObservedvsActual(self, Actual_HR_AllValues_Resting, Observed_HR_AllValues_Resting,
+                                 path,fileName,rvalue):
+        ###PLOT chart3
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+
+        actual = []
+        observed = []
+
+        actual = Actual_HR_AllValues_Resting
+        observed = Observed_HR_AllValues_Resting
+
+        actualArry = []
+        # iterate over the list
+        for val in actual:
+            actualArry.append(int(float(val)))
+
+        observedArry = []
+        # iterate over the list
+        for val in observed:
+            observedArry.append(int(float(val)))
+
+        rng = np.random.RandomState(0)
+        sizes = 1000 * rng.rand(len(Actual_HR_AllValues_Resting))
+        true_value = actualArry
+        observed_value = observedArry
+        plt.figure(figsize=(10, 10))
+        plt.rc('font', size=16)
+        plt.scatter(true_value, observed_value, c='crimson', s=sizes, alpha=0.3)
+
+
+        # plt.yscale('log')
+        # plt.xscale('log')
+
+        p1 = max(max(observed_value), max(true_value))
+        p2 = min(min(observed_value), min(true_value))
+        plt.plot([p1, p2], [p1, p2], 'b-')
+
+        plt.xlabel('Commercial Heart Rate (bpm)', fontsize=15)
+        plt.ylabel('ARPOS Heart Rate (bpm)', fontsize=15)
+        plt.title("plot with r vale " + str(rvalue))
+
+        plt.tick_params(axis='both', which='major', labelsize=13)
+        plt.tick_params(axis='both', which='minor', labelsize=12)
+        plt.axis('equal')
+        # plt.legend(['data', 'line-regression r={}'.format(rvalue)], 'best')
+        # plt.text(0, 1, 'r = %0.2f' % rvalue)
+        plt.savefig(path + fileName + "_ActualvsObserved"  + ".png")
+        plt.close()
+
+    def Historgram(self,x1,x2,x3,x4,x1name,x2name,x3name,x4name,SavePATH,filename):
+
+        ##General over all
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        kwargs = dict(alpha=0.5, bins=100, density=True, stacked=True)
+
+
+        # kwargs = dict(alpha=0.5, bins=100)
+
+        fig = plt.figure(figsize=(16, 12))
+        # plt.rc('axes', labelsize=16)
+        plt.rc('font', size=18)
+        # plt.rc('xtick', labelsize=16)
+        # plt.rc('ytick', labelsize=16)
+        plt.tight_layout()
+        plt.hist(x1, **kwargs, color='blue', label=x1name)
+        plt.hist(x3, **kwargs, color='red', label=x3name)
+        plt.hist(x2, **kwargs, color='green', label=x2name)
+        plt.hist(x4, **kwargs, color='purple', label=x4name)
+        plt.gca().set(title='HR difference among different commercial pulse oximeter devices', ylabel='Frequency',
+                      xlabel='HR (BPM) Difference (Commericial - ARPOS)')
+
+        plt.legend()
+        plt.savefig(SavePATH + filename+".png")  # Save here
+        plt.close()
+        plt.clf()

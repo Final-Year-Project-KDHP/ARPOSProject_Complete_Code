@@ -228,7 +228,6 @@ class ComputerHeartRate:
         # self.WriteDetails(SNR)
 
     def OriginalARPOSmethod(self, B_fft_Copy, G_fft_Copy, R_fft_Copy, Gy_fft_Copy, IR_fft_Copy):
-
         # region COLOR
         # ##FOR COLOR###
         # define index for the low and high pass frequency filter in frequency space that has just been created
@@ -276,6 +275,8 @@ class ComputerHeartRate:
         for x in range((int(self.ignore_freq_index_below + 1)), (int(self.ignore_freq_index_above + 1))):
             # "apply" the ramp to generate the shaped frequency values for IR
             # find the max value and the index of the max value.
+            if(x >= len(Gy_fft_Copy)):
+                x = len(Gy_fft_Copy)-1
             if (not self.ignoreGray):
                 # "apply" the ramp to generate the shaped frequency values for Grey
                 current_greyNum = self.ramp_design[realabs_i] * np.abs(Gy_fft_Copy[x].real)
@@ -348,6 +349,8 @@ class ComputerHeartRate:
         for x in range((int(self.ignore_freq_index_below + 1)), (int(self.ignore_freq_index_above + 1))):
             # "apply" the ramp to generate the shaped frequency values for IR
             # find the max value and the index of the max value.
+            if (x >= len(IR_fft_Copy)):
+                x = len(IR_fft_Copy) - 1
             current_irNum = self.ramp_design[realabs_i] * np.abs(IR_fft_Copy[x].real)
             ir_fft_realabs[realabs_i] = current_irNum
             if ((ir_fft_maxVal is None) or (current_irNum > ir_fft_maxVal)):
@@ -372,6 +375,7 @@ class ComputerHeartRate:
 
         # self.WriteDetails(SNR)
         return  SNR
+
     '''
     getBPM:
     '''
