@@ -1501,9 +1501,11 @@ class GeneratedDataFiltering:
             data=dataResult,
             x=x, y=y, hue=huet
         )
-        plt.title('Time taken (MILLISECONDS) to execute ' + fileName)
-        plt.xlabel('Algorithm types')
-        plt.ylabel('Average time over all participants')
+        # plt.title('Time taken (ms) to execute ' + fileName)
+        plt.xlabel('Number of Participants', size=15)
+        plt.ylabel('Execution time (ms)', size=15)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
         plt.tight_layout()
         plt.savefig(fullPath + fileName + ".jpg")
 
@@ -1727,48 +1729,48 @@ class GeneratedDataFiltering:
         # l = plt.legend(handles[0:2], labels[0:2], bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
         # plt.savefig(fullPathFiles+"windowfig4.jpg")
 
-    def GenerateObservedvsActual(self,position_type,  Actual_HR_AllValues_Resting, Observed_HR_AllValues_Resting,
-                                 path,fileName):
-        ###PLOT chart3
-        plt.ioff()
-        plt.clf()
-
-        actual = []
-        observed = []
-
-        actual = Actual_HR_AllValues_Resting
-        observed = Observed_HR_AllValues_Resting
-
-        actualArry = []
-        # iterate over the list
-        for val in actual:
-            actualArry.append(int(float(val)))
-
-        observedArry = []
-        # iterate over the list
-        for val in observed:
-            observedArry.append(int(float(val)))
-
-        rng = np.random.RandomState(0)
-        sizes = 1000 * rng.rand(len(Actual_HR_AllValues_Resting))
-        true_value = actualArry
-        observed_value = observedArry
-        plt.figure(figsize=(10, 10))
-        plt.rc('font', size=16)
-        plt.scatter(true_value, observed_value, c='crimson', s=sizes, alpha=0.3)
-        # plt.yscale('log')
-        # plt.xscale('log')
-
-        p1 = max(max(observed_value), max(true_value))
-        p2 = min(min(observed_value), min(true_value))
-        plt.plot([p1, p2], [p1, p2], 'b-')
-        plt.xlabel('Commercial Heart Rate (bpm)', fontsize=15)
-        plt.ylabel('ARPOS Heart Rate (bpm)', fontsize=15)
-        plt.tick_params(axis='both', which='major', labelsize=13)
-        plt.tick_params(axis='both', which='minor', labelsize=12)
-        plt.axis('equal')
-        plt.savefig(path + fileName + "_ActualvsObserved"  + ".png")
-        plt.close()
+    # def GenerateObservedvsActual(self,position_type,  Actual_HR_AllValues_Resting, Observed_HR_AllValues_Resting,
+    #                              path,fileName):
+    #     ###PLOT chart3
+    #     plt.ioff()
+    #     plt.clf()
+    # 
+    #     actual = []
+    #     observed = []
+    # 
+    #     actual = Actual_HR_AllValues_Resting
+    #     observed = Observed_HR_AllValues_Resting
+    # 
+    #     actualArry = []
+    #     # iterate over the list
+    #     for val in actual:
+    #         actualArry.append(int(float(val)))
+    # 
+    #     observedArry = []
+    #     # iterate over the list
+    #     for val in observed:
+    #         observedArry.append(int(float(val)))
+    # 
+    #     rng = np.random.RandomState(0)
+    #     sizes = 1000 * rng.rand(len(Actual_HR_AllValues_Resting))
+    #     true_value = actualArry
+    #     observed_value = observedArry
+    #     plt.figure(figsize=(10, 10))
+    #     plt.rc('font', size=16)
+    #     plt.scatter(true_value, observed_value, c='crimson', s=sizes, alpha=0.3)
+    #     # plt.yscale('log')
+    #     # plt.xscale('log')
+    # 
+    #     p1 = max(max(observed_value), max(true_value))
+    #     p2 = min(min(observed_value), min(true_value))
+    #     plt.plot([p1, p2], [p1, p2], 'b-')
+    #     plt.xlabel('Commercial Heart Rate (bpm)', fontsize=15)
+    #     plt.ylabel('ARPOS Heart Rate (bpm)', fontsize=15)
+    #     plt.tick_params(axis='both', which='major', labelsize=13)
+    #     plt.tick_params(axis='both', which='minor', labelsize=12)
+    #     plt.axis('equal')
+    #     plt.savefig(path + fileName + "_ActualvsObserved"  + ".png")
+    #     plt.close()
 
     def GenerateCases(self):
         CaseList = []
@@ -2181,7 +2183,7 @@ objFilterData = GeneratedDataFiltering()#Europe_WhiteSkin_Group,OtherAsian_Other
 # objFilterData.LinePlot() # FOR PERFORMANCE TIME LOG
 # objFilterData.TestBoxPlot()# enitere signal
 # objFilterData.TestBoxPlotWindow()#WINDOWs
-objFilterData.AllPlotsforComputedResults()
+# objFilterData.AllPlotsforComputedResults()
 # objFilterData.PlotSignal() # to plot graph
 #Parameters
 
@@ -2215,11 +2217,11 @@ objSQLConfig = SQLConfig()
 # objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting1',  UpSampled, 1)
 # objFilterData.PlotFromSQLQuerySouthAsian( objSQLConfig, 'SouthAsian_BrownSkin_Group', 'HeartRateDifference', str(12048),'Resting2',  UpSampled, 1)
 
-for hrstatus in objFilterData.objConfig.hearratestatus:
-    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9406),hrstatus,  UpSampled, 1)
-    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9154),hrstatus,  UpSampled, 1)
-    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
-    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
-    objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
+# for hrstatus in objFilterData.objConfig.hearratestatus:
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9406),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9154),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(10414),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9658),hrstatus,  UpSampled, 1)
+#     objFilterData.PlotFromSQLQueryAll( objSQLConfig, 'SPODifference', str(9910),hrstatus,  UpSampled, 1)
 # objFilterData.PlotFromSQLQueryGetUpSampledVSNotSampledDataSpecific(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)
-# objFilterData.PlotFromSQLTimeAll(objSQLConfig, str(9406),'Resting1',  UpSampled, 1)#objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType
+objFilterData.PlotFromSQLTimeAll(objSQLConfig, str(9406),'Resting2',  UpSampled, 1)#objSQLConfig,TechniqueId,HeartRateStatus,UpSampled,AttemptType

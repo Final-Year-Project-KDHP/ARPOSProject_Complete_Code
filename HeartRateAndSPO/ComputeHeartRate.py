@@ -374,7 +374,7 @@ class ComputerHeartRate:
         #       + ', GreenBpm: ' + str(self.GreenBpm) + ', BlueBpm: ' + str(self.BlueBpm) + '\n'
 
         # self.WriteDetails(SNR)
-        return  SNR
+        return  SNR ,grey_fft_realabs, red_fft_realabs, ir_fft_realabs
 
     '''
     getBPM:

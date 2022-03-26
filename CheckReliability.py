@@ -21,10 +21,11 @@ class CheckReliability:
     freqencySamplingError = 0.0
 
     #Blood oxygen
-    OxygenSaturationErrorAcceptanceThreshold = 2.8
+    OxygenSaturationErrorAcceptanceThreshold = 5.0
     previousComputedOxygenSaturation = 0.0
     previousAcceptedOxygenSaturation = []
     numberOfAnalysisFailuresSinceCorrectOxygenSaturation = 0
+    OxygenSaturationAcceptanceFactor = 0.14
     NumberOfAnalysisFailuresBeforeTrackingFailureInOxygenSaturation=20
     OxygenSaturationErrorScalingFactor = 0.2
 
@@ -147,12 +148,17 @@ class CheckReliability:
 
     def AcceptorRejectSPO(self,oxygenSaturationValueError,oxygenSaturationValue):
         condition1=(oxygenSaturationValueError > self.OxygenSaturationErrorAcceptanceThreshold)
-        condition2 =(np.abs(oxygenSaturationValue - self.previousComputedOxygenSaturation) > self.OxygenSaturationErrorAcceptanceThreshold * self.previousComputedOxygenSaturation)
+
+        if (self.previousComputedOxygenSaturation == 0.0):
+            condition2 = False
+        else:
+            condition2 =(np.abs(oxygenSaturationValue - self.previousComputedOxygenSaturation) > self.OxygenSaturationAcceptanceFactor * self.previousComputedOxygenSaturation)
+
         # accept or reject region based on signal to noise or deviation from last computed value
         if ( condition1 or condition2):
             # the value has been rejected
             # set the oxygen saturation value the last
-            oxygenSaturationValue = self.previousAcceptedOxygenSaturation[0]
+            oxygenSaturationValue = self.previousAcceptedOxygenSaturation[1]
             self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation= self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation+1
 
             # compute error
@@ -174,8 +180,8 @@ class CheckReliability:
             # accept the bloodoxygen
             self.numberOfAnalysisFailuresSinceCorrectOxygenSaturation = 0
             self.AddPreviousOxygenSaturation(oxygenSaturationValue)
-
-            oxygenSaturationValue = self.previousAcceptedOxygenSaturation[0]
+            oxygenSaturationValue = oxygenSaturationValue#self.previousAcceptedOxygenSaturation[0]
+            self.previousComputedOxygenSaturation = oxygenSaturationValue
 
         return oxygenSaturationValue, oxygenSaturationValueError
 

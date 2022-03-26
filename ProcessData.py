@@ -1977,7 +1977,9 @@ class ProcessFaceData:
 
         elif (processingStep == "ComputerHRandSPO"):
             startlogTime = windowList.LogTime(LogItems.Start_ComputerHRSNR)
-            self.generateHeartRateandSNR(processedBlue, processedGreen, processedRed, processedGrey, processedIR, self.Result_type)
+            grey_fft_realabs, red_fft_realabs, ir_fft_realabs = self.generateHeartRateandSNR(processedBlue, processedGreen,
+                                                                                             processedRed, processedGrey, processedIR,
+                                                                                             self.Result_type)
             endlogTime = windowList.LogTime(LogItems.End_ComputerHRSNR)
 
             # Update Log
@@ -1993,30 +1995,31 @@ class ProcessFaceData:
             windowList.LogTime(LogItems.Start_SPO)
 
             ##GET FILTERED ARRAY gray
-            objFileIO =  FileIO()
-            FilteredDataPath = self.SavePath
-            FilteredDataPath = FilteredDataPath.replace("ComputerHRandSPO","FFT")#Filter make filter later TODO
-            FilterFileName = self.fileName
-            FilterFileName = FilterFileName.replace("ComputerHRandSPO_" + str(self.Result_type) + "_","")
-            FilteredDataFullPath = FilteredDataPath +FilterFileName + "\\"
-            filteredobj = objFileIO.ReadfromDisk(FilteredDataFullPath, "ProcessedWindow_" + str(self.Window_count))
-            Gy_filtered = filteredobj.WindowRegionList[self.region].ProcessedregionWindowGreyData
-            del filteredobj
-            del objFileIO
+            # objFileIO =  FileIO()
+            # FilteredDataPath = self.SavePath
+            # FilteredDataPath = FilteredDataPath.replace("ComputerHRandSPO","FFT")#Filter make filter later TODO
+            # FilterFileName = self.fileName
+            # FilterFileName = FilterFileName.replace("ComputerHRandSPO_" + str(self.Result_type) + "_","")
+            # FilteredDataFullPath = FilteredDataPath +FilterFileName + "\\"
+            # filteredobj = objFileIO.ReadfromDisk(FilteredDataFullPath, "ProcessedWindow_" + str(self.Window_count))
+            Gy_filtered = grey_fft_realabs #filteredobj.WindowRegionList[self.region].ProcessedregionWindowGreyData
+            # del filteredobj
+            # del objFileIO
 
+            irARRay = ir_fft_realabs #self.IRinital
             grey=self.greyInitial
             Gy_filteredCopy = Gy_filtered
-            if (len(grey) > len(self.IRinital)):
-                greyCopy = grey.copy()
-                lengthDiff = len(greyCopy) - len(self.IRinital)
-                for i in range(lengthDiff):
-                    greyCopy.pop()
-            if (len(Gy_filtered) > len(self.IRinital)):
+            # if (len(grey) > len(irARRay)):
+            #     greyCopy = grey.copy()
+            #     lengthDiff = len(greyCopy) - len(irARRay)
+            #     for i in range(lengthDiff):
+            #         greyCopy.pop()
+            if (len(Gy_filtered) > len(irARRay)):
                 Gy_filteredCopy = Gy_filtered.copy()
-                Gy_filteredCopy = Gy_filteredCopy[0:len(self.IRinital)]  # all but the first and last element
+                Gy_filteredCopy = Gy_filteredCopy[0:len(irARRay)]  # all but the first and last element
 
-            # TODO: try with initial or with pre processed?
-            std, err, oxylevl = self.getSpo(grey, Gy_filteredCopy, self.IRinital, self.redInitial,
+            red=red_fft_realabs#self.redInitial
+            std, err, oxylevl = self.getSpo(grey, Gy_filteredCopy, irARRay, red,
                                             self.distanceM)  # Irchannel and distanceM as IR channel lengh can be smaller so passing full array
             windowList.LogTime(LogItems.End_SPO)
 
@@ -2206,7 +2209,8 @@ class ProcessFaceData:
         #         newgrayMaxPeekIndice.append(int(round(newIndex)))
         # else:
         #     newgrayMaxPeekIndice =grayMaxPeekIndice
-
+        maxindex = np.argmin(grayMaxPeekIndice)
+        grayMaxPeekIndice = list(set(grayMaxPeekIndice))
         for index in grayMaxPeekIndice:
             # if self.ignore_freq_below <= freqs[index] <= self.ignore_freq_above:
 
@@ -2220,38 +2224,59 @@ class ProcessFaceData:
 
                 distValue = distanceM[index]  # self.distanceMm[index]
                 # if (distanceM[index] >= 2):
-                #     distValue = distValue - 1
+                # distValue= distValue * 1000 #convert to mm
+                if(distValue>=2):
+                    distValue = distValue - 1
 
                 # distValue = distValue*1000
                 # distValue = distValue*1000 #convert to mm
                 # Absorption values calculated of oxy and deoxy heamoglobin
                 # where red defined as: 600-700nm
                 # where ir defined as: 858-860nm.
-                # red_deoxy_mean = 4820.4361
-                # red_oxy_mean = 667.302
                 ir_deoxy_mean = 694.32  # 693.38
                 ir_oxy_mean = 1092  # 1087.2
                 red_deoxy_mean = 4820.4361
                 red_oxy_mean = 667.302
+                # red_deoxy_mean = 4820.4361
+                # red_oxy_mean = 667.302
                 # ir_deoxy_mean = 693.38
                 # ir_oxy_mean = 1087.2
                 # Depth-resultion blood oxygen satyuration measuremnet by dual-wavelength photothermal (DWP) optical coherence tomography
                 # Biomed Opt Express
                 # 2011 P491-504
                 irToRedRatio = (red_oxy_mean / ir_oxy_mean) * (
-                    (irValue * ((distValue * distValue) / 1000000) / redValue)) / 52
+                (irValue * ((distValue ) ) / redValue)) / 52
+
+                # irToRedRatio = (red_oxy_mean / ir_oxy_mean) * (
+                # (irValue * ((distValue * distValue) / 1000000) / redValue)) / 52
+
                 oxygenLevel = 100 * (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean)) / (
-                        ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) - 6
+                            ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean) -6
+
+                # val4 = ((irValue * distValue / redValue)) #((distValue * distValue) / 1000000)
+                # irToRedRatio = (red_oxy_mean / ir_oxy_mean) * val4
+                # # irToRedRatiodv = irToRedRatio / 52
+                # m1 = (red_deoxy_mean - (irToRedRatio * ir_deoxy_mean))
+                # m2 = (ir_oxy_mean + red_deoxy_mean - ir_deoxy_mean - red_oxy_mean)
+                # div = m1 / m2
+                # oxygenLevel = 100 * div
+                # if(oxygenLevel>100):
+                #     oxygenLevel = 100
+                #     oxygenLevels.append(oxygenLevel)
+                # else:
                 oxygenLevels.append(oxygenLevel)
 
         # compute SD and mean of oxygenLevels
-        self.OxygenSaturation = np.std(oxygenLevels)
+        self.OxygenSaturation = np.mean(oxygenLevels)
         self.OxygenSaturationError = np.std(oxygenLevels, ddof=1) / np.sqrt(
             np.size(oxygenLevels))  # MeanStandardDeviation err
 
-        if (len(oxygenLevels) <= 0):
-            oxygenLevels.append(0)
-        return self.OxygenSaturation, self.OxygenSaturationError, str(oxygenLevels[0])
+        # if(self.OxygenSaturationError < smallestOxygenError):
+        #     smallestOxygenError = self.OxygenSaturationError
+
+        # if (len(oxygenLevels) <= 0):
+        #     oxygenLevels.append(0)
+        return self.OxygenSaturation, self.OxygenSaturationError, self.OxygenSaturation #str(oxygenLevels[maxindex])
 
     def FindMaxPeekInPeriod(self, indicesOfPeeks, samples, period, startIdx):
 
@@ -2715,7 +2740,7 @@ class ProcessFaceData:
 
         SNR = ''
         if (type == 1):
-            SNR = objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
+            SNR, grey_fft_realabs, red_fft_realabs, ir_fft_realabs = objComputerHeartRate.OriginalARPOSmethod(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
                                                            grey_fft_realabs, ir_fft_realabs)
         elif (type == 2):
             SNR = objComputerHeartRate.getHeartRate_fromFrequency(blue_fft_realabs, green_fft_realabs, red_fft_realabs,
@@ -2743,7 +2768,7 @@ class ProcessFaceData:
 
         ##Copy for storage
         # ResultData
-
+        return grey_fft_realabs, red_fft_realabs, ir_fft_realabs
 
 class ProcessedData:
     ColorEstimatedFPS = None

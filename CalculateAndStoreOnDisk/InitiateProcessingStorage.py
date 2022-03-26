@@ -461,16 +461,16 @@ class InitiateProcessingStorage:
         for element in SpoGr:
             SpoGrFinal.append(int(element.strip()))
 
+        # print(prevfileName)
+        WindowCountList = prevfileName.split("_")
+        WindowCount = int(WindowCountList[1])
+
         # Split ground truth data
         HrAvgWindowSizeList = CommonMethods.splitGroundTruth(HrGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
         SPOAvgWindowSizeList = CommonMethods.splitGroundTruth(SpoGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
         
         HrLastSecondList = CommonMethods.splitLastSecondGroundTruth(HrGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
         SPOLastSecondList = CommonMethods.splitLastSecondGroundTruth(SpoGrFinal, dataObject.TotalWindows, dataObject.timeinSeconds)
-
-        # print(prevfileName)
-        WindowCountList = prevfileName.split("_")
-        WindowCount = int(WindowCountList[1])
 
         # Store Data in Window List
         WindowRegionList['lips'] = dataObject.WindowRegionList[objConfig.roiregions[0]]

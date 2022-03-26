@@ -473,6 +473,7 @@ class Main:
                 # if (not self.objFileIO.FileExits(currentSavePath + "ProcessedCompleted.txt")):
                 for folderName in os.listdir(previousfullPath):  # Load previous step files, for each file
                     previousWindowFilesPath = previousfullPath + folderName + "\\"
+                    print(previousWindowFilesPath)
                     objReliability = CheckReliability()  # for every type and participant
                     # Data Frame
                     dfWindows = pd.DataFrame(columns=self.HeaderRowSplit)
@@ -515,10 +516,10 @@ class Main:
         else:
             for processingStep in self.objConfig.ProcessingSteps:
                 print(processingStep)
-                if (processingStep == "SaveResultstoDisk"):
-                    continue
-                # if (processingStep != "ComputerHRandSPO"):
+                # if (processingStep == "SaveResultstoDisk"):
                 #     continue
+                if (processingStep != "ComputerHRandSPO"):
+                    continue
                 for process_type in self.objConfig.getProcessType(processingStep):
                     print("started all processing steps for window:" + str(self.objConfig.windowSize) + " ---> for type "+ str(process_type))
                     for participant_number in self.objConfig.ParticipantNumbers:

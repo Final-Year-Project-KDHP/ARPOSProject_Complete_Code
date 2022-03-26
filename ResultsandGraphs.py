@@ -23,6 +23,30 @@ class ResultsandGraphs:
         self.objFileIO = objFileIO
 
     def AllPlotsforComputedResults(self):
+        # self.GenerateGraphfromOneFileforALlSPO("Resting1", True, "FastICA", "TestSPO", "Darker",
+        #                                        True)  # step3 for all in one
+        # testing only
+        # self.CreateRestultsfromParitcipantIdforTestingoNLY("Resting1", "_Only" + "FastICA", "PIS-396")
+        # self.CreateRestultsfromParitcipantIdforTestingoNLY("Resting1", "_Only" + "FastICA", "PIS-396P2")
+
+        algorithmDataframe = self.CreateRestultsForICAOnly("Resting1","FastICA", "White")
+        sns.catplot(x = "AlgorithmType",       # x variable name
+                    y = "RMSE",       # y variable name
+                    hue = "PreProcess",  # group variable name
+                    data = algorithmDataframe,     # dataframe to plot
+                    kind = "bar")
+        plt.show()
+        a=0
+        # algorithmDataframe = self.CreateRestultsForICAOnly("Resting1","FastICA", "Brown")
+        # sns.catplot(x="AlgorithmType",  # x variable name
+        #             y="RMSE",  # y variable name
+        #             hue="PreProcess",  # group variable name
+        #             data=algorithmDataframe,  # dataframe to plot
+        #             kind="bar")
+        # plt.show()
+        # a=0
+        ###Plot values
+
 
         # for algorithm in self.objConfig.AlgoList:
         #     for position in self.objConfig.hearratestatus:
@@ -39,27 +63,42 @@ class ResultsandGraphs:
                 #                                      "_Only"+ algorithm  +"_SkinoverAllcommon_" + position,"White",True)#step3
                 # self.GenerateGraphfromOneFileforALl( position, True, algorithm,"Darker_BestMeansbyAlgoTypeDataW15_" +position +
                 #                                      "_Only"+ algorithm  + "_SkinoverAllcommon_" + position,"Darker",True)#step3
+                # self.GenerateGraphfromOneFileforALl( position, True, algorithm,"_BestMeansbyAlgoTypeDataW15_" +position +
+                #                                      "_Only"+ algorithm  + "_SkinoverAllcommon_" + position,"All",True)#step3 for all in one
+                # self.GenerateGraphfromOneFileforALlSPO( position, True, algorithm,"_BestMeansbyAlgoTypeDataW15_" +position +
+                #                                      "_Only"+ algorithm  + "_SkinoverAllcommon_" + position,"All",True)#step3 for all in one
+                # self.GenerateGraphfromOneFileforALlSPO( position, True, algorithm,"Darker_BestMeansbyAlgoTypeDataW15_" +position +
+                #                                      "_Only"+ algorithm  + "_SkinoverAllcommon_" + position,"Darker",True)#step3 for all in one
+                # self.GenerateGraphfromOneFileforALlSPO( position, True, algorithm,"White_BestMeansbyAlgoTypeDataW15_" +position +
+                #                                      "_Only"+ algorithm  + "_SkinoverAllcommon_" + position,"White",True)#step3 for all in one
+
                 # Completed steps..
 
                 # self.BlandAltmanPlotMain(position, "White",algorithm)  # step4
                 # self.BlandAltmanPlotMain(position, "Darker",algorithm)  # step4
 
+
+
+        # for position in self.objConfig.hearratestatus:
+            # self.genearteBoxPlots(position,"White")####Final step1
+            # self.genearteBoxPlots(position,"Darker")####Final step1
+            # self.genearteBoxPlots(position,"All") ####Final step1
+            # self.GenratebarPlotStats(position,"All") ####step2
+            # self.GenratebarPlotStats(position,"White")####step2
+            # self.GenratebarPlotStats(position,"Darker")####step2
+        # #     # self.RvalPlotMainIndividual(position)#step5
+
+
         # BOX PLOT
         # self.RMSEPlotMain()#step1
-        # self.DiffPlotMain("White", "Resting1")#step2
-        # self.DiffPlotMain("White", "Resting2")#step2
-        # self.DiffPlotMain("White", "AfterExcersize")#step2
-        # self.DiffPlotMain("Darker", "Resting1")#step2
-        # self.DiffPlotMain("Darker", "Resting2")#step2
-        # self.DiffPlotMain("Darker", "AfterExcersize")#step2
+        # self.DiffPlotMainSPO("All", "Resting1",'Original Obtianed Average differenceSPO',"SPO")#step2
+        # self.DiffPlotMain("All", "Resting1",'HRDifference from averaged',"All")#step2
+        # self.DiffPlotMain("White", "Resting2",'HRDifference from averaged')#step2
+        # self.DiffPlotMain("White", "AfterExcersize",'HRDifference from averaged')#step2
+        # self.DiffPlotMain("Darker", "Resting1",'HRDifference from averaged')#step2
+        # self.DiffPlotMain("Darker", "Resting2",'HRDifference from averaged')#step2
+        # self.DiffPlotMain("Darker", "AfterExcersize",'HRDifference from averaged')#step2
         # self.RvalPlotMain()#step3
-
-        for position in self.objConfig.hearratestatus:
-            # self.RvalPlotMainIndividual(position)#step5
-            # self.genearteBoxPlots(position,"White")
-            # self.genearteBoxPlots(position,"Darker")
-            self.GenratebarPlotStats(position,"White")
-            self.GenratebarPlotStats(position,"Darker")
 
 
                 # self.ComputeStatResultsForPositionand("Resting1") #for each paritciapnt
@@ -98,28 +137,49 @@ class ResultsandGraphs:
     def GenratebarPlotStats(self,position,skintype):
         LoadfullPath = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(self.objConfig.windowSize) + "\\" + position+ "\\" + "Filtered\\"
         algorithmDataframe = pd.read_csv(LoadfullPath+ position+"_statData_"+ skintype + "_AveragedGRWindowDiff_HR" + ".csv")  # read file
-        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'slope'].index)
+        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'Slope'].index)
         algorithmDataframe = algorithmDataframe.dropna()
-        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'intercept'].index)
+        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'Intercept'].index)
         algorithmDataframe = algorithmDataframe.dropna()
-        algorithmDataframe2 = algorithmDataframe[algorithmDataframe['groupType'] == 'std']
-        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'std'].index)
+        algorithmDataframe2 = algorithmDataframe[algorithmDataframe['groupType'] == 'Std']
+        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'Std'].index)
         algorithmDataframe = algorithmDataframe.dropna()
-        algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'p'].index)
-        algorithmDataframe = algorithmDataframe.dropna()
+        # algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'p'].index)
+        # algorithmDataframe = algorithmDataframe.dropna()
         # algorithmDataframe = algorithmDataframe.drop(algorithmDataframe[algorithmDataframe.groupType == 'meanAbs'].index)
         # algorithmDataframe = algorithmDataframe.dropna()
 
         # rearrange dataframe and plot
+        fig = plt.figure(figsize=(20, 20))
+        # plt.rcParams.update({'font.size': 20}) # must set in top
+        # plt.rc('font', size=18)
+        # plt.rcParams['legend.title_fontsize'] = 'small'
+        # algorithmDataframe.plot(figsize=(20,15))
         algorithmDataframe.pivot(index="Algorithm", columns="groupType", values="value").plot.bar(edgecolor="white")
-        plt.xticks(rotation=0)
+        plt.xticks(rotation=45)
+        plt.xlabel("Algorithms", size=15)
+        plt.ylabel("Statistical Values", size=15)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.tight_layout()
+        # plt.show()
         plt.savefig(LoadfullPath +  position + "_statbarplot_" + skintype + "_AveragedGRWindowDiff_HR.png")
 
         plt.clf()
+        fig = plt.figure(figsize=(20, 20))
+        # plt.rcParams.update({'font.size': 20}) # must set in top
+        # plt.rc('font', size=18)
+        # algorithmDataframe.plot(figsize=(20,15))
         algorithmDataframe2.pivot(index="Algorithm", columns="groupType", values="value").plot.bar(edgecolor="white")
-        plt.xticks(rotation=0)
+        plt.xticks(rotation=45)
+        plt.xlabel("Algorithms", size=15)
+        plt.ylabel("Statistical Values", size=15)
+        plt.yticks(fontsize=15)
+        plt.xticks(fontsize=15)
+        plt.tight_layout()
         plt.savefig(LoadfullPath + position + "_stdplot_" + skintype + "_AveragedGRWindowDiff_HR.png")
-        a=0
+        # plt.show()
+
     def getMaxValuebyType(self, position):
         previousProcessingStep = "StatisticalResults"
         print("get Max value --> " + str(self.objConfig.windowSize))
@@ -174,30 +234,54 @@ class ResultsandGraphs:
         print(AlgoName)
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow,\
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow =  self.GenerateValuesOnlyStats('GroundTruth HeartRate Averaged',
+        std_err_avgedWindow, rsqrd_avgedWindow,rms_avgedWindow =  self.GenerateValuesOnlyStats('GroundTruth HeartRate Averaged',
                                                                                'Computed HeartRate','HRDifference from averaged',
                                                                                algorithmDataframe, "HRDifference from averaged")
         r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow = self.GenerateValuesOnlyStats('GroundTruth HeartRate Averaged','bestBpm Without ReliabilityCheck','OriginalObtianedAveragedifferenceHR',
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow,rms_orginalavgedWindow = self.GenerateValuesOnlyStats('GroundTruth HeartRate Averaged','bestBpm Without ReliabilityCheck','OriginalObtianedAveragedifferenceHR',
                                      algorithmDataframe, "Original Obtianed (bestbpm) Average differenceHR")
         r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow = self.GenerateValuesOnlyStats(' Hr from windows last second','Computed HeartRate',' LastSecondWindow differenceHR',algorithmDataframe, "HRDifference from LastSecondWindow")
+        std_err_lastsecWindow, rsqrd_lastsecWindow,rms_lastsecWindow = self.GenerateValuesOnlyStats(' Hr from windows last second','Computed HeartRate',' LastSecondWindow differenceHR',algorithmDataframe, "HRDifference from LastSecondWindow")
         r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow =    self.GenerateValuesOnlyStats(' Hr from windows last second','bestBpm Without ReliabilityCheck',' OriginalObtianed LastSecondWindow differenceHR',
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow,rms_originallastsecWindow =    self.GenerateValuesOnlyStats(' Hr from windows last second','bestBpm Without ReliabilityCheck',' OriginalObtianed LastSecondWindow differenceHR',
                                      algorithmDataframe, "Original Obtianed (bestbpm) LastSecondWindow differenceHR")
 
         return r_avgedWindow, p_avgedWindow, meanABS_avgedWindow,\
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow,rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow,r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow,rms_orginalavgedWindow,r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow,r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow,rms_lastsecWindow,r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow,rms_originallastsecWindow
+
+    def getDataforAllskinTypes(self,skintype,algorithm,position,LoadfullPath):
+
+        # lOAD Data
+        if(skintype == "All"):
+            fileName =  "White_BestMeansbyAlgoTypeDataW" + str(
+                self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
+            algorithmDataframe1 = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+
+            fileName =  "Darker_BestMeansbyAlgoTypeDataW" + str(
+                self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
+            algorithmDataframe2 = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+
+            alldata = [algorithmDataframe1, algorithmDataframe2]
+            algorithmDataframe = pd.concat(alldata)
+        else:
+            fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
+                self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
+            algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+
+        algorithmDataframe = algorithmDataframe.dropna()
+
+        return algorithmDataframe
+
 
     def genearteBoxPlots(self,position,skintype):
         objPlots = Plots()
@@ -212,12 +296,12 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise = []
         std_err_avgedWindow_AlgoWise = []
         rsqrd_avgedWindow_AlgoWise = []
+        rms_avgedWindow_AlgoWise = []
 
         # FastICA
         algorithm = "FastICA"
-        fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
-            self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
+        # pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
         HRDifferenceAvg_FastICA =  algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_FastICA =  algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_FastICA =  algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
@@ -225,13 +309,13 @@ class ResultsandGraphs:
 
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -242,6 +326,7 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
         GRrecord = np.zeros_like(HRDifferenceAvg_FastICA)
 
@@ -249,22 +334,23 @@ class ResultsandGraphs:
         algorithm = "None"
         fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
             self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
         HRDifferenceAvg_None = algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_None = algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_None = algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
         OriginalObtianedLastSecondWindowDiff_None = algorithmDataframe[
             ' OriginalObtianed LastSecondWindow differenceHR'].tolist()
 
+
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -275,26 +361,28 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
         # PCA
         algorithm = "PCA"
         fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
             self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
         HRDifferenceAvg_PCA =  algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_PCA =  algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_PCA =  algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
         OriginalObtianedLastSecondWindowDiff_PCA =  algorithmDataframe[' OriginalObtianed LastSecondWindow differenceHR'].tolist()
 
+
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -305,26 +393,28 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
         # PCAICA #Spectralembedding
         algorithm = "PCAICA"
         fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
             self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
         HRDifferenceAvg_PCAICA =  algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_PCAICA =  algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_PCAICA =  algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
         OriginalObtianedLastSecondWindowDiff_PCAICA =  algorithmDataframe[' OriginalObtianed LastSecondWindow differenceHR'].tolist()
 
+
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -335,27 +425,29 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
         # Spectralembedding
         algorithm = "Spectralembedding"
         fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
             self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
         HRDifferenceAvg_Spectralembedding = algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_Spectralembedding = algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_Spectralembedding = algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
         OriginalObtianedLastSecondWindowDiff_Spectralembedding = algorithmDataframe[
             ' OriginalObtianed LastSecondWindow differenceHR'].tolist()
 
+
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -366,26 +458,28 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
         # Jade
         algorithm = "Jade"
         fileName = skintype + "_BestMeansbyAlgoTypeDataW" + str(
             self.objConfig.windowSize) + "_" + position + "_Only" + algorithm + "_SkinoverAllcommon_" + position
-        algorithmDataframe = pd.read_csv(LoadfullPath + fileName + ".csv")  # read file
+        algorithmDataframe = self.getDataforAllskinTypes(skintype,algorithm,position,LoadfullPath)
         HRDifferenceAvg_Jade =  algorithmDataframe['HRDifference from averaged'].tolist()
         OriginalObtianedAveragedifferenceHR_Jade =  algorithmDataframe['OriginalObtianedAveragedifferenceHR'].tolist()
         LastSecondWindowdifferenceHR_Jade =  algorithmDataframe[' LastSecondWindow differenceHR'].tolist()
         OriginalObtianedLastSecondWindowDiff_Jade =  algorithmDataframe[' OriginalObtianed LastSecondWindow differenceHR'].tolist()
 
+
         r_avgedWindow, p_avgedWindow, meanABS_avgedWindow, \
         meanWithoutABS_avgedWindow, slope_avgedWindow, intercept_avgedWindow, \
-        std_err_avgedWindow, rsqrd_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
+        std_err_avgedWindow, rsqrd_avgedWindow, rms_avgedWindow, r_orginalavgedWindow, p_orginalavgedWindow, meanABS_orginalavgedWindow, \
         meanWithoutABS_orginalavgedWindow, slope_orginalavgedWindow, intercept_orginalavgedWindow, \
-        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
+        std_err_orginalavgedWindow, rsqrd_orginalavgedWindow, rms_orginalavgedWindow, r_lastsecWindow, p_lastsecWindow, meanABS_lastsecWindow, \
         meanWithoutABS_lastsecWindow, slope_lastsecWindow, intercept_lastsecWindow, \
-        std_err_lastsecWindow, rsqrd_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
+        std_err_lastsecWindow, rsqrd_lastsecWindow, rms_lastsecWindow, r_originallastsecWindow, p_originallastsecWindow, meanABS_originallastsecWindow, \
         meanWithoutABS_originallastsecWindow, slope_originallastsecWindow, intercept_originallastsecWindow, \
-        std_err_originallastsecWindow, rsqrd_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
+        std_err_originallastsecWindow, rsqrd_originallastsecWindow, rms_originallastsecWindow = self.genValuesMain(algorithmDataframe,algorithm)
 
         algoLabels.append(algorithm)
         r_avgedWindow_AlgoWise.append(r_avgedWindow)
@@ -396,20 +490,21 @@ class ResultsandGraphs:
         intercept_avgedWindow_AlgoWise.append(intercept_avgedWindow)
         std_err_avgedWindow_AlgoWise.append(std_err_avgedWindow)
         rsqrd_avgedWindow_AlgoWise.append(rsqrd_avgedWindow)
+        rms_avgedWindow_AlgoWise.append(rms_avgedWindow)
 
-        data = [HRDifferenceAvg_FastICA, HRDifferenceAvg_None,HRDifferenceAvg_PCA, HRDifferenceAvg_PCAICA, HRDifferenceAvg_Spectralembedding, HRDifferenceAvg_Jade, GRrecord]
+        data = [HRDifferenceAvg_FastICA, HRDifferenceAvg_None,HRDifferenceAvg_PCA, HRDifferenceAvg_PCAICA, HRDifferenceAvg_Spectralembedding, HRDifferenceAvg_Jade]
         objPlots.Genrateboxplot(data, LoadfullPath, position, 'HR', 'HR (BPM) ',skintype + "_AveragedGRWindowDiff")
 
         data = [OriginalObtianedAveragedifferenceHR_FastICA, OriginalObtianedAveragedifferenceHR_None,OriginalObtianedAveragedifferenceHR_PCA,
-                OriginalObtianedAveragedifferenceHR_PCAICA, OriginalObtianedAveragedifferenceHR_Spectralembedding, OriginalObtianedAveragedifferenceHR_Jade, GRrecord]
+                OriginalObtianedAveragedifferenceHR_PCAICA, OriginalObtianedAveragedifferenceHR_Spectralembedding, OriginalObtianedAveragedifferenceHR_Jade]
         objPlots.Genrateboxplot(data, LoadfullPath, position, 'HR', 'HR (BPM) ',skintype + "_AveragedGRWindowDiffWithoutRealibilityCheck")
 
         data = [LastSecondWindowdifferenceHR_FastICA, LastSecondWindowdifferenceHR_None,LastSecondWindowdifferenceHR_PCA,
-                LastSecondWindowdifferenceHR_PCAICA, LastSecondWindowdifferenceHR_Spectralembedding, LastSecondWindowdifferenceHR_Jade, GRrecord]
+                LastSecondWindowdifferenceHR_PCAICA, LastSecondWindowdifferenceHR_Spectralembedding, LastSecondWindowdifferenceHR_Jade]
         objPlots.Genrateboxplot(data, LoadfullPath, position, 'HR', 'HR (BPM) ',skintype + "_LastSecWindowDiff")
 
         data = [OriginalObtianedLastSecondWindowDiff_FastICA, OriginalObtianedLastSecondWindowDiff_None,OriginalObtianedLastSecondWindowDiff_PCA,
-                OriginalObtianedLastSecondWindowDiff_PCAICA, OriginalObtianedLastSecondWindowDiff_Spectralembedding, OriginalObtianedLastSecondWindowDiff_Jade, GRrecord]
+                OriginalObtianedLastSecondWindowDiff_PCAICA, OriginalObtianedLastSecondWindowDiff_Spectralembedding, OriginalObtianedLastSecondWindowDiff_Jade]
         objPlots.Genrateboxplot(data, LoadfullPath, position, 'HR', 'HR (BPM) ',skintype + "_LastSecWindowDiffWithoutRealibilityCheck")
 
 
@@ -480,7 +575,7 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "meanAbs",
+                    'groupType': "MeanAbs",
                     'value': meanABS_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
@@ -493,7 +588,7 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "mean",
+                    'groupType': "Mean",
                     'value': meanWithoutABS_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
@@ -506,7 +601,7 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "slope",
+                    'groupType': "Slope",
                     'value': slope_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
@@ -519,7 +614,7 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "intercept",
+                    'groupType': "Intercept",
                     'value': intercept_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
@@ -532,7 +627,7 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "std",
+                    'groupType': "Std",
                     'value': std_err_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
@@ -545,13 +640,25 @@ class ResultsandGraphs:
             temp = pd.DataFrame(
                 {
                     'Algorithm': item,
-                    'groupType': "rsqrd",
+                    'groupType': "Rsquared",
                     'value': rsqrd_avgedWindow_AlgoWise[count]
                 }, index=[0]
             )
             df = pd.concat([df, temp])
             count = count + 1
 
+        # for rsqrd values
+        count = 0
+        for item in algoLabels:
+            temp = pd.DataFrame(
+                {
+                    'Algorithm': item,
+                    'groupType': "RMSE",
+                    'value': rms_avgedWindow_AlgoWise[count]
+                }, index=[0]
+            )
+            df = pd.concat([df, temp])
+            count = count + 1
         df.to_csv(LoadfullPath+  position + "_statData_" + skintype +"_AveragedGRWindowDiff_HR" + ".csv")  # Write to file
 
 
@@ -720,12 +827,108 @@ class ResultsandGraphs:
             # print("Completed")
             print("Completed for postion: " + position + " and participant: " + participant_number)
 
+    def CreateRestultsForICAOnly(self,position,algodetail,skinType):
+        print( "StatisticalResults --> " + str(self.objConfig.windowSize) + " for " + position + " and algo " + algodetail)
+        previousPath = self.objConfig.ProcessingSteps[len(self.objConfig.ProcessingSteps) - 1]
+
+        participantsBestTypeLastSec = {}
+
+        dataTypeList = []
+
+        algodetailupdated =algodetail.replace("_Only","")
+
+        prevdatatypepath = self.objConfig.getPathforFolderName(previousPath + "DataFiles", "PIS-1032",position)#any folder just to get all processed item names
+        for fileName in os.listdir(prevdatatypepath):  # Load previous step files, for each file
+            fileName =fileName.replace(".csv","")
+            if ((not fileName.__contains__("ProcessedCompleted"))):
+                if ((not fileName.__contains__("Graphs"))):
+                    if(not dataTypeList.__contains__(fileName)):
+                        if(fileName.__contains__(algodetailupdated)):
+                            dataTypeList.append(fileName)
+
+        ICA_pariticipants_rmse = {}
+        for processedFile in dataTypeList:
+            participantsRMSE = {}
+            for participant_number in self.objConfig.ParticipantNumbers:
+                # if(participant_number != "PIS-6888" and participant_number != "PIS-6729" and participant_number != "PIS-5868" and participant_number != "PIS-3252"
+                #         and participant_number != "PIS-3186" and participant_number != "PIS-7728" ): ##fps 15 or beard
+                # if(participant_number == "PIS-6888" or participant_number == "PIS-6729" or participant_number == "PIS-5868" # or participant_number == "PIS-1949"
+                #         or participant_number == "PIS-3186" or participant_number == "PIS-7728" ): ##fps 15 or beard
+                skinpigPath = self.objConfig.DiskPath + "SerialisedRawServerData\\UnCompressed\\" + participant_number +"\\"
+                skinPigmentaion = self.objFileIO.ReaddatafromFile(skinpigPath,"OtherInformation")[0].replace("Skinpigmentation: ","")
+                if(skinPigmentaion == skinType):
+                    previousfullPath = self.objConfig.getPathforFolderName(previousPath + "DataFiles", participant_number,
+                                                                           position)
+                    # lOAD Data
+                    algorithmDataframe = pd.read_csv(previousfullPath + processedFile + ".csv")  # read file
+                    algorithmDataframe = algorithmDataframe.sort_values(by=['WindowCount'], ascending=[True])# sort before other processing
+
+                    diffval = abs(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 0]["HRDifference from averaged"][0])
+                    # for 2nd wndw
+                    diffval2 = abs(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 1]["HRDifference from averaged"][1])
+                    # for 3 wndw
+                    diffval3 = abs(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 2]["HRDifference from averaged"][2])
+                    # for 4 wndw
+                    diffval4 = abs(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 3]["HRDifference from averaged"][3])
+                    # for 5 wndw
+                    diffval5 = abs(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 4]["HRDifference from averaged"][4])
+
+                    if (diffval >= 10):
+                        algorithmDataframe = algorithmDataframe.drop(
+                            algorithmDataframe[algorithmDataframe.WindowCount == 0].index)
+                        if (diffval2 >= 10):
+                            algorithmDataframe = algorithmDataframe.drop(
+                                algorithmDataframe[algorithmDataframe.WindowCount == 1].index)
+                            if (diffval3 >= 10):
+                                algorithmDataframe = algorithmDataframe.drop(
+                                    algorithmDataframe[algorithmDataframe.WindowCount == 2].index)
+                                if (diffval4 >= 10):
+                                    algorithmDataframe = algorithmDataframe.drop(
+                                        algorithmDataframe[algorithmDataframe.WindowCount == 3].index)
+                                    if (diffval5 >= 10):
+                                        algorithmDataframe = algorithmDataframe.drop(
+                                            algorithmDataframe[algorithmDataframe.WindowCount == 4].index)
+
+                    Actual_data = algorithmDataframe['GroundTruth HeartRate Averaged'].tolist()
+                    observed_data = algorithmDataframe['Computed HeartRate'].tolist()
+
+                    slope, intercept, r, p, std_err = scipy.stats.linregress(Actual_data, observed_data)
+                    mean_squared_error_result = np.sqrt(
+                        mean_squared_error(Actual_data, observed_data))  # mean_squared_error_result
+
+                    participantsRMSE[participant_number] = abs(r)#meanValue
+            ICA_pariticipants_rmse[processedFile] =participantsRMSE
+
+
+        new_columns = ['AlgorithmType', 'PreProcess', 'SkinPigmentation', 'RMSE']
+        algorithmDataframe = pd.DataFrame(columns=new_columns)
+        FinalbestData = {}
+        for k,v in ICA_pariticipants_rmse.items():
+            Techniques = k.split("_") #ComputerHRandSPO_1_FFT_M4_Algorithm_PCAICA_PreProcess_7
+            algoName=Techniques[len(Techniques)-3]
+            PreProcess = Techniques[len(Techniques)-1]
+            participantsDictionarydata = v
+            rmseMean = sum(participantsDictionarydata.values()) / len(participantsDictionarydata)
+            FinalbestData[algoName] = rmseMean
+            algorithmDataframe = algorithmDataframe.append({'AlgorithmType': algoName,
+                                     'PreProcess': PreProcess,
+                                     'SkinPigmentation': skinType,
+                                     'RMSE': rmseMean }, ignore_index=True)
+
+        return algorithmDataframe
+
     def CreateRestultsfromBestFileCases(self,position,algodetail):
         processingStep = "StatisticalResults"
         print(processingStep + " --> " + str(self.objConfig.windowSize) + " for " + position + " and algo " + algodetail)
         previousPath = self.objConfig.ProcessingSteps[len(self.objConfig.ProcessingSteps) - 1]
 
         participantsBestType = {}
+        participantsBestTypeLastSec = {}
 
         dataTypeList = []
         # dataTypeList.append("ComputerHRandSPO_1_FFT_M4_Algorithm_FastICA_PreProcess_2")
@@ -765,18 +968,62 @@ class ResultsandGraphs:
                                                                        position)
                 # lOAD Data
                 algorithmDataframe = pd.read_csv(previousfullPath + processedFile + ".csv")  # read file
-
                 algorithmDataframe = algorithmDataframe.sort_values(by=['WindowCount'], ascending=[True])# sort before other processing
 
-                algorithmDataframe['HRDifference from averaged'] = algorithmDataframe['HRDifference from averaged'].abs()# abs
+                diffval = abs(
+                    algorithmDataframe[algorithmDataframe.WindowCount == 0]["HRDifference from averaged"][0])
+                # for 2nd wndw
+                diffval2 = abs(
+                    algorithmDataframe[algorithmDataframe.WindowCount == 1]["HRDifference from averaged"][1])
+                # for 3 wndw
+                diffval3 = abs(
+                    algorithmDataframe[algorithmDataframe.WindowCount == 2]["HRDifference from averaged"][2])
+                # for 4 wndw
+                diffval4 = abs(
+                    algorithmDataframe[algorithmDataframe.WindowCount == 3]["HRDifference from averaged"][3])
+                # for 5 wndw
+                diffval5 = abs(
+                    algorithmDataframe[algorithmDataframe.WindowCount == 4]["HRDifference from averaged"][4])
 
-                meanValue = algorithmDataframe['HRDifference from averaged'].mean()
+                if (diffval >= 10):
+                    algorithmDataframe = algorithmDataframe.drop(
+                        algorithmDataframe[algorithmDataframe.WindowCount == 0].index)
+                    if (diffval2 >= 10):
+                        algorithmDataframe = algorithmDataframe.drop(
+                            algorithmDataframe[algorithmDataframe.WindowCount == 1].index)
+                        if (diffval3 >= 10):
+                            algorithmDataframe = algorithmDataframe.drop(
+                                algorithmDataframe[algorithmDataframe.WindowCount == 2].index)
+                            if (diffval4 >= 10):
+                                algorithmDataframe = algorithmDataframe.drop(
+                                    algorithmDataframe[algorithmDataframe.WindowCount == 3].index)
+                                if (diffval5 >= 10):
+                                    algorithmDataframe = algorithmDataframe.drop(
+                                        algorithmDataframe[algorithmDataframe.WindowCount == 4].index)
+
+                Actual_data = algorithmDataframe['GroundTruth HeartRate Averaged'].tolist()
+                Actual_dataLastSec = algorithmDataframe[' Hr from windows last second'].tolist()
+                observed_data = algorithmDataframe['Computed HeartRate'].tolist()
+                diffValues = algorithmDataframe['HRDifference from averaged'].tolist()
+
+                # slope, intercept, r, p, std_err = scipy.stats.linregress(Actual_data, observed_data)
+                mean_squared_error_result = np.sqrt(
+                    mean_squared_error(Actual_data, observed_data))  # mean_squared_error_result
+                mean_squared_error_result_lastSec = np.sqrt(
+                    mean_squared_error(Actual_dataLastSec, observed_data))  # mean_squared_error_result
+
+                # algorithmDataframe['HRDifference from averaged'] = algorithmDataframe['HRDifference from averaged'].abs()# abs
+                # algorithmDataframe[' LastSecondWindow differenceHR'] = algorithmDataframe[' LastSecondWindow differenceHR'].abs()# abs
+                # meanValue = algorithmDataframe['HRDifference from averaged'].mean()
+                # meanValueLastSec = algorithmDataframe[' LastSecondWindow differenceHR'].mean()
 
                 # print(participant_number + "--> " + processedFile + " mean : " + str(meanValue))
 
-                participantsBestType[participant_number+","+processedFile] = meanValue
+                participantsBestType[participant_number+","+processedFile] = mean_squared_error_result#meanValue
+                participantsBestTypeLastSec[participant_number+","+processedFile] = mean_squared_error_result_lastSec
 
         FinalbestData = {}
+        FinalbestDataLastSec = {}
         for participant_number in self.objConfig.ParticipantNumbers:
             participantsDataMeans={}
             for k,v in participantsBestType.items():
@@ -790,9 +1037,27 @@ class ResultsandGraphs:
 
                 participantsDataMeans[algoName] = meanV
 
+            participantsDataMeansLastSec = {}
+            for k, v in participantsBestTypeLastSec.items():
+                ksplit = k.split(",")
+                algoName = ksplit[1]
+                pinumber = ksplit[0]
+                meanV = v
+
+                if (participant_number != pinumber):
+                    continue
+
+                participantsDataMeansLastSec[algoName] = meanV
+
             minValue = min(participantsDataMeans.values())# min(participantsDataMeans.keys(), key=(lambda k: participantsDataMeans[k]))
             minValueKey = min(participantsDataMeans, key=participantsDataMeans.get)
+
+            minValuelastsec = min(participantsDataMeansLastSec.values())  # min(participantsDataMeans.keys(), key=(lambda k: participantsDataMeans[k]))
+            minValueKeylastsec = min(participantsDataMeansLastSec, key=participantsDataMeansLastSec.get)
+
             FinalbestData[participant_number + "," + minValueKey] = minValue
+            FinalbestDataLastSec[participant_number + "," + minValueKeylastsec] = minValuelastsec
+
 
         new_columns = ['id', 'Overall', 'means', 'SkinPigmenation', 'bestdifference', 'bestmeandiff']
         algorithmDataframe = pd.DataFrame(columns=new_columns)
@@ -801,17 +1066,88 @@ class ResultsandGraphs:
             splitKey = k.split(",")
             participantn = splitKey[0]
             algoDetail = splitKey[1]
+            computedObject = self.objFileIO.ReadfromDisk(self.objConfig.DiskPath + "ComputerHRandSPODataFiles_W" + str(self.objConfig.windowSize) + "CorrectHR\\"
+                                                   +participantn + "\\" + position + "\\" + algoDetail+ "\\", "ProcessedWindow_5")
+            fpsnotes = computedObject.FPSNotes
             filecontent = self.objFileIO.ReaddatafromFile(self.objConfig.DiskPath +"SerialisedRawServerData\\UnCompressed\\" + participantn + "\\", "OtherInformation")
             skinType =filecontent[0].replace("Skinpigmentation: ","")
             algorithmDataframe = algorithmDataframe.append({'id': participantn,
                                      'Overall': algoDetail,
                                      'means': v,
                                      'SkinPigmenation': skinType,
-                                     'bestdifference': 0,'bestmeandiff': 0}, ignore_index=True)
+                                        'FPSNotes': fpsnotes,
+                                     'bestdifference': 0,'bestmeandiff': 0
+                                                            }, ignore_index=True)
 
         algorithmDataframe.to_csv(
             self.objConfig.DiskPath + previousPath + "DataFiles_W" + str(self.objConfig.windowSize) + "\\"  + "BestMeansbyAlgoTypeDataW" + str(self.objConfig.windowSize) + "_"+ position +  algodetail+".csv")  # Write to file
 
+    def CreateRestultsfromParitcipantIdforTestingoNLY(self,position,algodetail, participant_number):
+        print("StatisticalResults" + " --> " + str(self.objConfig.windowSize) + " for " +participant_number + ", " + position + " and algo " + algodetail)
+        previousPath = self.objConfig.ProcessingSteps[len(self.objConfig.ProcessingSteps) - 1]
+
+        participantsBestType = {}
+        participantsBestTypeLastSec = {}
+
+        dataTypeList = []
+
+        algodetailupdated =algodetail.replace("_Only","")
+
+        prevdatatypepath = self.objConfig.getPathforFolderName(previousPath + "DataFiles", "PIS-1032",position)#any folder just to get all processed item names
+        for fileName in os.listdir(prevdatatypepath):  # Load previous step files, for each file
+            fileName =fileName.replace(".csv","")
+            if ((not fileName.__contains__("ProcessedCompleted"))):
+                if ((not fileName.__contains__("Graphs"))):
+                    if(not dataTypeList.__contains__(fileName)):
+                        if(fileName.__contains__(algodetailupdated)): #REMOVE FOR nONE TODO
+                            if(algodetailupdated == "PCA"):
+                                if(fileName.__contains__("PCAICA")):
+                                    continue
+                                else:
+                                    dataTypeList.append(fileName)
+                            else:
+                                dataTypeList.append(fileName)
+
+        for processedFile in dataTypeList:
+            previousfullPath = self.objConfig.getPathforFolderName(previousPath + "DataFiles", participant_number,
+                                                                   position)
+            # lOAD Data
+            algorithmDataframe = pd.read_csv(previousfullPath + processedFile + ".csv")  # read file
+
+            algorithmDataframe = algorithmDataframe.sort_values(by=['WindowCount'], ascending=[True])# sort before other processing
+            
+            Actual_data = algorithmDataframe['GroundTruth HeartRate Averaged'].tolist()
+            observed_data = algorithmDataframe['Computed HeartRate'].tolist()
+            diffValues = algorithmDataframe['HRDifference from averaged'].tolist()
+
+            slope, intercept, r, p, std_err = scipy.stats.linregress(Actual_data, observed_data)
+            mean_squared_error_result = np.sqrt(mean_squared_error(Actual_data, observed_data))  # mean_squared_error_result
+            rsqrd = r ** 2
+            meanABS_ = np.mean(abs(np.array(diffValues)))
+            meanWithoutABS_ = np.mean(np.array(diffValues))
+            Liststats  = []
+            Liststats.append(r)
+            Liststats.append(p)
+            Liststats.append(rsqrd)
+            Liststats.append(meanABS_)
+            Liststats.append(meanWithoutABS_)
+            Liststats.append(std_err)
+            Liststats.append(mean_squared_error_result)
+            participantsBestType[participant_number+","+processedFile] = mean_squared_error_result
+
+        for k,v in participantsBestType.items():
+            ksplit = k.split(",")
+            algoName=ksplit[1]
+            pinumber = ksplit[0]
+            rmse=v
+            print(pinumber + "--> " + algoName + " : "+str(rmse))
+            # print("r : " + str(v[0]))
+            # print("p : " + str(v[1]))
+            # print("rsqrd : " + str(v[2]))
+            # print("meanABS_ : " + str(v[3]))
+            # print("meanWithoutABS_ : " + str(v[4]))
+            # print("std_err : " + str(v[5]))
+            # print("mean_squared_error_result : " + str(v[6]))
 
     def GenerateDataFileWithAllDatafrombestmeans(self,position,AlgorithmName,skintype,loadfilename,Filtered):
         processingStep = "StatisticalResults"
@@ -908,6 +1244,162 @@ class ResultsandGraphs:
         algorithmDataframe_AllData.to_csv(
             self.objConfig.DiskPath + processingStep + "DataFiles_W" + str(self.objConfig.windowSize) + "\\"+position+"\\" + str(filterFolderName) + "\\"+ skintype +"_"+loadfilename + "_SkinoverAllcommon_" + position + ".csv")  # Write to file
 
+    def GenerateGraphfromOneFileforALlSPO(self,position,generateChart,AlgorithmName,allfileName,skintype,filtered):#WhiteoverAllcommon
+        objPlots = Plots()
+        ListStatValues = []
+        processingStep = "StatisticalResults"
+        print(processingStep + " --> " + str(self.objConfig.windowSize) + " , "+ AlgorithmName)
+        savepath = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(
+                self.objConfig.windowSize) + '\\' + position+'\\'
+        if(filtered):
+            savepath = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(
+                    self.objConfig.windowSize) + '\\' + position+'\\Filtered\\'
+
+        # self.objFileIO.CreatePath(savepath)
+        # lOAD Data
+        if(skintype == "All"):
+
+            algorithmDataframe1 = pd.read_csv( savepath+ "White" +allfileName +".csv")  # read file
+            algorithmDataframe2 = pd.read_csv( savepath+ "Darker" +allfileName +".csv")  # read file
+
+            alldata = [algorithmDataframe1, algorithmDataframe2]
+            algorithmDataframe = pd.concat(alldata)
+        else:
+
+            algorithmDataframe = pd.read_csv( savepath+ allfileName +".csv")  # read file
+
+        algorithmDataframe=algorithmDataframe.dropna()
+        PulseOximeterClipdataAveraged =  algorithmDataframe['GroundTruth SPO Averaged'].tolist()
+        WindowCount =  algorithmDataframe['WindowCount'].tolist()
+        Observeddata = algorithmDataframe['Computed SPO'].tolist()
+        PulseOximeterClipdataLastSecond =  algorithmDataframe['SPOLastSecond'].tolist()
+        ObserveddataWithoutCheck =  algorithmDataframe['best SPO WithoutReliability Check'].tolist()
+        AVGdiff =  algorithmDataframe['SPO Difference from averaged'].tolist()
+        AVgwithoutcheckdiff =  algorithmDataframe['Original Obtianed Average differenceSPO'].tolist()
+        LastSecondWindowdifferenceHR =  algorithmDataframe['LastSecondWindowdifferenceSPO '].tolist()
+        LastSecondWindowdifferenceHRwithoutcheck =  algorithmDataframe['OriginalObtianedLastSecondWindowdifferenceSPO'].tolist()
+
+        currentSavePath = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(self.objConfig.windowSize) + "\\" + position + "\\" +AlgorithmName + "\\"
+
+        if(filtered):
+            currentSavePath = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(self.objConfig.windowSize) + "\\" + position + "\\Filtered\\" +AlgorithmName + "\\"
+            self.objFileIO.CreatePath(currentSavePath)
+
+
+        print("Standard Deviation of the sample is % s " % (statistics.stdev(AVGdiff)))
+        print("Mean of the sample is % s " % (statistics.mean(AVGdiff)))
+
+        print("Standard Deviation of the sample is % s " % (statistics.stdev(LastSecondWindowdifferenceHR)))
+        print("Mean of the sample is % s " % (statistics.mean(LastSecondWindowdifferenceHR)))
+
+
+        # fig = plt.figure()
+        #
+        # x = np.linspace(-np.pi, np.pi, len(AVGdiff))
+        # y = AVGdiff
+        # y2=AVgwithoutcheckdiff
+        #
+        # ax = plt.gca()
+        #
+        # ax.plot(x, y)
+        # ax.plot(x, y2, color='green')
+        # ax.grid(True)
+        # ax.spines['left'].set_position('zero')
+        # ax.spines['right'].set_color('none')
+        # ax.spines['bottom'].set_position('zero')
+        # ax.spines['top'].set_color('none')
+        #
+        # plt.xlim(-np.pi, np.pi)
+        #
+        # plt.savefig("CenterOriginMatplotlib01.png")
+        # plt.show()
+        # ObserveddataWithoutCheck
+        mean_squared_error_result, r, p = self.GenerateResultbyAlgorithmType(objPlots,
+                                                                             position,
+                                                                             PulseOximeterClipdataAveraged,
+                                                                             Observeddata,
+                                                                             AlgorithmName,
+                                                                             currentSavePath,
+                                                                             "All",
+                                                                             generateChart,
+                                                                             "SPO_All_" + allfileName+ "1_1")
+        # print("Avg SPO vs ARPOS computer r value : " + str(r))
+        ListStatValues.append("Avg SPO vs ARPOS computer:" )
+        ListStatValues.append("r value" + str(r))
+        ListStatValues.append("p value" + str(p))
+        ListStatValues.append("mean_squared_error_result value" + str(mean_squared_error_result))
+
+        # GenerateObservedvsActual
+        mean_squared_error_result, r, p = self.GenerateResultbyAlgorithmType(objPlots,
+                                                                             position,
+                                                                             PulseOximeterClipdataAveraged,
+                                                                             ObserveddataWithoutCheck,
+                                                                             AlgorithmName,
+                                                                             currentSavePath,
+                                                                             "All",
+                                                                             generateChart,
+                                                                             'SPO_' + allfileName + "2_WOcheck")
+
+        # print("Avg SPO vs best bpm unchecked r value : " + str(r))
+        ListStatValues.append("Avg SPO vs best bpm unchecked:" )
+        ListStatValues.append("r value" + str(r) )
+        ListStatValues.append("p value" + str(p) )
+        ListStatValues.append("mean_squared_error_result value" + str(mean_squared_error_result) )
+
+        # ObserveddataWithoutCheck
+        mean_squared_error_result, r, p = self.GenerateResultbyAlgorithmType(objPlots,
+                                                                             position,
+                                                                             PulseOximeterClipdataLastSecond,
+                                                                             Observeddata,
+                                                                             AlgorithmName,
+                                                                             currentSavePath,
+                                                                             "All",
+                                                                             generateChart,
+                                                                             'SPO_All_' + allfileName + "3_1")
+
+        # print("Last sec GR vs ARPOS computed SPO r value : " + str(r))
+        ListStatValues.append("Last sec GR vs ARPOS computed SPO :" )
+        ListStatValues.append("r value" + str(r) )
+        ListStatValues.append("p value" + str(p) )
+        ListStatValues.append("mean_squared_error_result value" + str(mean_squared_error_result) )
+
+        # GenerateObservedvsActual
+        mean_squared_error_result, r, p = self.GenerateResultbyAlgorithmType(objPlots,
+                                                                             position,
+                                                                             PulseOximeterClipdataLastSecond,
+                                                                             ObserveddataWithoutCheck,
+                                                                             AlgorithmName,
+                                                                             currentSavePath,
+                                                                             "All",
+                                                                             generateChart,
+                                                                             'SPO_' + allfileName + "4_WOcheck")
+
+        # print("Last sec GR vs best bpm unchecked r value : " + str(r))
+        ListStatValues.append("Last sec GR vs best bpm unchecked r value :" )
+        ListStatValues.append("r value" + str(r) )
+        ListStatValues.append("p value" + str(p) )
+        ListStatValues.append("mean_squared_error_result value" + str(mean_squared_error_result) )
+
+        if(filtered):
+            self.objFileIO.WriteListDatatoFile(self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(self.objConfig.windowSize) + "\\" + position +"\\Filtered\\" +AlgorithmName + "\\",
+                                               "SPO_stat_values_" + skintype, ListStatValues )
+        else:
+            self.objFileIO.WriteListDatatoFile(self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(self.objConfig.windowSize) + "\\" + position +"\\" +AlgorithmName + "\\",
+                                               "SPO_stat_values_" + skintype, ListStatValues )
+
+        # data_dict = {}
+        # data_dict["AVGdiff"]=AVGdiff
+        # # data_dict["AVgwithoutcheckdiff"]=AVgwithoutcheckdiff
+        # data_dict["LastSecondWindowdifferenceHR"]=LastSecondWindowdifferenceHR
+        # data_dict["LastSecondWindowdifferenceHRwithoutcheck"]=LastSecondWindowdifferenceHRwithoutcheck
+
+        # fig, ax = plt.subplots()
+        # ax.boxplot(data_dict.values())
+        # ax.set_xticklabels(data_dict.keys())
+        # # plt.boxplot(AVGdiff,AVgwithoutcheckdiff,LastSecondWindowdifferenceHR,LastSecondWindowdifferenceHRwithoutcheck)
+        # plt.savefig(savepath + "boxplot_" + allfileName+ ".png")  # Save here
+        # plt.close()
+
     def GenerateGraphfromOneFileforALl(self,position,generateChart,AlgorithmName,allfileName,skintype,filtered):#WhiteoverAllcommon
         objPlots = Plots()
         ListStatValues = []
@@ -921,7 +1413,17 @@ class ResultsandGraphs:
 
         # self.objFileIO.CreatePath(savepath)
         # lOAD Data
-        algorithmDataframe = pd.read_csv( savepath+ allfileName +".csv")  # read file
+        if(skintype == "All"):
+
+            algorithmDataframe1 = pd.read_csv( savepath+ "White" +allfileName +".csv")  # read file
+            algorithmDataframe2 = pd.read_csv( savepath+ "Darker" +allfileName +".csv")  # read file
+
+            alldata = [algorithmDataframe1, algorithmDataframe2]
+            algorithmDataframe = pd.concat(alldata)
+        else:
+
+            algorithmDataframe = pd.read_csv( savepath+ allfileName +".csv")  # read file
+
         algorithmDataframe=algorithmDataframe.dropna()
         PulseOximeterClipdataAveraged =  algorithmDataframe['GroundTruth HeartRate Averaged'].tolist()
         Observeddata = algorithmDataframe['Computed HeartRate'].tolist()
@@ -1102,12 +1604,12 @@ class ResultsandGraphs:
         plt.axhline(md - 1.96 * sd, color='gray', linestyle='--')
         plt.show()
 
-    def DiffPlotMain(self,skintype,position):
+    def DiffPlotMain(self,skintype,position, diffType,saveType):
         algorithmDataframe = pd.DataFrame()
 
         for algorithm in self.objConfig.AlgoList:
             ##Boxplot RMSE over resting1, resting2 and after exc
-            AVGdiff = self.DiffPlot(skintype,position,algorithm)
+            AVGdiff,GroundTruth,GRLastSecond,Computed,WithoutReliability = self.DiffPlot(skintype,position,algorithm,diffType)
 
             algoList = []
             for x in range (0,len(AVGdiff)):
@@ -1135,26 +1637,116 @@ class ResultsandGraphs:
                             data=algorithmDataframe,
                             width=0.5,
                             palette="colorblind", showfliers=False)
-        plt.savefig(self.objConfig.DiskPath + "\\StatisticalResultsDataFiles_W" +str(self.objConfig.windowSize) + "\\" + "boxplotalgorithm_"+skintype+"_" + position+".png")
+        plt.savefig(self.objConfig.DiskPath + "\\StatisticalResultsDataFiles_W" +str(self.objConfig.windowSize) + "\\" + "boxplotal" + saveType + "agorithm_"+skintype+"_" + position+".png")
+        print("StatisticalResultsDataFiles_W" +str(self.objConfig.windowSize) + "\\" + "boxplotalgorithm_"+skintype+"_" + position+".png")
+        
+    def DiffPlotMainSPO(self,skintype,position, diffType,saveType):
+        algorithmDataframe = pd.DataFrame()
+        algorithm = "FastICA"
+        ##Boxplot RMSE over resting1, resting2 and after exc
+        AVGdiff,GroundTruth,GRLastSecond,Computed,WithoutReliability = self.DiffPlot(skintype,position,algorithm,diffType)
+
+        count = 0
+        for item in GroundTruth:
+            temp = pd.DataFrame(
+                {
+                    'Type': 'GroundTruthAveraged',
+                    'value': item
+                }, index=[0]
+            )
+            algorithmDataframe = pd.concat([algorithmDataframe, temp])
+            count = count + 1
+
+        count = 0
+        for item in GRLastSecond:
+            temp = pd.DataFrame(
+                {
+                    'Type': 'GroundTruthLastSecond',
+                    'value': item
+                }, index=[0]
+            )
+            algorithmDataframe = pd.concat([algorithmDataframe, temp])
+            count = count + 1
+
+        count = 0
+        for item in Computed:
+            temp = pd.DataFrame(
+                {
+                    'Type': 'ARPOSComputed',
+                    'value': item
+                }, index=[0]
+            )
+            algorithmDataframe = pd.concat([algorithmDataframe, temp])
+            count = count + 1
+
+        count = 0
+        for item in WithoutReliability:
+            temp = pd.DataFrame(
+                {
+                    'Type': 'ARPOSComputedwithoutReliabilityCheck',
+                    'value': item
+                }, index=[0]
+            )
+            algorithmDataframe = pd.concat([algorithmDataframe, temp])
+            count = count + 1
+
+        plt.switch_backend('agg')
+        plt.ioff()
+        plt.rcParams.update({'figure.max_open_warning': 0})
+        plt.clf()
+        plt.figure(figsize=(14, 14))
+        plt.rc('font', size=14)
+        plt.tight_layout()
+
+        # make boxplot with Seaborn
+        bplot = sns.boxplot(y='Type', x='value',
+                            data=algorithmDataframe,
+                            width=0.5,
+                            palette="colorblind", showfliers=False)
+        plt.savefig(self.objConfig.DiskPath + "\\StatisticalResultsDataFiles_W" +str(self.objConfig.windowSize) + "\\" + "SPOplotICA_"+skintype+"_" + position+".png")
         print("StatisticalResultsDataFiles_W" +str(self.objConfig.windowSize) + "\\" + "boxplotalgorithm_"+skintype+"_" + position+".png")
 
-    def DiffPlot(self,skintype,position,algorithmName):#WhiteoverAllcommon
+    def DiffPlot(self,skintype,position,algorithmName, differenceType):#WhiteoverAllcommon
         savepathResting1 = self.objConfig.DiskPath + "StatisticalResultsDataFiles_W" + str(
                 self.objConfig.windowSize) + '\\' + position+'\\Filtered\\'
 
         # lOAD Data
-        algorithmDataframe = pd.read_csv(savepathResting1 + skintype +"_BestMeansbyAlgoTypeDataW" + str(self.objConfig.windowSize) + "_" + position +
-                                         "_Only" + algorithmName + "_SkinoverAllcommon_" + position  + ".csv")  # read file
+        if(skintype == "All"):
+            algorithmDataframe1 = pd.read_csv(savepathResting1 + "White_BestMeansbyAlgoTypeDataW" + str(self.objConfig.windowSize) + "_" + position +
+                                             "_Only" + algorithmName + "_SkinoverAllcommon_" + position  + ".csv")  # read file
+            algorithmDataframe2 = pd.read_csv(savepathResting1 + "Darker_BestMeansbyAlgoTypeDataW" + str(self.objConfig.windowSize) + "_" + position +
+                                             "_Only" + algorithmName + "_SkinoverAllcommon_" + position  + ".csv")  # read file
+
+            alldata = [algorithmDataframe1, algorithmDataframe2]
+            algorithmDataframe = pd.concat(alldata)
+        else:
+            algorithmDataframe = pd.read_csv(savepathResting1 + skintype +"_BestMeansbyAlgoTypeDataW" + str(self.objConfig.windowSize) + "_" + position +
+                                             "_Only" + algorithmName + "_SkinoverAllcommon_" + position  + ".csv")  # read file
         algorithmDataframe = algorithmDataframe.dropna()
-        AVGdiff = algorithmDataframe['HRDifference from averaged'].tolist()
-        return AVGdiff
+        AVGdiff = algorithmDataframe[differenceType].tolist()
+        if(differenceType.__contains__("SPO")):
+            GroundTruth = algorithmDataframe["GroundTruth SPO Averaged"].tolist()
+            GRLastSecond = algorithmDataframe["SPOLastSecond"].tolist()
+            Computed = algorithmDataframe["Computed SPO"].tolist()
+            WithoutReliability = algorithmDataframe["best SPO WithoutReliability Check"].tolist()
+        else:
+            GroundTruth = algorithmDataframe["GroundTruth HeartRate Averaged"].tolist()
+            GRLastSecond = algorithmDataframe[" Hr from windows last second"].tolist()
+            Computed = algorithmDataframe["Computed HeartRate"].tolist()
+            WithoutReliability = algorithmDataframe["bestBpm Without ReliabilityCheck"].tolist()
+        return AVGdiff,GroundTruth,GRLastSecond,Computed,WithoutReliability
 
     def RMSEPlotMain(self):
         algorithmDataframe = pd.DataFrame()
-
+        dictionalgoMeanDark = {}
+        dictionalgoMeanWhite = {}
         for algorithm in self.objConfig.AlgoList:
             ##Boxplot RMSE over resting1, resting2 and after exc
             rmseArray_White, rmseArray_Dark = self.RMSEPlot(algorithm)
+
+            dictionalgoMeanWhite[algorithm] = np.mean(rmseArray_White)
+            dictionalgoMeanDark[algorithm] = np.mean(rmseArray_Dark)
+
             if (algorithmDataframe.empty):
                 algorithmDataframe["Algorithm"] = [algorithm, algorithm, algorithm]
                 algorithmDataframe["WhiteRMSE"] = rmseArray_White
@@ -1176,6 +1768,12 @@ class ResultsandGraphs:
         #                     width=0.5,
         #                     palette="colorblind")
         # plt.show()
+
+        for k, v in dictionalgoMeanWhite.items():
+            print(k + " for White pigmentation : " + str(v))
+
+        for k, v in dictionalgoMeanDark.items():
+            print(k + " for Darker skin pigmentation : " + str(v))
 
         plt.switch_backend('agg')
         plt.ioff()
@@ -1319,9 +1917,16 @@ class ResultsandGraphs:
     def RvalPlotMain(self):
         algorithmDataframe = pd.DataFrame()
 
+        dictionalgoMeanWhite={}
+        dictionalgoMeanDark={}
+
         for algorithm in self.objConfig.AlgoList:
             ##Boxplot RMSE over resting1, resting2 and after exc
             rmseArray_White, rmseArray_Dark = self.RvalPlot(algorithm)
+
+            dictionalgoMeanWhite[algorithm] = np.mean(rmseArray_White)
+            dictionalgoMeanDark[algorithm] = np.mean(rmseArray_Dark)
+
             if (algorithmDataframe.empty):
                 algorithmDataframe["Algorithm"] = [algorithm, algorithm, algorithm]
                 algorithmDataframe["White"] = rmseArray_White
@@ -1343,6 +1948,12 @@ class ResultsandGraphs:
         #                     width=0.5,
         #                     palette="colorblind")
         # plt.show()
+
+        for k, v in dictionalgoMeanWhite.items():
+            print(k + " for White pigmentation : " + str(v))
+
+        for k, v in dictionalgoMeanDark.items():
+            print(k + " for Darker skin pigmentation : " + str(v))
 
         plt.switch_backend('agg')
         plt.ioff()
@@ -1653,7 +2264,9 @@ class ResultsandGraphs:
         observed_data = algorithmDataframe[observedName].tolist()
         diffValues = algorithmDataframe[diffName].tolist()
 
-        mean_squared_error_result = np.sqrt(mean_squared_error(Actual_data, observed_data))
+        rms = np.sqrt(mean_squared_error(Actual_data, observed_data)) #mean_squared_error_result
+        # rms not squared= mean_squared_error(Actual_data, observed_data, squared=False)
+
         r, p = scipy.stats.pearsonr(Actual_data, observed_data)
         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(Actual_data, observed_data)
         rsqrd= r_value ** 2
@@ -1667,10 +2280,12 @@ class ResultsandGraphs:
         print("slope= "+ str(slope))
         print("intercept= "+ str(intercept))
         print("std_err= "+ str(std_err))
+        # print("mean_squared_error_result= "+ str(mean_squared_error_result))
+        print("rms= "+ str(rms))
         print("rsqrd= "+ str(rsqrd))
         print()
 
-        return r, p, meanABS_, meanWithoutABS_, slope, intercept,std_err,rsqrd
+        return r, p, meanABS_, meanWithoutABS_, slope, intercept,std_err,rsqrd,rms
 
     def LoadComputedResults(self):
         try:

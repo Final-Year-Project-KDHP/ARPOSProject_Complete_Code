@@ -116,7 +116,7 @@ class Configurations:
     # Processed_participants_data = {}
 
     # heart rate status example resting state and after small workout "Resting1","Resting2","AfterExcersize"
-    hearratestatus = ["Resting1","Resting2","AfterExcersize"]#
+    hearratestatus = ["Resting1","Resting2","AfterExcersize"]
 
     #Processing Steps
     ProcessingSteps = [ "PreProcess", "Algorithm", "FFT","ComputerHRandSPO", "SaveResultstoDisk"] # Check Reliability and SaveResultoDatabase

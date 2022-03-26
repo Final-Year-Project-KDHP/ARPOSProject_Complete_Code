@@ -249,6 +249,7 @@ class Plots:
 
     def Genrateboxplot(self,data, savepath, position_type, datatype, xlabeltype,skintype):
         fig = plt.figure(figsize=(12, 8))
+        plt.rc('font', size=18)
         ax = fig.add_subplot(111)
 
         # Creating axes instance
@@ -288,17 +289,17 @@ class Plots:
 
         # x-axis labels
         ax.set_yticklabels(['FastICA', 'None',
-                            'PCA', 'PCAICA', 'Spectralembedding','Jade','GroundTruth'])
+                            'PCA', 'PCAICA', 'Spectralembedding','Jade'])
 
         # Adding title
-        plt.title("Boxplot showing" + xlabeltype + " differences among various algorithms")
-
+        # plt.title("Boxplot showing " + xlabeltype + " differences among various algorithms")
         plt.xlabel(xlabeltype + 'Difference (Commercial - ARPOS)')
-        plt.ylabel('Commercial Pulse Oximeter')
+        plt.ylabel('Algorithms')
         # Removing top axes and right axes
         # ticks
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
+        plt.tight_layout()
 
         # show plot
         path = savepath + position_type + "_boxplot_"+ skintype+"_" + datatype + ".png"
@@ -335,7 +336,7 @@ class Plots:
         true_value = actualArry
         observed_value = observedArry
         plt.figure(figsize=(10, 10))
-        plt.rc('font', size=16)
+        plt.rc('font', size=20)
         plt.scatter(true_value, observed_value, c='crimson', s=sizes, alpha=0.3)
 
 
@@ -344,14 +345,18 @@ class Plots:
 
         p1 = max(max(observed_value), max(true_value))
         p2 = min(min(observed_value), min(true_value))
+
         plt.plot([p1, p2], [p1, p2], 'b-')
 
-        plt.xlabel('Commercial Heart Rate (bpm)', fontsize=15)
-        plt.ylabel('ARPOS Heart Rate (bpm)', fontsize=15)
-        plt.title("plot with r vale " + str(rvalue))
+        vitaltype ="Heart Rate (bpm)"
+        if(fileName.__contains__("SPO")):
+            vitaltype = "SPO %"
+        plt.xlabel('Commercial '+vitaltype, fontsize=20)
+        plt.ylabel('ARPOS '+vitaltype, fontsize=20)
+        # plt.title("plot with r vale " + str(rvalue))
 
-        plt.tick_params(axis='both', which='major', labelsize=13)
-        plt.tick_params(axis='both', which='minor', labelsize=12)
+        plt.tick_params(axis='both', which='major', labelsize=18)
+        plt.tick_params(axis='both', which='minor', labelsize=18)
         plt.axis('equal')
         # plt.legend(['data', 'line-regression r={}'.format(rvalue)], 'best')
         # plt.text(0, 1, 'r = %0.2f' % rvalue)
